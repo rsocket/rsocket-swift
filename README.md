@@ -11,7 +11,7 @@ In phase one, the plan is to focus on the client APIs along with support for the
 ### Interaction Model
 [ ] Request/Response
 
-In the following phases, the plan is to implmement the server APIs along with support for 
+In the following phases, the plan is to implement the server APIs along with support for 
 
 - All interaction models. 
 - Leasing and flow control.

@@ -6,10 +6,10 @@ rsocket-swift is an implementation of the RSocket protocol in Swift. It's an **a
 In phase one, the plan is to focus on the client APIs along with support for the following features
 
 ### Transport
-[ ] WebSocket
+- [ ] WebSocket
 
 ### Interaction Model
-[ ] Request/Response
+- [ ] Request/Response
 
 In the following phases, the plan is to implement the server APIs along with support for 
 

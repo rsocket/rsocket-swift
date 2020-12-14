@@ -1,0 +1,8 @@
+
+import Foundation
+
+
+protocol Frame {
+	
+}
+

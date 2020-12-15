@@ -11,7 +11,7 @@ let package = Package(
         .watchOS(.v2)
     ],
     products: [
-        .library(name: "RSocket", targets: ["RSocket"]),
+        .library(name: "RSocketCore", targets: ["RSocketCore"]),
         .library(name: "RSocketCombine", targets: ["RSocketCombine"]),
         .library(name: "RSocketReactiveSwift", targets: ["RSocketReactiveSwift"])
     ],
@@ -19,10 +19,10 @@ let package = Package(
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
     ],
     targets: [
-        .target(name: "RSocket", dependencies: []),
-        .target(name: "RSocketCombine", dependencies: ["RSocket"]),
-        .target(name: "RSocketReactiveSwift", dependencies: ["RSocket", "ReactiveSwift"]),
-        .testTarget(name: "RSocketTests", dependencies: ["RSocket"]),
+        .target(name: "RSocketCore", dependencies: []),
+        .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
+        .target(name: "RSocketReactiveSwift", dependencies: ["RSocketCore", "ReactiveSwift"]),
+        .testTarget(name: "RSocketCoreTests", dependencies: ["RSocketCore"]),
         .testTarget(name: "RSocketCombineTests", dependencies: ["RSocketCombine"]),
         .testTarget(name: "RSocketReactiveSwiftTests", dependencies: ["RSocketReactiveSwift"])
     ],

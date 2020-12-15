@@ -1,11 +1,11 @@
 import XCTest
-@testable import RSocket
+@testable import RSocketCore
 
-final class RSocketTests: XCTestCase {
+final class RSocketCoreTests: XCTestCase {
     func testExample() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
-        XCTAssertEqual(RSocket().text, "Hello, World!")
+        XCTAssertEqual(RSocketCore().text, "Hello, World!")
     }
 }

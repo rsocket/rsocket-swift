@@ -1,3 +1,3 @@
-struct RSocket {
+struct RSocketCore {
     var text = "Hello, World!"
 }

@@ -17,9 +17,10 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
+        .package(url: "https://github.com/Cosmo/BinaryKit", from: "4.0.0")
     ],
     targets: [
-        .target(name: "RSocketCore", dependencies: []),
+        .target(name: "RSocketCore", dependencies: ["BinaryKit"]),
         .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
         .target(name: "RSocketReactiveSwift", dependencies: ["RSocketCore", "ReactiveSwift"]),
         .testTarget(name: "RSocketCoreTests", dependencies: ["RSocketCore"]),

@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "BinaryKit",
+        "repositoryURL": "https://github.com/Cosmo/BinaryKit",
+        "state": {
+          "branch": null,
+          "revision": "10c28e482b9ff95ef556662ae4507d0f4d4e0077",
+          "version": "4.0.0"
+        }
+      },
+      {
         "package": "ReactiveSwift",
         "repositoryURL": "https://github.com/ReactiveCocoa/ReactiveSwift.git",
         "state": {

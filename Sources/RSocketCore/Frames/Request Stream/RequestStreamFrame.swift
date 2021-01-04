@@ -21,7 +21,7 @@ public struct RequestStreamFrame {
     public init(
         header: FrameHeader,
         initialRequestN: Int32,
-        metadata: Data? = nil,
+        metadata: Data?,
         payload: Data
     ) {
         self.header = header

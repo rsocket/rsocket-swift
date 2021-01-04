@@ -1,27 +1,14 @@
-import BinaryKit
-import Foundation
+import NIO
 
 public struct FrameHeaderEncoder {
-    private enum Constants {
-        static let typeFieldLength = 6
-        static let flagsFieldLength = 10
-    }
-
-    public func encode(header: FrameHeader) throws -> Data {
-        var binary = Binary()
-
-        binary.writeInt(header.streamId)
-
-        let typeBits = header.type.rawValue.bits.suffix(Constants.typeFieldLength)
-        for bit in typeBits {
-            binary.writeBit(bit: bit)
-        }
-
-        let flagsBits = header.flags.rawValue.bits.suffix(Constants.flagsFieldLength)
-        for bit in flagsBits {
-            binary.writeBit(bit: bit)
-        }
-
-        return Data(binary.bytesStore)
+    public func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+        var buffer = allocator.buffer(capacity: FrameHeader.lengthInBytes)
+        buffer.writeInteger(header.streamId)
+        // shift type by amount of flag bits
+        let typeBits = UInt16(header.type.rawValue << 10)
+        // only use trailing 10 bits for flags
+        let flagBits = header.flags.rawValue & 0b0000001111111111
+        buffer.writeInteger(typeBits | flagBits)
+        return buffer
     }
 }

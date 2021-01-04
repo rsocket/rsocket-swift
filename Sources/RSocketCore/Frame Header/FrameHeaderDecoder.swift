@@ -1,31 +1,21 @@
-import BinaryKit
-import Foundation
+import NIO
 
 public struct FrameHeaderDecoder {
-    private enum Constants {
-        static let typeFieldLength = 6
-        static let flagsFieldLength = 10
-    }
-
-    public func decode(data: Data) throws -> FrameHeader {
-        let streamId: Int32
-        let type: FrameType
-        let flags: FrameFlags
-        var binary = Binary(bytes: Array(data))
-        do {
-            streamId = try binary.readInt32()
-
-            let typeBits = UInt8(try binary.readBits(Constants.typeFieldLength))
-            guard let frameType = FrameType(rawValue: typeBits) else {
-                throw FrameError.header(.unknownType(typeBits))
-            }
-            type = frameType
-
-            let flagBits = UInt16(try binary.readBits(Constants.flagsFieldLength))
-            flags = FrameFlags(rawValue: flagBits)
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+    public func decode(buffer: inout ByteBuffer) throws -> FrameHeader {
+        guard let streamId: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
         }
+        guard let typeAndFlagBytes: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        // leading 6 bits are the type
+        let typeValue = UInt8(truncatingIfNeeded: typeAndFlagBytes >> 10)
+        guard let type = FrameType(rawValue: typeValue) else {
+            throw FrameError.header(.unknownType(typeValue))
+        }
+        // trailing 10 bits are the flags
+        let flagValue = typeAndFlagBytes & 0b0000001111111111
+        let flags = FrameFlags(rawValue: flagValue)
         return FrameHeader(streamId: streamId, type: type, flags: flags)
     }
 }

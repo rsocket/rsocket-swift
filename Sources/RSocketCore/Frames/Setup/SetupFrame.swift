@@ -69,10 +69,10 @@ public struct SetupFrame {
         minorVersion: UInt16,
         timeBetweenKeepaliveFrames: Int32,
         maxLifetime: Int32,
-        resumeIdentificationToken: Data? = nil,
+        resumeIdentificationToken: Data?,
         metadataEncodingMimeType: String,
         dataEncodingMimeType: String,
-        metadata: Data? = nil,
+        metadata: Data?,
         payload: Data
     ) {
         self.header = header

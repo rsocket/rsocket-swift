@@ -169,7 +169,6 @@ extension ErrorCode: RawRepresentable {
     }
 }
 
-
 extension ErrorCode {
     public var isProtocolCode: Bool {
         0x0001 <= self.rawValue && self.rawValue <= 0x00300

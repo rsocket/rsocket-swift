@@ -1,57 +1,69 @@
-import BinaryKit
 import Foundation
+import NIO
+import NIOFoundationCompat
 
 public struct SetupFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> SetupFrame {
-        let majorVersion: UInt16
-        let minorVersion: UInt16
-        let timeBetweenKeepaliveFrames: Int32
-        let maxLifetime: Int32
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> SetupFrame {
+        guard let majorVersion: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let minorVersion: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let timeBetweenKeepaliveFrames: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let maxLifetime: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
         let resumeIdentificationToken: Data?
-        let metadataEncodingMimeType: String
-        let dataEncodingMimeType: String
+        if header.flags.contains(.setupResume) {
+            guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
+                throw FrameError.tooSmall
+            }
+            guard let resumeTokenData = buffer.readData(length: Int(resumeTokenLength)) else {
+                throw FrameError.tooSmall
+            }
+            resumeIdentificationToken = resumeTokenData
+        } else {
+            resumeIdentificationToken = nil
+        }
+        guard let metadataEncodingMimeTypeLength: UInt8 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard metadataEncodingMimeTypeLength <= buffer.readableBytes else {
+            throw FrameError.tooSmall
+        }
+        guard let metadataEncodingMimeType = buffer.readString(length: Int(metadataEncodingMimeTypeLength), encoding: .ascii) else {
+            throw FrameError.stringContainsInvalidCharacters
+        }
+        guard let dataEncodingMimeTypeLength: UInt8 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard dataEncodingMimeTypeLength <= buffer.readableBytes else {
+            throw FrameError.tooSmall
+        }
+        guard let dataEncodingMimeType = buffer.readString(length: Int(dataEncodingMimeTypeLength), encoding: .ascii) else {
+            throw FrameError.stringContainsInvalidCharacters
+        }
         let metadata: Data?
+        if header.flags.contains(.metadata) {
+            guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
+                throw FrameError.tooSmall
+            }
+            let metadataLength = Int(bytes: metadataLengthBytes)
+            guard let metadataData = buffer.readData(length: metadataLength) else {
+                throw FrameError.tooSmall
+            }
+            metadata = metadataData
+        } else {
+            metadata = nil
+        }
         let payload: Data
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            majorVersion = try binary.readUInt16()
-
-            minorVersion = try binary.readUInt16()
-
-            timeBetweenKeepaliveFrames = try binary.readInt32()
-
-            maxLifetime = try binary.readInt32()
-
-            if header.flags.contains(.setupResume) {
-                let resumeTokenLength = try binary.readUInt16()
-                resumeIdentificationToken = Data(try binary.readBytes(Int(resumeTokenLength)))
-            } else {
-                resumeIdentificationToken = nil
-            }
-
-            let metadataEncodingMimeTypeLength = try binary.readUInt8()
-            metadataEncodingMimeType = try binary.readString(
-                quantityOfBytes: Int(metadataEncodingMimeTypeLength),
-                encoding: .ascii
-            )
-
-            let dataEncodingMimeTypeLength = try binary.readUInt8()
-            dataEncodingMimeType = try binary.readString(
-                quantityOfBytes: Int(dataEncodingMimeTypeLength),
-                encoding: .ascii
-            )
-
-            if header.flags.contains(.metadata) {
-                let metadataLength = try binary.readBits(FrameConstants.metadataLengthFieldLengthInBytes)
-                metadata = Data(try binary.readBytes(metadataLength))
-            } else {
-                metadata = nil
-            }
-
-            let remainingBytes = binary.count - binary.readBitCursor
-            payload = Data(try binary.readBytes(remainingBytes))
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+        if buffer.readableBytes > 0 {
+            payload = buffer.readData(length: buffer.readableBytes) ?? Data()
+        } else {
+            payload = Data()
         }
         return SetupFrame(
             header: header,

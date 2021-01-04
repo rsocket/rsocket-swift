@@ -1,17 +1,11 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct KeepAliveFrameEncoder: FrameEncoder {
-    public func encode(frame: KeepAliveFrame) throws -> Data {
-        var binary = Binary()
-        
-        let headerData = try FrameHeaderEncoder().encode(header: frame.header)
-        binary.writeBytes(Array(headerData))
-        
-        binary.writeInt(frame.lastReceivedPosition)
-
-        binary.writeBytes(Array(frame.data))
-        
-        return Data(binary.bytesStore)
+    public func encode(frame: KeepAliveFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+        var buffer = try FrameHeaderEncoder().encode(header: frame.header, using: allocator)
+        buffer.writeInteger(frame.lastReceivedPosition)
+        buffer.writeData(frame.data)
+        return buffer
     }
 }

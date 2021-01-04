@@ -24,7 +24,7 @@ public struct LeaseFrame {
      Value MUST be > `0`.
      */
     public let numberOfRequests: Int32
-    
+
     /// Optional metadata of this frame
     public let metadata: Data?
 
@@ -32,13 +32,11 @@ public struct LeaseFrame {
         header: FrameHeader,
         timeToLive: Int32,
         numberOfRequests: Int32,
-        metadata: Data? = nil
+        metadata: Data?
     ) {
         self.header = header
         self.timeToLive = timeToLive
         self.numberOfRequests = numberOfRequests
         self.metadata = metadata
     }
-
-    
 }

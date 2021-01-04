@@ -1,23 +1,23 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct LeaseFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> LeaseFrame {
-        let timeToLive: Int32
-        let numberOfRequests: Int32
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> LeaseFrame {
+        guard let timeToLive: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let numberOfRequests: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
         let metadata: Data?
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            timeToLive = try binary.readInt32()
-            numberOfRequests = try binary.readInt32()
-            if header.flags.contains(.metadata) {
-                let remainingBytes = binary.count - binary.readBitCursor
-                metadata = Data(try binary.readBytes(remainingBytes))
+        if header.flags.contains(.metadata) {
+            if buffer.readableBytes > 0 {
+                metadata = buffer.readData(length: buffer.readableBytes) ?? Data()
             } else {
-                metadata = nil
+                metadata = Data()
             }
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+        } else {
+            metadata = nil
         }
         return LeaseFrame(
             header: header,

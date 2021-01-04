@@ -2,21 +2,21 @@
   "object": {
     "pins": [
       {
-        "package": "BinaryKit",
-        "repositoryURL": "https://github.com/Cosmo/BinaryKit",
-        "state": {
-          "branch": null,
-          "revision": "10c28e482b9ff95ef556662ae4507d0f4d4e0077",
-          "version": "4.0.0"
-        }
-      },
-      {
         "package": "ReactiveSwift",
         "repositoryURL": "https://github.com/ReactiveCocoa/ReactiveSwift.git",
         "state": {
           "branch": null,
           "revision": "e03cda84105ba707de039b757e2b2de868c65a3e",
           "version": "6.5.0"
+        }
+      },
+      {
+        "package": "swift-nio",
+        "repositoryURL": "https://github.com/apple/swift-nio",
+        "state": {
+          "branch": null,
+          "revision": "43931b7a7daf8120a487601530c8bc03ce711992",
+          "version": "2.25.1"
         }
       }
     ]

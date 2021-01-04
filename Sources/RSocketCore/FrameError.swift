@@ -1,15 +1,14 @@
-import BinaryKit
 import Foundation
 
 public enum FrameError: Error {
     /// The given data is too small and can not be parsed
     case tooSmall
 
+    /// The given string contains invalid characters which can not be represented in the required encoding
+    case stringContainsInvalidCharacters
+
     /// The metadata is too big and can't be encoded
     case metadataTooBig
-
-    /// An error occurred while reading the given data
-    case binary(BinaryError)
 
     /// An error occurred while reading/writing the frame header
     case header(FrameHeaderError)

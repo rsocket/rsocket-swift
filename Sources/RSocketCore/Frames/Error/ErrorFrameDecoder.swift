@@ -1,19 +1,19 @@
-import BinaryKit
-import Foundation
+import NIO
 
 public struct ErrorFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> ErrorFrame {
-        let errorCode: ErrorCode
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ErrorFrame {
+        guard let codeValue: UInt32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        let errorCode = ErrorCode(rawValue: codeValue)
         let errorData: String
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            let codeValue = try binary.readUInt32()
-            errorCode = ErrorCode(rawValue: codeValue)
-
-            let remainingBytes = binary.count - binary.readBitCursor
-            errorData = try binary.readString(quantityOfBytes: remainingBytes, encoding: .utf8)
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+        if buffer.readableBytes > 0 {
+            guard let string = buffer.readString(length: buffer.readableBytes) else {
+                throw FrameError.stringContainsInvalidCharacters
+            }
+            errorData = string
+        } else {
+            errorData = ""
         }
         return ErrorFrame(
             header: header,

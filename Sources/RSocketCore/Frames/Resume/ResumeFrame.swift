@@ -16,7 +16,7 @@ public struct ResumeFrame {
     public let minorVersion: UInt16
 
     /// Token used for client resume identification
-    public let resumeIdentificationToken: Data?
+    public let resumeIdentificationToken: Data
 
     /// The last implied position the client received from the server
     public let lastReceivedServerPosition: Int64
@@ -28,7 +28,7 @@ public struct ResumeFrame {
         header: FrameHeader,
         majorVersion: UInt16,
         minorVersion: UInt16,
-        resumeIdentificationToken: Data? = nil,
+        resumeIdentificationToken: Data,
         lastReceivedServerPosition: Int64,
         firstAvailableClientPosition: Int64
     ) {

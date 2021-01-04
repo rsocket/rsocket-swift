@@ -1,26 +1,29 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct RequestChannelFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> RequestChannelFrame {
-        let initialRequestN: Int32
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestChannelFrame {
+        guard let initialRequestN: Int32 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
         let metadata: Data?
-        let payload: Data
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            initialRequestN = try binary.readInt32()
-
-            if header.flags.contains(.metadata) {
-                let metadataLength = try binary.readBits(FrameConstants.metadataLengthFieldLengthInBytes)
-                metadata = Data(try binary.readBytes(metadataLength))
-            } else {
-                metadata = nil
+        if header.flags.contains(.metadata) {
+            guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
+                throw FrameError.tooSmall
             }
-
-            let remainingBytes = binary.count - binary.readBitCursor
-            payload = Data(try binary.readBytes(remainingBytes))
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+            let metadataLength = Int(bytes: metadataLengthBytes)
+            guard let metadataData = buffer.readData(length: metadataLength) else {
+                throw FrameError.tooSmall
+            }
+            metadata = metadataData
+        } else {
+            metadata = nil
+        }
+        let payload: Data
+        if buffer.readableBytes > 0 {
+            payload = buffer.readData(length: buffer.readableBytes) ?? Data()
+        } else {
+            payload = Data()
         }
         return RequestChannelFrame(
             header: header,

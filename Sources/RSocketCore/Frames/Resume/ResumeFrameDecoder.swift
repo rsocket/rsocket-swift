@@ -1,31 +1,25 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct ResumeFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> ResumeFrame {
-        let majorVersion: UInt16
-        let minorVersion: UInt16
-        let resumeIdentificationToken: Data?
-        let lastReceivedServerPosition: Int64
-        let firstAvailableClientPosition: Int64
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            majorVersion = try binary.readUInt16()
-
-            minorVersion = try binary.readUInt16()
-
-            if header.flags.contains(.setupResume) {
-                let resumeTokenLength = try binary.readUInt16()
-                resumeIdentificationToken = Data(try binary.readBytes(Int(resumeTokenLength)))
-            } else {
-                resumeIdentificationToken = nil
-            }
-
-            lastReceivedServerPosition = try binary.readInt64()
-
-            firstAvailableClientPosition = try binary.readInt64()
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ResumeFrame {
+        guard let majorVersion: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let minorVersion: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let resumeIdentificationToken = buffer.readData(length: Int(resumeTokenLength)) else {
+            throw FrameError.tooSmall
+        }
+        guard let lastReceivedServerPosition: Int64 = buffer.readInteger() else {
+            throw FrameError.tooSmall
+        }
+        guard let firstAvailableClientPosition: Int64 = buffer.readInteger() else {
+            throw FrameError.tooSmall
         }
         return ResumeFrame(
             header: header,

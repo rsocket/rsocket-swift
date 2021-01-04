@@ -1,6 +1,6 @@
-import Foundation
+import NIO
 
 public protocol FrameEncoder {
     associatedtype Frame
-    func encode(frame: Frame) throws -> Data
+    func encode(frame: Frame, using allocator: ByteBufferAllocator) throws -> ByteBuffer
 }

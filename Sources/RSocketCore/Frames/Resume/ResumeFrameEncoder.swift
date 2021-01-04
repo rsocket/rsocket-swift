@@ -1,29 +1,18 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct ResumeFrameEncoder: FrameEncoder {
-    public func encode(frame: ResumeFrame) throws -> Data {
-        var binary = Binary()
-
-        let headerData = try FrameHeaderEncoder().encode(header: frame.header)
-        binary.writeBytes(Array(headerData))
-
-        binary.writeInt(frame.majorVersion)
-
-        binary.writeInt(frame.minorVersion)
-
-        if let token = frame.resumeIdentificationToken {
-            guard token.count <= UInt16.max else {
-                throw FrameError.setup(.resumeIdentificationTokenTooBig)
-            }
-            binary.writeInt(UInt16(token.count))
-            binary.writeBytes(Array(token))
+    public func encode(frame: ResumeFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+        var buffer = try FrameHeaderEncoder().encode(header: frame.header, using: allocator)
+        buffer.writeInteger(frame.majorVersion)
+        buffer.writeInteger(frame.minorVersion)
+        guard frame.resumeIdentificationToken.count <= UInt16.max else {
+            throw FrameError.resume(.resumeIdentificationTokenTooBig)
         }
-
-        binary.writeInt(frame.lastReceivedServerPosition)
-
-        binary.writeInt(frame.firstAvailableClientPosition)
-
-        return Data(binary.bytesStore)
+        buffer.writeInteger(UInt16(frame.resumeIdentificationToken.count))
+        buffer.writeData(frame.resumeIdentificationToken)
+        buffer.writeInteger(frame.lastReceivedServerPosition)
+        buffer.writeInteger(frame.firstAvailableClientPosition)
+        return buffer
     }
 }

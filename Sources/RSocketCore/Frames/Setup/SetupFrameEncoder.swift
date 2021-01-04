@@ -1,60 +1,46 @@
-import BinaryKit
 import Foundation
+import NIO
+import NIOFoundationCompat
 
 public struct SetupFrameEncoder: FrameEncoder {
-    public func encode(frame: SetupFrame) throws -> Data {
-        var binary = Binary()
-        
-        let headerData = try FrameHeaderEncoder().encode(header: frame.header)
-        binary.writeBytes(Array(headerData))
-
-        binary.writeInt(frame.majorVersion)
-
-        binary.writeInt(frame.minorVersion)
-
-        binary.writeInt(frame.timeBetweenKeepaliveFrames)
-
-        binary.writeInt(frame.maxLifetime)
-
+    public func encode(frame: SetupFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+        var buffer = try FrameHeaderEncoder().encode(header: frame.header, using: allocator)
+        buffer.writeInteger(frame.majorVersion)
+        buffer.writeInteger(frame.minorVersion)
+        buffer.writeInteger(frame.timeBetweenKeepaliveFrames)
+        buffer.writeInteger(frame.maxLifetime)
         if let token = frame.resumeIdentificationToken {
             guard token.count <= UInt16.max else {
                 throw FrameError.setup(.resumeIdentificationTokenTooBig)
             }
-            binary.writeInt(UInt16(token.count))
-            binary.writeBytes(Array(token))
+            buffer.writeInteger(UInt16(token.count))
+            buffer.writeData(token)
         }
-
         guard let metadataEncodingMimeTypeAsciiData = frame.metadataEncodingMimeType.data(using: .ascii) else {
             throw FrameError.setup(.metadataEncodingMimeTypeContainsInvalidCharacters)
         }
         guard metadataEncodingMimeTypeAsciiData.count <= UInt8.max else {
             throw FrameError.setup(.metadataEncodingMimeTypeTooBig)
         }
-        binary.writeInt(UInt8(metadataEncodingMimeTypeAsciiData.count))
-        binary.writeBytes(Array(metadataEncodingMimeTypeAsciiData))
-
+        buffer.writeInteger(UInt8(metadataEncodingMimeTypeAsciiData.count))
+        buffer.writeData(metadataEncodingMimeTypeAsciiData)
         guard let dataEncodingMimeTypeAsciiData = frame.dataEncodingMimeType.data(using: .ascii) else {
             throw FrameError.setup(.dataEncodingMimeTypeContainsInvalidCharacters)
         }
         guard dataEncodingMimeTypeAsciiData.count <= UInt8.max else {
             throw FrameError.setup(.dataEncodingMimeTypeTooBig)
         }
-        binary.writeInt(UInt8(dataEncodingMimeTypeAsciiData.count))
-        binary.writeBytes(Array(dataEncodingMimeTypeAsciiData))
-
+        buffer.writeInteger(UInt8(dataEncodingMimeTypeAsciiData.count))
+        buffer.writeData(dataEncodingMimeTypeAsciiData)
         if let metadata = frame.metadata {
             guard metadata.count <= FrameConstants.metadataMaximumLength else {
                 throw FrameError.metadataTooBig
             }
-            let metadataLengthBits = UInt32(metadata.count).bits.suffix(FrameConstants.metadataLengthFieldLengthInBytes)
-            for bit in metadataLengthBits {
-                binary.writeBit(bit: bit)
-            }
-            binary.writeBytes(Array(metadata))
+            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameConstants.metadataLengthFieldLengthInBytes)
+            buffer.writeBytes(metadataLengthBytes)
+            buffer.writeData(metadata)
         }
-
-        binary.writeBytes(Array(frame.payload))
-        
-        return Data(binary.bytesStore)
+        buffer.writeData(frame.payload)
+        return buffer
     }
 }

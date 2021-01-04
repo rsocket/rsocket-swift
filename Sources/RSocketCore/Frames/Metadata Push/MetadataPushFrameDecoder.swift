@@ -1,15 +1,13 @@
-import BinaryKit
 import Foundation
+import NIO
 
 public struct MetadataPushFrameDecoder: FrameDecoder {
-    public func decode(header: FrameHeader, dataExcludingHeader: Data) throws -> MetadataPushFrame {
+    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> MetadataPushFrame {
         let metadata: Data
-        var binary = Binary(bytes: Array(dataExcludingHeader))
-        do {
-            let remainingBytes = binary.count - binary.readBitCursor
-            metadata = Data(try binary.readBytes(remainingBytes))
-        } catch let error as BinaryError {
-            throw FrameError.binary(error)
+        if buffer.readableBytes > 0 {
+            metadata = buffer.readData(length: buffer.readableBytes) ?? Data()
+        } else {
+            metadata = Data()
         }
         return MetadataPushFrame(header: header, metadata: metadata)
     }

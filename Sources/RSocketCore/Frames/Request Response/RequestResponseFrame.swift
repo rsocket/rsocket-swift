@@ -13,7 +13,7 @@ public struct RequestResponseFrame {
 
     public init(
         header: FrameHeader,
-        metadata: Data? = nil,
+        metadata: Data?,
         payload: Data
     ) {
         self.header = header

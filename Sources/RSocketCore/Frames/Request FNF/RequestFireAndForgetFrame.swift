@@ -13,7 +13,7 @@ public struct RequestFireAndForgetFrame {
 
     public init(
         header: FrameHeader,
-        metadata: Data? = nil,
+        metadata: Data?,
         payload: Data
     ) {
         self.header = header

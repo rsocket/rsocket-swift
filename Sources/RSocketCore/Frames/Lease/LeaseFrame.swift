@@ -55,4 +55,20 @@ public struct LeaseFrame {
         self.numberOfRequests = numberOfRequests
         self.metadata = metadata
     }
+
+    public init(
+        streamId: Int32,
+        timeToLive: Int32,
+        numberOfRequests: Int32,
+        metadata: Data?
+    ) {
+        var flags = FrameFlags()
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .lease, flags: flags)
+        self.timeToLive = timeToLive
+        self.numberOfRequests = numberOfRequests
+        self.metadata = metadata
+    }
 }

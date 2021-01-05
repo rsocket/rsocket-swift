@@ -35,4 +35,12 @@ public struct RequestNFrame {
         self.header = header
         self.requestN = requestN
     }
+
+    public init(
+        streamId: Int32,
+        requestN: Int32
+    ) {
+        self.header = FrameHeader(streamId: streamId, type: .requestN, flags: [])
+        self.requestN = requestN
+    }
 }

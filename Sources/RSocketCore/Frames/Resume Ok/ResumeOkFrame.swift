@@ -31,4 +31,12 @@ public struct ResumeOkFrame {
         self.header = header
         self.lastReceivedClientPosition = lastReceivedClientPosition
     }
+
+    public init(
+        streamId: Int32,
+        lastReceivedClientPosition: Int64
+    ) {
+        self.header = FrameHeader(streamId: streamId, type: .resumeOk, flags: [])
+        self.lastReceivedClientPosition = lastReceivedClientPosition
+    }
 }

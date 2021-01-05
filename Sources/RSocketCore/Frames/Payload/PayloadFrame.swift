@@ -40,4 +40,30 @@ public struct PayloadFrame {
         self.metadata = metadata
         self.payload = payload
     }
+
+    public init(
+        streamId: Int32,
+        fragmentsFollow: Bool,
+        isCompletion: Bool,
+        isNext: Bool,
+        metadata: Data?,
+        payload: Data
+    ) {
+        var flags = FrameFlags()
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        if fragmentsFollow {
+            flags.insert(.payloadFollows)
+        }
+        if isCompletion {
+            flags.insert(.payloadComplete)
+        }
+        if isNext {
+            flags.insert(.payloadNext)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .payload, flags: flags)
+        self.metadata = metadata
+        self.payload = payload
+    }
 }

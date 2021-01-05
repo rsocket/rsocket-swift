@@ -36,4 +36,22 @@ public struct RequestResponseFrame {
         self.metadata = metadata
         self.payload = payload
     }
+
+    public init(
+        streamId: Int32,
+        fragmentsFollow: Bool,
+        metadata: Data?,
+        payload: Data
+    ) {
+        var flags = FrameFlags()
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        if fragmentsFollow {
+            flags.insert(.requestResponseFollows)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .requestResponse, flags: flags)
+        self.metadata = metadata
+        self.payload = payload
+    }
 }

@@ -24,4 +24,8 @@ public struct CancelFrame {
     public init(header: FrameHeader) {
         self.header = header
     }
+
+    public init(streamId: Int32) {
+        self.header = FrameHeader(streamId: streamId, type: .cancel, flags: [])
+    }
 }

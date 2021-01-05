@@ -45,4 +45,28 @@ public struct RequestChannelFrame {
         self.metadata = metadata
         self.payload = payload
     }
+
+    public init(
+        streamId: Int32,
+        fragmentsFollow: Bool,
+        isCompletion: Bool,
+        initialRequestN: Int32,
+        metadata: Data?,
+        payload: Data
+    ) {
+        var flags = FrameFlags()
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        if fragmentsFollow {
+            flags.insert(.requestChannelFollows)
+        }
+        if isCompletion {
+            flags.insert(.requestChannelComplete)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .requestChannel, flags: flags)
+        self.initialRequestN = initialRequestN
+        self.metadata = metadata
+        self.payload = payload
+    }
 }

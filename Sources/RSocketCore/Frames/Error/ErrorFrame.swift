@@ -39,4 +39,14 @@ public struct ErrorFrame {
         self.errorCode = errorCode
         self.errorData = errorData
     }
+
+    public init(
+        streamId: Int32,
+        errorCode: ErrorCode,
+        errorData: String
+    ) {
+        self.header = FrameHeader(streamId: streamId, type: .error, flags: [])
+        self.errorCode = errorCode
+        self.errorData = errorData
+    }
 }

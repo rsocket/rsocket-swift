@@ -102,4 +102,39 @@ public struct SetupFrame {
         self.metadata = metadata
         self.payload = payload
     }
+
+    public init(
+        streamId: Int32,
+        honorsLease: Bool,
+        majorVersion: UInt16,
+        minorVersion: UInt16,
+        timeBetweenKeepaliveFrames: Int32,
+        maxLifetime: Int32,
+        resumeIdentificationToken: Data?,
+        metadataEncodingMimeType: String,
+        dataEncodingMimeType: String,
+        metadata: Data?,
+        payload: Data
+    ) {
+        var flags = FrameFlags()
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        if resumeIdentificationToken != nil {
+            flags.insert(.setupResume)
+        }
+        if honorsLease {
+            flags.insert(.setupLease)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .setup, flags: flags)
+        self.majorVersion = majorVersion
+        self.minorVersion = minorVersion
+        self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames
+        self.maxLifetime = maxLifetime
+        self.resumeIdentificationToken = resumeIdentificationToken
+        self.metadataEncodingMimeType = metadataEncodingMimeType
+        self.dataEncodingMimeType = dataEncodingMimeType
+        self.metadata = metadata
+        self.payload = payload
+    }
 }

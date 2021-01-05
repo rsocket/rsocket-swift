@@ -55,4 +55,20 @@ public struct ResumeFrame {
         self.lastReceivedServerPosition = lastReceivedServerPosition
         self.firstAvailableClientPosition = firstAvailableClientPosition
     }
+
+    public init(
+        streamId: Int32,
+        majorVersion: UInt16,
+        minorVersion: UInt16,
+        resumeIdentificationToken: Data,
+        lastReceivedServerPosition: Int64,
+        firstAvailableClientPosition: Int64
+    ) {
+        self.header = FrameHeader(streamId: streamId, type: .resume, flags: [])
+        self.majorVersion = majorVersion
+        self.minorVersion = minorVersion
+        self.resumeIdentificationToken = resumeIdentificationToken
+        self.lastReceivedServerPosition = lastReceivedServerPosition
+        self.firstAvailableClientPosition = firstAvailableClientPosition
+    }
 }

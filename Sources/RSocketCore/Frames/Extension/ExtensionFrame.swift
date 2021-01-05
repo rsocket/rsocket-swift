@@ -45,4 +45,24 @@ public struct ExtensionFrame {
         self.metadata = metadata
         self.payload = payload
     }
+
+    public init(
+        streamId: Int32,
+        canBeIgnored: Bool,
+        extendedType: Int32,
+        metadata: Data?,
+        payload: Data
+    ) {
+        var flags = FrameFlags()
+        if canBeIgnored {
+            flags.insert(.ignore)
+        }
+        if metadata != nil {
+            flags.insert(.metadata)
+        }
+        self.header = FrameHeader(streamId: streamId, type: .ext, flags: flags)
+        self.extendedType = extendedType
+        self.metadata = metadata
+        self.payload = payload
+    }
 }

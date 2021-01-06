@@ -28,21 +28,16 @@ public struct RequestChannelFrame {
      */
     public let initialRequestN: Int32
 
-    /// Optional metadata of this frame
-    public let metadata: Data?
-
     /// Identification of the service being requested along with parameters for the request
-    public let payload: Data
+    public let payload: Payload
 
     public init(
         header: FrameHeader,
         initialRequestN: Int32,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         self.header = header
         self.initialRequestN = initialRequestN
-        self.metadata = metadata
         self.payload = payload
     }
 
@@ -51,11 +46,10 @@ public struct RequestChannelFrame {
         fragmentsFollow: Bool,
         isCompletion: Bool,
         initialRequestN: Int32,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         var flags = FrameFlags()
-        if metadata != nil {
+        if payload.metadata != nil {
             flags.insert(.metadata)
         }
         if fragmentsFollow {
@@ -66,7 +60,6 @@ public struct RequestChannelFrame {
         }
         self.header = FrameHeader(streamId: streamId, type: .requestChannel, flags: flags)
         self.initialRequestN = initialRequestN
-        self.metadata = metadata
         self.payload = payload
     }
 }

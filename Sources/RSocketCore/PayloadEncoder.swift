@@ -17,20 +17,22 @@
 import Foundation
 import NIO
 
-public struct LeaseFrameEncoder: FrameEncoding {
-    private let headerEncoder: FrameHeaderEncoding
+public protocol PayloadEncoding {
+    func encode(payload: Payload, to buffer: inout ByteBuffer) throws
+}
 
-    public init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
-        self.headerEncoder = headerEncoder
-    }
+public struct PayloadEncoder: PayloadEncoding {
+    public init() { }
 
-    public func encode(frame: LeaseFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
-        var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
-        buffer.writeInteger(frame.timeToLive)
-        buffer.writeInteger(frame.numberOfRequests)
-        if let metadata = frame.metadata {
+    public func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
+        if let metadata = payload.metadata {
+            guard metadata.count <= FrameConstants.metadataMaximumLength else {
+                throw FrameError.metadataTooBig
+            }
+            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameConstants.metadataLengthFieldLengthInBytes)
+            buffer.writeBytes(metadataLengthBytes)
             buffer.writeData(metadata)
         }
-        return buffer
+        buffer.writeData(payload.data)
     }
 }

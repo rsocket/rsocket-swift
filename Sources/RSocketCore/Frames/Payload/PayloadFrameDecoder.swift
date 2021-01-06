@@ -17,28 +17,15 @@
 import Foundation
 import NIO
 
-public struct PayloadFrameDecoder: FrameDecoder {
+public struct PayloadFrameDecoder: FrameDecoding {
+    private let payloadDecoder: PayloadDecoding
+
+    public init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
+        self.payloadDecoder = payloadDecoder
+    }
+
     public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> PayloadFrame {
-        let metadata: Data?
-        if header.flags.contains(.metadata) {
-            guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
-                throw FrameError.tooSmall
-            }
-            let metadataLength = Int(bytes: metadataLengthBytes)
-            guard let metadataData = buffer.readData(length: metadataLength) else {
-                throw FrameError.tooSmall
-            }
-            metadata = metadataData
-        } else {
-            metadata = nil
-        }
-        let data: Data
-        if buffer.readableBytes > 0 {
-            data = buffer.readData(length: buffer.readableBytes) ?? Data()
-        } else {
-            data = Data()
-        }
-        let payload = Payload(metadata: metadata, data: data)
+        let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return PayloadFrame(header: header, payload: payload)
     }
 }

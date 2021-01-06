@@ -16,7 +16,7 @@
 
 import NIO
 
-public struct ErrorFrameDecoder: FrameDecoder {
+public struct ErrorFrameDecoder: FrameDecoding {
     public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ErrorFrame {
         guard let codeValue: UInt32 = buffer.readInteger() else {
             throw FrameError.tooSmall

@@ -16,7 +16,7 @@
 
 import NIO
 
-public protocol FrameEncoder {
+public protocol FrameDecoding {
     associatedtype Frame
-    func encode(frame: Frame, using allocator: ByteBufferAllocator) throws -> ByteBuffer
+    func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> Frame
 }

@@ -16,7 +16,13 @@
 
 import NIO
 
-public struct FrameHeaderEncoder {
+public protocol FrameHeaderEncoding {
+    func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer
+}
+
+public struct FrameHeaderEncoder: FrameHeaderEncoding {
+    public init() { }
+
     public func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = allocator.buffer(capacity: FrameHeader.lengthInBytes)
         buffer.writeInteger(header.streamId)

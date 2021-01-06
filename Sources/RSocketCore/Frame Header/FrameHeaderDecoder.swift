@@ -16,7 +16,13 @@
 
 import NIO
 
-public struct FrameHeaderDecoder {
+public protocol FrameHeaderDecoding {
+    func decode(buffer: inout ByteBuffer) throws -> FrameHeader
+}
+
+public struct FrameHeaderDecoder: FrameHeaderDecoding {
+    public init() { }
+
     public func decode(buffer: inout ByteBuffer) throws -> FrameHeader {
         guard let streamId: Int32 = buffer.readInteger() else {
             throw FrameError.tooSmall

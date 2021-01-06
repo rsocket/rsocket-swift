@@ -21,37 +21,30 @@ public struct RequestFireAndForgetFrame {
     /// The header of this frame
     public let header: FrameHeader
 
-    /// Optional metadata of this frame
-    public let metadata: Data?
-
     /// Identification of the service being requested along with parameters for the request
-    public let payload: Data
+    public let payload: Payload
 
     public init(
         header: FrameHeader,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         self.header = header
-        self.metadata = metadata
         self.payload = payload
     }
 
     public init(
         streamId: Int32,
         fragmentsFollow: Bool,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         var flags = FrameFlags()
-        if metadata != nil {
+        if payload.metadata != nil {
             flags.insert(.metadata)
         }
         if fragmentsFollow {
             flags.insert(.requestFireAndForgetFollows)
         }
         self.header = FrameHeader(streamId: streamId, type: .requestFnf, flags: flags)
-        self.metadata = metadata
         self.payload = payload
     }
 }

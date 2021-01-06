@@ -17,10 +17,26 @@
 import Foundation
 import NIO
 
-public struct KeepAliveFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> KeepAliveFrame {
-        guard let lastReceivedPosition: Int64 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+public protocol PayloadDecoding {
+    func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload
+}
+
+public struct PayloadDecoder: PayloadDecoding {
+    public init() { }
+
+    public func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload {
+        let metadata: Data?
+        if hasMetadata {
+            guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
+                throw FrameError.tooSmall
+            }
+            let metadataLength = Int(bytes: metadataLengthBytes)
+            guard let metadataData = buffer.readData(length: metadataLength) else {
+                throw FrameError.tooSmall
+            }
+            metadata = metadataData
+        } else {
+            metadata = nil
         }
         let data: Data
         if buffer.readableBytes > 0 {
@@ -28,10 +44,6 @@ public struct KeepAliveFrameDecoder: FrameDecoding {
         } else {
             data = Data()
         }
-        return KeepAliveFrame(
-            header: header,
-            lastReceivedPosition: lastReceivedPosition,
-            data: data
-        )
+        return Payload(metadata: metadata, data: data)
     }
 }

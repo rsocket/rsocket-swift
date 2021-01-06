@@ -28,21 +28,16 @@ public struct ExtensionFrame {
      */
     public let extendedType: Int32
 
-    /// Optional metadata of this frame
-    public let metadata: Data?
-
     /// The payload for the extended type
-    public let payload: Data
+    public let payload: Payload
 
     public init(
         header: FrameHeader,
         extendedType: Int32,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         self.header = header
         self.extendedType = extendedType
-        self.metadata = metadata
         self.payload = payload
     }
 
@@ -50,19 +45,17 @@ public struct ExtensionFrame {
         streamId: Int32,
         canBeIgnored: Bool,
         extendedType: Int32,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         var flags = FrameFlags()
         if canBeIgnored {
             flags.insert(.ignore)
         }
-        if metadata != nil {
+        if payload.metadata != nil {
             flags.insert(.metadata)
         }
         self.header = FrameHeader(streamId: streamId, type: .ext, flags: flags)
         self.extendedType = extendedType
-        self.metadata = metadata
         self.payload = payload
     }
 }

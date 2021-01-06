@@ -73,11 +73,8 @@ public struct SetupFrame {
      */
     public let dataEncodingMimeType: String
 
-    /// Optional metadata of this frame
-    public let metadata: Data?
-
     /// Payload of this frame describing connection capabilities of the endpoint sending the Setup header
-    public let payload: Data
+    public let payload: Payload
 
     public init(
         header: FrameHeader,
@@ -88,8 +85,7 @@ public struct SetupFrame {
         resumeIdentificationToken: Data?,
         metadataEncodingMimeType: String,
         dataEncodingMimeType: String,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         self.header = header
         self.majorVersion = majorVersion
@@ -99,7 +95,6 @@ public struct SetupFrame {
         self.resumeIdentificationToken = resumeIdentificationToken
         self.metadataEncodingMimeType = metadataEncodingMimeType
         self.dataEncodingMimeType = dataEncodingMimeType
-        self.metadata = metadata
         self.payload = payload
     }
 
@@ -113,11 +108,10 @@ public struct SetupFrame {
         resumeIdentificationToken: Data?,
         metadataEncodingMimeType: String,
         dataEncodingMimeType: String,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         var flags = FrameFlags()
-        if metadata != nil {
+        if payload.metadata != nil {
             flags.insert(.metadata)
         }
         if resumeIdentificationToken != nil {
@@ -134,7 +128,6 @@ public struct SetupFrame {
         self.resumeIdentificationToken = resumeIdentificationToken
         self.metadataEncodingMimeType = metadataEncodingMimeType
         self.dataEncodingMimeType = dataEncodingMimeType
-        self.metadata = metadata
         self.payload = payload
     }
 }

@@ -18,7 +18,13 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
-public struct SetupFrameDecoder: FrameDecoder {
+public struct SetupFrameDecoder: FrameDecoding {
+    private let payloadDecoder: PayloadDecoding
+
+    public init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
+        self.payloadDecoder = payloadDecoder
+    }
+
     public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> SetupFrame {
         guard let majorVersion: UInt16 = buffer.readInteger() else {
             throw FrameError.tooSmall
@@ -62,25 +68,7 @@ public struct SetupFrameDecoder: FrameDecoder {
         guard let dataEncodingMimeType = buffer.readString(length: Int(dataEncodingMimeTypeLength), encoding: .ascii) else {
             throw FrameError.stringContainsInvalidCharacters
         }
-        let metadata: Data?
-        if header.flags.contains(.metadata) {
-            guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
-                throw FrameError.tooSmall
-            }
-            let metadataLength = Int(bytes: metadataLengthBytes)
-            guard let metadataData = buffer.readData(length: metadataLength) else {
-                throw FrameError.tooSmall
-            }
-            metadata = metadataData
-        } else {
-            metadata = nil
-        }
-        let payload: Data
-        if buffer.readableBytes > 0 {
-            payload = buffer.readData(length: buffer.readableBytes) ?? Data()
-        } else {
-            payload = Data()
-        }
+        let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return SetupFrame(
             header: header,
             majorVersion: majorVersion,
@@ -90,7 +78,6 @@ public struct SetupFrameDecoder: FrameDecoder {
             resumeIdentificationToken: resumeIdentificationToken,
             metadataEncodingMimeType: metadataEncodingMimeType,
             dataEncodingMimeType: dataEncodingMimeType,
-            metadata: metadata,
             payload: payload
         )
     }

@@ -17,19 +17,23 @@
 import Foundation
 import NIO
 
-public struct RequestStreamFrameEncoder: FrameEncoder {
+public struct RequestStreamFrameEncoder: FrameEncoding {
+    private let headerEncoder: FrameHeaderEncoding
+
+    private let payloadEncoder: PayloadEncoding
+
+    public init(
+        headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder(),
+        payloadEncoder: PayloadEncoding = PayloadEncoder()
+    ) {
+        self.headerEncoder = headerEncoder
+        self.payloadEncoder = payloadEncoder
+    }
+
     public func encode(frame: RequestStreamFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
-        var buffer = try FrameHeaderEncoder().encode(header: frame.header, using: allocator)
+        var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
         buffer.writeInteger(frame.initialRequestN)
-        if let metadata = frame.metadata {
-            guard metadata.count <= FrameConstants.metadataMaximumLength else {
-                throw FrameError.metadataTooBig
-            }
-            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameConstants.metadataLengthFieldLengthInBytes)
-            buffer.writeBytes(metadataLengthBytes)
-            buffer.writeData(metadata)
-        }
-        buffer.writeData(frame.payload)
+        try payloadEncoder.encode(payload: frame.payload, to: &buffer)
         return buffer
     }
 }

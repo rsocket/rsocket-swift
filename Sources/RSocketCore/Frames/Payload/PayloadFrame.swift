@@ -25,19 +25,14 @@ public struct PayloadFrame {
     /// The header of this frame
     public let header: FrameHeader
 
-    /// Optional metadata of this frame
-    public let metadata: Data?
-
     /// Payload for Reactive Streams `onNext`
-    public let payload: Data
+    public let payload: Payload
 
     public init(
         header: FrameHeader,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         self.header = header
-        self.metadata = metadata
         self.payload = payload
     }
 
@@ -46,11 +41,10 @@ public struct PayloadFrame {
         fragmentsFollow: Bool,
         isCompletion: Bool,
         isNext: Bool,
-        metadata: Data?,
-        payload: Data
+        payload: Payload
     ) {
         var flags = FrameFlags()
-        if metadata != nil {
+        if payload.metadata != nil {
             flags.insert(.metadata)
         }
         if fragmentsFollow {
@@ -63,7 +57,6 @@ public struct PayloadFrame {
             flags.insert(.payloadNext)
         }
         self.header = FrameHeader(streamId: streamId, type: .payload, flags: flags)
-        self.metadata = metadata
         self.payload = payload
     }
 }

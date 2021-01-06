@@ -20,7 +20,7 @@ import NIO
 public struct PayloadFrameEncoder: FrameEncoder {
     public func encode(frame: PayloadFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try FrameHeaderEncoder().encode(header: frame.header, using: allocator)
-        if let metadata = frame.metadata {
+        if let metadata = frame.payload.metadata {
             guard metadata.count <= FrameConstants.metadataMaximumLength else {
                 throw FrameError.metadataTooBig
             }
@@ -28,7 +28,7 @@ public struct PayloadFrameEncoder: FrameEncoder {
             buffer.writeBytes(metadataLengthBytes)
             buffer.writeData(metadata)
         }
-        buffer.writeData(frame.payload)
+        buffer.writeData(frame.payload.data)
         return buffer
     }
 }

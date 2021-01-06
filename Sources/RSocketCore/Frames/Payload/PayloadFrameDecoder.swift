@@ -32,12 +32,13 @@ public struct PayloadFrameDecoder: FrameDecoder {
         } else {
             metadata = nil
         }
-        let payload: Data
+        let data: Data
         if buffer.readableBytes > 0 {
-            payload = buffer.readData(length: buffer.readableBytes) ?? Data()
+            data = buffer.readData(length: buffer.readableBytes) ?? Data()
         } else {
-            payload = Data()
+            data = Data()
         }
-        return PayloadFrame(header: header, metadata: metadata, payload: payload)
+        let payload = Payload(metadata: metadata, data: data)
+        return PayloadFrame(header: header, payload: payload)
     }
 }

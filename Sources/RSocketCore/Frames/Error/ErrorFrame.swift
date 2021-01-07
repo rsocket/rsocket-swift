@@ -24,7 +24,7 @@ public struct ErrorFrame {
     /// The header of this frame
     public let header: FrameHeader
 
-    /// The type of the error
+    /// The error that occurred
     public let error: Error
 
     public init(

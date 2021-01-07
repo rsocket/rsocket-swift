@@ -20,28 +20,198 @@ import Foundation
  Errors are used on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-public struct Error: Swift.Error {
-    /// The type of the error
-    public let code: ErrorCode
+public enum Error: Swift.Error {
+    /// Reserved
+    case reservedLower(message: String)
 
-    /// Error information
-    public let message: String
+    /**
+     The Setup frame is invalid for the server (it could be that the client is too recent for the old server)
 
-    public init(
-        code: ErrorCode,
-        message: String
-    ) {
-        self.code = code
-        self.message = message
-    }
+     Stream ID MUST be `0`.
+     */
+    case invalidSetup(message: String)
+
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
+
+     Stream ID MUST be `0`.
+     */
+    case unsupportedSetup(message: String)
+
+    /**
+     The server rejected the setup, it can specify the reason in the payload
+
+     Stream ID MUST be `0`.
+     */
+    case rejectedSetup(message: String)
+
+    /**
+     The server rejected the resume, it can specify the reason in the payload
+
+     Stream ID MUST be `0`.
+     */
+    case rejectedResume(message: String)
+
+    /**
+     The connection is being terminated
+
+     Stream ID MUST be `0`. Sender or Receiver of this frame MAY close the connection immediately without waiting for outstanding streams to terminate.
+     */
+    case connectionError(message: String)
+
+    /**
+     The connection is being terminated
+
+     Stream ID MUST be `0`. Sender or Receiver of this frame MUST wait for outstanding streams to terminate before closing the connection. New requests MAY not be accepted.
+     */
+    case connectionClose(message: String)
+
+    /**
+     Application layer logic generating a Reactive Streams `onError` event
+
+     Stream ID MUST be > `0`.
+     */
+    case applicationError(message: String)
+
+    /**
+     Despite being a valid request, the Responder decided to reject it
+
+     Stream ID MUST be > `0`. The Responder guarantees that it didn't process the request. The reason for the rejection is explained in the Error Data section.
+     */
+    case rejected(message: String)
+
+    /**
+     The Responder canceled the request but may have started processing it (similar to `REJECTED` but doesn't guarantee lack of side-effects)
+
+     Stream ID MUST be > `0`.
+     */
+    case canceled(message: String)
+
+    /**
+     The request is invalid
+
+     Stream ID MUST be > `0`.
+     */
+    case invalid(message: String)
+
+    /// Reserved for Extension Use
+    case reservedUpper(message: String)
+
+    /// Error code not listed in this enumeration.
+    case other(code: UInt32, message: String)
 }
 
 extension Error {
+    public var code: UInt32 {
+        switch self {
+        case .reservedLower:
+            return 0x00000000
+
+        case .invalidSetup:
+            return 0x00000001
+
+        case .unsupportedSetup:
+            return 0x00000002
+
+        case .rejectedSetup:
+            return 0x00000003
+
+        case .rejectedResume:
+            return 0x00000004
+
+        case .connectionError:
+            return 0x00000101
+
+        case .connectionClose:
+            return 0x00000102
+
+        case .applicationError:
+            return 0x00000201
+
+        case .rejected:
+            return 0x00000202
+
+        case .canceled:
+            return 0x00000203
+
+        case .invalid:
+            return 0x00000204
+
+        case .reservedUpper:
+            return 0xFFFFFFFF
+
+        case let .other(code: code, message: _):
+            return code
+        }
+    }
+
+    public var message: String {
+        switch self {
+        case let .reservedLower(message: message),
+             let .invalidSetup(message: message),
+             let .unsupportedSetup(message: message),
+             let .rejectedSetup(message: message),
+             let .rejectedResume(message: message),
+             let .connectionError(message: message),
+             let .connectionClose(message: message),
+             let .applicationError(message: message),
+             let .rejected(message: message),
+             let .canceled(message: message),
+             let .invalid(message: message),
+             let .reservedUpper(message: message),
+             let .other(code: _, message: message):
+            return message
+        }
+    }
+
     public var isProtocolError: Bool {
-        0x0001 <= code.rawValue && code.rawValue <= 0x00300
+        0x0001 <= code && code <= 0x00300
     }
 
     public var isApplicationLayerError: Bool {
-        0x00301 <= code.rawValue && code.rawValue <= 0xFFFFFFFE
+        0x00301 <= code && code <= 0xFFFFFFFE
+    }
+
+    public init(code: UInt32, message: String) {
+        switch code {
+        case Error.reservedLower(message: message).code:
+            self = .reservedLower(message: message)
+
+        case Error.invalidSetup(message: message).code:
+            self = .invalidSetup(message: message)
+
+        case Error.unsupportedSetup(message: message).code:
+            self = .unsupportedSetup(message: message)
+
+        case Error.rejectedSetup(message: message).code:
+            self = .rejectedSetup(message: message)
+
+        case Error.rejectedResume(message: message).code:
+            self = .rejectedResume(message: message)
+
+        case Error.connectionError(message: message).code:
+            self = .connectionError(message: message)
+
+        case Error.connectionClose(message: message).code:
+            self = .connectionClose(message: message)
+
+        case Error.applicationError(message: message).code:
+            self = .applicationError(message: message)
+
+        case Error.rejected(message: message).code:
+            self = .rejected(message: message)
+
+        case Error.canceled(message: message).code:
+            self = .canceled(message: message)
+
+        case Error.invalid(message: message).code:
+            self = .invalid(message: message)
+
+        case Error.reservedUpper(message: message).code:
+            self = .reservedUpper(message: message)
+
+        default:
+            self = .other(code: code, message: message)
+        }
     }
 }

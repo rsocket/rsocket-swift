@@ -174,40 +174,40 @@ extension Error {
 
     public init(code: UInt32, message: String) {
         switch code {
-        case Error.reservedLower(message: message).code:
+        case 0x00000000:
             self = .reservedLower(message: message)
 
-        case Error.invalidSetup(message: message).code:
+        case 0x00000001:
             self = .invalidSetup(message: message)
 
-        case Error.unsupportedSetup(message: message).code:
+        case 0x00000002:
             self = .unsupportedSetup(message: message)
 
-        case Error.rejectedSetup(message: message).code:
+        case 0x00000003:
             self = .rejectedSetup(message: message)
 
-        case Error.rejectedResume(message: message).code:
+        case 0x00000004:
             self = .rejectedResume(message: message)
 
-        case Error.connectionError(message: message).code:
+        case 0x00000101:
             self = .connectionError(message: message)
 
-        case Error.connectionClose(message: message).code:
+        case 0x00000102:
             self = .connectionClose(message: message)
 
-        case Error.applicationError(message: message).code:
+        case 0x00000201:
             self = .applicationError(message: message)
 
-        case Error.rejected(message: message).code:
+        case 0x00000202:
             self = .rejected(message: message)
 
-        case Error.canceled(message: message).code:
+        case 0x00000203:
             self = .canceled(message: message)
 
-        case Error.invalid(message: message).code:
+        case 0x00000204:
             self = .invalid(message: message)
 
-        case Error.reservedUpper(message: message).code:
+        case 0xFFFFFFFF:
             self = .reservedUpper(message: message)
 
         default:

@@ -17,8 +17,8 @@
 import Foundation
 import NIO
 
-public struct MetadataPushFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> MetadataPushFrame {
+internal struct MetadataPushFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> MetadataPushFrame {
         let metadata: Data
         if buffer.readableBytes > 0 {
             metadata = buffer.readData(length: buffer.readableBytes) ?? Data()

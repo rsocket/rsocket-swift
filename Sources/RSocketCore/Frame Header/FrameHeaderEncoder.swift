@@ -16,14 +16,12 @@
 
 import NIO
 
-public protocol FrameHeaderEncoding {
+internal protocol FrameHeaderEncoding {
     func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer
 }
 
-public struct FrameHeaderEncoder: FrameHeaderEncoding {
-    public init() { }
-
-    public func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+internal struct FrameHeaderEncoder: FrameHeaderEncoding {
+    internal func encode(header: FrameHeader, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = allocator.buffer(capacity: FrameHeader.lengthInBytes)
         buffer.writeInteger(header.streamId)
         // shift type by amount of flag bits

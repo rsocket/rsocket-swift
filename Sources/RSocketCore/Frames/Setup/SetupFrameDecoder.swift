@@ -18,14 +18,14 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
-public struct SetupFrameDecoder: FrameDecoding {
+internal struct SetupFrameDecoder: FrameDecoding {
     private let payloadDecoder: PayloadDecoding
 
-    public init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
+    internal init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
         self.payloadDecoder = payloadDecoder
     }
 
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> SetupFrame {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> SetupFrame {
         guard let majorVersion: UInt16 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }

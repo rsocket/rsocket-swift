@@ -17,5 +17,5 @@
 import Foundation
 
 public enum ErrorFrameError: Swift.Error {
-    case invalidErrorCode(ErrorCode)
+    case invalidErrorCode(UInt32)
 }

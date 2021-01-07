@@ -17,21 +17,21 @@
 import Foundation
 
 /// Indicates to the receiver that the sender is alive
-public struct KeepAliveFrame {
+internal struct KeepAliveFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /**
      Resume Last Received Position
 
      Value MUST be > `0`. (optional. Set to all `0`s when not supported.)
      */
-    public let lastReceivedPosition: Int64
+    internal let lastReceivedPosition: Int64
 
     /// Data attached to a `KEEPALIVE`
-    public let data: Data
+    internal let data: Data
 
-    public init(
+    internal init(
         header: FrameHeader,
         lastReceivedPosition: Int64,
         data: Data
@@ -41,7 +41,7 @@ public struct KeepAliveFrame {
         self.data = data
     }
 
-    public init(
+    internal init(
         respondWithKeepalive: Bool,
         lastReceivedPosition: Int64,
         data: Data

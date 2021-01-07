@@ -16,10 +16,10 @@
 
 import Foundation
 
-public struct FrameFlags: OptionSet {
-    public let rawValue: UInt16
+internal struct FrameFlags: OptionSet {
+    internal let rawValue: UInt16
 
-    public init(rawValue: UInt16) {
+    internal init(rawValue: UInt16) {
         self.rawValue = rawValue
     }
 
@@ -31,8 +31,8 @@ public struct FrameFlags: OptionSet {
      An implementation MAY send an ERROR[CONNECTION_ERROR] frame and close the underlying transport
      connection on reception of a frame that it does not understand with this bit not set.
      */
-    public static let ignore = FrameFlags(rawValue: 1 << 9)
+    internal static let ignore = FrameFlags(rawValue: 1 << 9)
 
     /// (M)etadata: Indicates that the frame contains metadata
-    public static let metadata = FrameFlags(rawValue: 1 << 8)
+    internal static let metadata = FrameFlags(rawValue: 1 << 8)
 }

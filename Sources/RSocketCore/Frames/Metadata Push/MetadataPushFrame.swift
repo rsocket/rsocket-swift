@@ -17,14 +17,14 @@
 import Foundation
 
 /// A Metadata Push frame can be used to send asynchronous metadata notifications from a Requester or Responder to its peer
-public struct MetadataPushFrame {
+internal struct MetadataPushFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// Metadata of this frame
-    public let metadata: Data
+    internal let metadata: Data
 
-    public init(
+    internal init(
         header: FrameHeader,
         metadata: Data
     ) {
@@ -32,7 +32,7 @@ public struct MetadataPushFrame {
         self.metadata = metadata
     }
 
-    public init(metadata: Data) {
+    internal init(metadata: Data) {
         self.header = FrameHeader(streamId: 0, type: .metadataPush, flags: .metadata)
         self.metadata = metadata
     }

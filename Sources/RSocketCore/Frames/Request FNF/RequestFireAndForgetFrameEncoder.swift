@@ -17,12 +17,12 @@
 import Foundation
 import NIO
 
-public struct RequestFireAndForgetFrameEncoder: FrameEncoding {
+internal struct RequestFireAndForgetFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
     private let payloadEncoder: PayloadEncoding
 
-    public init(
+    internal init(
         headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder(),
         payloadEncoder: PayloadEncoding = PayloadEncoder()
     ) {
@@ -30,7 +30,7 @@ public struct RequestFireAndForgetFrameEncoder: FrameEncoding {
         self.payloadEncoder = payloadEncoder
     }
 
-    public func encode(frame: RequestFireAndForgetFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: RequestFireAndForgetFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
         try payloadEncoder.encode(payload: frame.payload, to: &buffer)
         return buffer

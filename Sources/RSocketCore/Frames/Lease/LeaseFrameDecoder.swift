@@ -17,8 +17,8 @@
 import Foundation
 import NIO
 
-public struct LeaseFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> LeaseFrame {
+internal struct LeaseFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> LeaseFrame {
         guard let timeToLive: Int32 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }

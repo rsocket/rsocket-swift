@@ -17,21 +17,21 @@
 import Foundation
 
 /// Request a completable stream in both directions
-public struct RequestChannelFrame {
+internal struct RequestChannelFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /**
      The initial number of items to request
 
      Value MUST be > `0`.
      */
-    public let initialRequestN: Int32
+    internal let initialRequestN: Int32
 
     /// Identification of the service being requested along with parameters for the request
-    public let payload: Payload
+    internal let payload: Payload
 
-    public init(
+    internal init(
         header: FrameHeader,
         initialRequestN: Int32,
         payload: Payload
@@ -41,7 +41,7 @@ public struct RequestChannelFrame {
         self.payload = payload
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         fragmentsFollow: Bool,
         isCompletion: Bool,

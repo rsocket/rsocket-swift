@@ -17,14 +17,14 @@
 import Foundation
 import NIO
 
-public struct RequestChannelFrameDecoder: FrameDecoding {
+internal struct RequestChannelFrameDecoder: FrameDecoding {
     private let payloadDecoder: PayloadDecoding
 
-    public init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
+    internal init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
         self.payloadDecoder = payloadDecoder
     }
 
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestChannelFrame {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestChannelFrame {
         guard let initialRequestN: Int32 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }

@@ -17,21 +17,21 @@
 import Foundation
 
 /// Used To extend more frame types as well as extensions
-public struct ExtensionFrame {
+internal struct ExtensionFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /**
      Extended type information
 
      Value MUST be > `0`.
      */
-    public let extendedType: Int32
+    internal let extendedType: Int32
 
     /// The payload for the extended type
-    public let payload: Payload
+    internal let payload: Payload
 
-    public init(
+    internal init(
         header: FrameHeader,
         extendedType: Int32,
         payload: Payload
@@ -41,7 +41,7 @@ public struct ExtensionFrame {
         self.payload = payload
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         canBeIgnored: Bool,
         extendedType: Int32,

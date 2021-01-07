@@ -17,8 +17,8 @@
 import Foundation
 import NIO
 
-public struct KeepAliveFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> KeepAliveFrame {
+internal struct KeepAliveFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> KeepAliveFrame {
         guard let lastReceivedPosition: Int64 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }

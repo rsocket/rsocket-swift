@@ -17,9 +17,9 @@
 import Foundation
 
 extension ErrorFrame {
-    public func validate() throws {
+    internal func validate() throws {
         if header.streamId == 0 {
-            switch error.code {
+            switch error {
             case .invalidSetup, .unsupportedSetup, .rejectedSetup, .connectionError, .connectionClose:
                 break
 
@@ -27,7 +27,7 @@ extension ErrorFrame {
                 throw FrameError.error(.invalidErrorCode(error.code))
             }
         } else {
-            switch error.code {
+            switch error {
             case .applicationError, .rejected, .canceled, .invalid:
                 break
 

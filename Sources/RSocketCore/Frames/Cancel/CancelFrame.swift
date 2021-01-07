@@ -17,15 +17,15 @@
 import Foundation
 
 /// A cancel frame indicates the cancellation of an outstanding request
-public struct CancelFrame {
+internal struct CancelFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
-    public init(header: FrameHeader) {
+    internal init(header: FrameHeader) {
         self.header = header
     }
 
-    public init(streamId: Int32) {
+    internal init(streamId: Int32) {
         self.header = FrameHeader(streamId: streamId, type: .cancel, flags: [])
     }
 }

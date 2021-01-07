@@ -23,28 +23,28 @@ import Foundation
 
  The last received `LEASE` frame overrides all previous `LEASE` frame values.
  */
-public struct LeaseFrame {
+internal struct LeaseFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /**
      Time (in milliseconds) for validity of `LEASE` from time of reception
 
      Value MUST be > `0`.
      */
-    public let timeToLive: Int32
+    internal let timeToLive: Int32
 
     /**
      Number of Requests that may be sent until next `LEASE`
 
      Value MUST be > `0`.
      */
-    public let numberOfRequests: Int32
+    internal let numberOfRequests: Int32
 
     /// Optional metadata of this frame
-    public let metadata: Data?
+    internal let metadata: Data?
 
-    public init(
+    internal init(
         header: FrameHeader,
         timeToLive: Int32,
         numberOfRequests: Int32,
@@ -56,7 +56,7 @@ public struct LeaseFrame {
         self.metadata = metadata
     }
 
-    public init(
+    internal init(
         timeToLive: Int32,
         numberOfRequests: Int32,
         metadata: Data?

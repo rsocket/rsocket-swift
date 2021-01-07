@@ -16,14 +16,14 @@
 
 import NIO
 
-public struct CancelFrameEncoder: FrameEncoding {
+internal struct CancelFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
-    public init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
+    internal init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
         self.headerEncoder = headerEncoder
     }
 
-    public func encode(frame: CancelFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: CancelFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         try headerEncoder.encode(header: frame.header, using: allocator)
     }
 }

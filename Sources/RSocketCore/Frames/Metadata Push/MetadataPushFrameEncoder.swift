@@ -17,14 +17,14 @@
 import Foundation
 import NIO
 
-public struct MetadataPushFrameEncoder: FrameEncoding {
+internal struct MetadataPushFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
-    public init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
+    internal init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
         self.headerEncoder = headerEncoder
     }
 
-    public func encode(frame: MetadataPushFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: MetadataPushFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
         buffer.writeData(frame.metadata)
         return buffer

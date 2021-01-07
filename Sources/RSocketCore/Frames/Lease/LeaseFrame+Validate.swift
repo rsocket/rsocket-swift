@@ -17,7 +17,7 @@
 import Foundation
 
 extension LeaseFrame {
-    public func validate() throws {
+    internal func validate() throws {
         if header.streamId != 0 {
             throw FrameError.lease(.streamIdIsNotZero)
         }

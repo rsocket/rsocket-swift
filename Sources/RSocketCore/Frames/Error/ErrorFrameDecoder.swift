@@ -16,12 +16,11 @@
 
 import NIO
 
-public struct ErrorFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ErrorFrame {
-        guard let codeValue: UInt32 = buffer.readInteger() else {
+internal struct ErrorFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ErrorFrame {
+        guard let code: UInt32 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }
-        let code = ErrorCode(rawValue: codeValue)
         let message: String
         if buffer.readableBytes > 0 {
             guard let string = buffer.readString(length: buffer.readableBytes) else {

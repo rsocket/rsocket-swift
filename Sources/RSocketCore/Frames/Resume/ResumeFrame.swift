@@ -21,26 +21,26 @@ import Foundation
 
  It replaces the `SETUP` frame.
  */
-public struct ResumeFrame {
+internal struct ResumeFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// Major version number of the protocol
-    public let majorVersion: UInt16
+    internal let majorVersion: UInt16
 
     /// Minor version number of the protocol
-    public let minorVersion: UInt16
+    internal let minorVersion: UInt16
 
     /// Token used for client resume identification
-    public let resumeIdentificationToken: Data
+    internal let resumeIdentificationToken: Data
 
     /// The last implied position the client received from the server
-    public let lastReceivedServerPosition: Int64
+    internal let lastReceivedServerPosition: Int64
 
     /// The earliest position that the client can rewind back to prior to resending frames
-    public let firstAvailableClientPosition: Int64
+    internal let firstAvailableClientPosition: Int64
 
-    public init(
+    internal init(
         header: FrameHeader,
         majorVersion: UInt16,
         minorVersion: UInt16,
@@ -56,7 +56,7 @@ public struct ResumeFrame {
         self.firstAvailableClientPosition = firstAvailableClientPosition
     }
 
-    public init(
+    internal init(
         majorVersion: UInt16,
         minorVersion: UInt16,
         resumeIdentificationToken: Data,

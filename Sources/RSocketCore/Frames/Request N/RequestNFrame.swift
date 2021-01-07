@@ -17,18 +17,18 @@
 import Foundation
 
 /// Request `N` more items with Reactive Streams semantics
-public struct RequestNFrame {
+internal struct RequestNFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /**
      The number of items to request
 
      Value MUST be > `0`.
      */
-    public let requestN: Int32
+    internal let requestN: Int32
 
-    public init(
+    internal init(
         header: FrameHeader,
         requestN: Int32
     ) {
@@ -36,7 +36,7 @@ public struct RequestNFrame {
         self.requestN = requestN
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         requestN: Int32
     ) {

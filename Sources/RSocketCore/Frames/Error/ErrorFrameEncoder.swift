@@ -16,16 +16,16 @@
 
 import NIO
 
-public struct ErrorFrameEncoder: FrameEncoding {
+internal struct ErrorFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
-    public init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
+    internal init(headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder()) {
         self.headerEncoder = headerEncoder
     }
 
-    public func encode(frame: ErrorFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: ErrorFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
-        buffer.writeInteger(frame.error.code.rawValue)
+        buffer.writeInteger(frame.error.code)
         if !frame.error.message.isEmpty {
             let bytesWritten = buffer.writeString(frame.error.message)
             guard bytesWritten > 0 else {

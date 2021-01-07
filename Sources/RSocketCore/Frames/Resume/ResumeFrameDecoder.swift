@@ -17,8 +17,8 @@
 import Foundation
 import NIO
 
-public struct ResumeFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ResumeFrame {
+internal struct ResumeFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ResumeFrame {
         guard let majorVersion: UInt16 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }

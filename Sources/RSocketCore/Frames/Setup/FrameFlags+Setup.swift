@@ -22,8 +22,8 @@ extension FrameFlags {
      
      Resume Identification Token present.
      */
-    public static let setupResume = FrameFlags(rawValue: 1 << 7)
+    internal static let setupResume = FrameFlags(rawValue: 1 << 7)
 
     /// (L)ease: Will honor `LEASE` (or not)
-    public static let setupLease = FrameFlags(rawValue: 1 << 6)
+    internal static let setupLease = FrameFlags(rawValue: 1 << 6)
 }

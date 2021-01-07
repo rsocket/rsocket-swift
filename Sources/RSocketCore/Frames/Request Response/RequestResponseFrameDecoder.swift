@@ -17,14 +17,14 @@
 import Foundation
 import NIO
 
-public struct RequestResponseFrameDecoder: FrameDecoding {
+internal struct RequestResponseFrameDecoder: FrameDecoding {
     private let payloadDecoder: PayloadDecoding
 
-    public init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
+    internal init(payloadDecoder: PayloadDecoding = PayloadDecoder()) {
         self.payloadDecoder = payloadDecoder
     }
 
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestResponseFrame {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestResponseFrame {
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return RequestResponseFrame(header: header, payload: payload)
     }

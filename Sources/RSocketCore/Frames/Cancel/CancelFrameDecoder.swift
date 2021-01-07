@@ -16,8 +16,8 @@
 
 import NIO
 
-public struct CancelFrameDecoder: FrameDecoding {
-    public func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> CancelFrame {
+internal struct CancelFrameDecoder: FrameDecoding {
+    internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> CancelFrame {
         CancelFrame(header: header)
     }
 }

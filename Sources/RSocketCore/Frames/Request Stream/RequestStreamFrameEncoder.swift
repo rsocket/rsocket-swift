@@ -17,12 +17,12 @@
 import Foundation
 import NIO
 
-public struct RequestStreamFrameEncoder: FrameEncoding {
+internal struct RequestStreamFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
     private let payloadEncoder: PayloadEncoding
 
-    public init(
+    internal init(
         headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder(),
         payloadEncoder: PayloadEncoding = PayloadEncoder()
     ) {
@@ -30,7 +30,7 @@ public struct RequestStreamFrameEncoder: FrameEncoding {
         self.payloadEncoder = payloadEncoder
     }
 
-    public func encode(frame: RequestStreamFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: RequestStreamFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
         buffer.writeInteger(frame.initialRequestN)
         try payloadEncoder.encode(payload: frame.payload, to: &buffer)

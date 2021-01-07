@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum FrameType: UInt8 {
+internal enum FrameType: UInt8 {
     /// Reserved
     case reserved = 0x00
 

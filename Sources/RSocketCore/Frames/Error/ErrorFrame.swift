@@ -20,14 +20,14 @@ import Foundation
  Error frames are used for errors on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-public struct ErrorFrame {
+internal struct ErrorFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// The error that occurred
-    public let error: Error
+    internal let error: Error
 
-    public init(
+    internal init(
         header: FrameHeader,
         error: Error
     ) {
@@ -35,7 +35,7 @@ public struct ErrorFrame {
         self.error = error
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         error: Error
     ) {

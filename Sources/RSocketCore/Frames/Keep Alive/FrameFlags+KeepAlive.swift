@@ -18,5 +18,5 @@ import Foundation
 
 extension FrameFlags {
     /// (R)espond with `KEEPALIVE` or not
-    public static let keepAliveRespond = FrameFlags(rawValue: 1 << 7)
+    internal static let keepAliveRespond = FrameFlags(rawValue: 1 << 7)
 }

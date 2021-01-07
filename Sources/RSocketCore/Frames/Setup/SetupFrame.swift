@@ -21,15 +21,15 @@ import Foundation
 
  The usage and message sequence used is shown in Connection Establishment.
  */
-public struct SetupFrame {
+internal struct SetupFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// Major version number of the protocol
-    public let majorVersion: UInt16
+    internal let majorVersion: UInt16
 
     /// Minor version number of the protocol
-    public let minorVersion: UInt16
+    internal let minorVersion: UInt16
 
     /**
      Time (in milliseconds) between `KEEPALIVE` frames that the client will send
@@ -38,7 +38,7 @@ public struct SetupFrame {
      - For server-to-server connections, a reasonable time interval between client `KEEPALIVE` frames is 500ms.
      - For mobile-to-server connections, the time interval between client `KEEPALIVE` frames is often > 30,000ms.
      */
-    public let timeBetweenKeepaliveFrames: Int32
+    internal let timeBetweenKeepaliveFrames: Int32
 
     /**
      Time (in milliseconds) that a client will allow a server to not respond to a `KEEPALIVE`
@@ -46,10 +46,10 @@ public struct SetupFrame {
 
      Value MUST be > `0`.
      */
-    public let maxLifetime: Int32
+    internal let maxLifetime: Int32
 
     /// Token used for client resume identification
-    public let resumeIdentificationToken: Data?
+    internal let resumeIdentificationToken: Data?
 
     /**
      MIME Type for encoding of Metadata
@@ -60,7 +60,7 @@ public struct SetupFrame {
      For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
      The string MUST NOT be null terminated.
      */
-    public let metadataEncodingMimeType: String
+    internal let metadataEncodingMimeType: String
 
     /**
      MIME Type for encoding of Data
@@ -71,12 +71,12 @@ public struct SetupFrame {
      For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
      The string MUST NOT be null terminated.
      */
-    public let dataEncodingMimeType: String
+    internal let dataEncodingMimeType: String
 
     /// Payload of this frame describing connection capabilities of the endpoint sending the Setup header
-    public let payload: Payload
+    internal let payload: Payload
 
-    public init(
+    internal init(
         header: FrameHeader,
         majorVersion: UInt16,
         minorVersion: UInt16,
@@ -98,7 +98,7 @@ public struct SetupFrame {
         self.payload = payload
     }
 
-    public init(
+    internal init(
         honorsLease: Bool,
         majorVersion: UInt16,
         minorVersion: UInt16,

@@ -21,14 +21,14 @@ import Foundation
 
  For example, response to a request, or message on a channel.
  */
-public struct PayloadFrame {
+internal struct PayloadFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// Payload for Reactive Streams `onNext`
-    public let payload: Payload
+    internal let payload: Payload
 
-    public init(
+    internal init(
         header: FrameHeader,
         payload: Payload
     ) {
@@ -36,7 +36,7 @@ public struct PayloadFrame {
         self.payload = payload
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         fragmentsFollow: Bool,
         isCompletion: Bool,

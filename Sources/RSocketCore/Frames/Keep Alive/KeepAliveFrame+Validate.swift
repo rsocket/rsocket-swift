@@ -17,7 +17,7 @@
 import Foundation
 
 extension KeepAliveFrame {
-    public func validate() throws {
+    internal func validate() throws {
         if header.streamId != 0 {
             throw FrameError.keepAlive(.streamIdIsNotZero)
         }

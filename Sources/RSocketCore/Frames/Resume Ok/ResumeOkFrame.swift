@@ -17,14 +17,14 @@
 import Foundation
 
 /// The `RESUME_OK` frame is sent in response to a `RESUME` if resuming operation possible
-public struct ResumeOkFrame {
+internal struct ResumeOkFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// The last implied position the server received from the client
-    public let lastReceivedClientPosition: Int64
+    internal let lastReceivedClientPosition: Int64
 
-    public init(
+    internal init(
         header: FrameHeader,
         lastReceivedClientPosition: Int64
     ) {
@@ -32,7 +32,7 @@ public struct ResumeOkFrame {
         self.lastReceivedClientPosition = lastReceivedClientPosition
     }
 
-    public init(lastReceivedClientPosition: Int64) {
+    internal init(lastReceivedClientPosition: Int64) {
         self.header = FrameHeader(streamId: 0, type: .resumeOk, flags: [])
         self.lastReceivedClientPosition = lastReceivedClientPosition
     }

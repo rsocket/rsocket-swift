@@ -18,12 +18,12 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
-public struct SetupFrameEncoder: FrameEncoding {
+internal struct SetupFrameEncoder: FrameEncoding {
     private let headerEncoder: FrameHeaderEncoding
 
     private let payloadEncoder: PayloadEncoding
 
-    public init(
+    internal init(
         headerEncoder: FrameHeaderEncoding = FrameHeaderEncoder(),
         payloadEncoder: PayloadEncoding = PayloadEncoder()
     ) {
@@ -31,7 +31,7 @@ public struct SetupFrameEncoder: FrameEncoding {
         self.payloadEncoder = payloadEncoder
     }
 
-    public func encode(frame: SetupFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
+    internal func encode(frame: SetupFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
         buffer.writeInteger(frame.majorVersion)
         buffer.writeInteger(frame.minorVersion)

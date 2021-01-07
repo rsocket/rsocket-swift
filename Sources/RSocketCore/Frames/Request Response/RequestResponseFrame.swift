@@ -17,14 +17,14 @@
 import Foundation
 
 /// Request single response
-public struct RequestResponseFrame {
+internal struct RequestResponseFrame {
     /// The header of this frame
-    public let header: FrameHeader
+    internal let header: FrameHeader
 
     /// Identification of the service being requested along with parameters for the request
-    public let payload: Payload
+    internal let payload: Payload
 
-    public init(
+    internal init(
         header: FrameHeader,
         payload: Payload
     ) {
@@ -32,7 +32,7 @@ public struct RequestResponseFrame {
         self.payload = payload
     }
 
-    public init(
+    internal init(
         streamId: Int32,
         fragmentsFollow: Bool,
         payload: Payload

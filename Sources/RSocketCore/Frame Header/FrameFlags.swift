@@ -19,10 +19,6 @@ import Foundation
 internal struct FrameFlags: OptionSet {
     internal let rawValue: UInt16
 
-    internal init(rawValue: UInt16) {
-        self.rawValue = rawValue
-    }
-
     /**
      (I)gnore: Ignore frame if not understood
 

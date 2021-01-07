@@ -42,7 +42,6 @@ public struct KeepAliveFrame {
     }
 
     public init(
-        streamId: Int32,
         respondWithKeepalive: Bool,
         lastReceivedPosition: Int64,
         data: Data
@@ -51,7 +50,7 @@ public struct KeepAliveFrame {
         if respondWithKeepalive {
             flags.insert(.keepAliveRespond)
         }
-        self.header = FrameHeader(streamId: streamId, type: .keepalive, flags: flags)
+        self.header = FrameHeader(streamId: 0, type: .keepalive, flags: flags)
         self.lastReceivedPosition = lastReceivedPosition
         self.data = data
     }

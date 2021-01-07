@@ -57,7 +57,6 @@ public struct LeaseFrame {
     }
 
     public init(
-        streamId: Int32,
         timeToLive: Int32,
         numberOfRequests: Int32,
         metadata: Data?
@@ -66,7 +65,7 @@ public struct LeaseFrame {
         if metadata != nil {
             flags.insert(.metadata)
         }
-        self.header = FrameHeader(streamId: streamId, type: .lease, flags: flags)
+        self.header = FrameHeader(streamId: 0, type: .lease, flags: flags)
         self.timeToLive = timeToLive
         self.numberOfRequests = numberOfRequests
         self.metadata = metadata

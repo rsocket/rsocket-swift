@@ -99,7 +99,6 @@ public struct SetupFrame {
     }
 
     public init(
-        streamId: Int32,
         honorsLease: Bool,
         majorVersion: UInt16,
         minorVersion: UInt16,
@@ -120,7 +119,7 @@ public struct SetupFrame {
         if honorsLease {
             flags.insert(.setupLease)
         }
-        self.header = FrameHeader(streamId: streamId, type: .setup, flags: flags)
+        self.header = FrameHeader(streamId: 0, type: .setup, flags: flags)
         self.majorVersion = majorVersion
         self.minorVersion = minorVersion
         self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames

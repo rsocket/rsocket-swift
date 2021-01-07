@@ -32,11 +32,8 @@ public struct MetadataPushFrame {
         self.metadata = metadata
     }
 
-    public init(
-        streamId: Int32,
-        metadata: Data
-    ) {
-        self.header = FrameHeader(streamId: streamId, type: .metadataPush, flags: .metadata)
+    public init(metadata: Data) {
+        self.header = FrameHeader(streamId: 0, type: .metadataPush, flags: .metadata)
         self.metadata = metadata
     }
 }

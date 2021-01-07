@@ -57,14 +57,13 @@ public struct ResumeFrame {
     }
 
     public init(
-        streamId: Int32,
         majorVersion: UInt16,
         minorVersion: UInt16,
         resumeIdentificationToken: Data,
         lastReceivedServerPosition: Int64,
         firstAvailableClientPosition: Int64
     ) {
-        self.header = FrameHeader(streamId: streamId, type: .resume, flags: [])
+        self.header = FrameHeader(streamId: 0, type: .resume, flags: [])
         self.majorVersion = majorVersion
         self.minorVersion = minorVersion
         self.resumeIdentificationToken = resumeIdentificationToken

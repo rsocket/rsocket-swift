@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum MetadataPushFrameError: Error {
+public enum MetadataPushFrameError: Swift.Error {
     case streamIdIsNotZero
 }

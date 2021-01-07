@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum ResumeOkFrameError: Error {
+public enum ResumeOkFrameError: Swift.Error {
     case lastReceivedClientPositionIsNotZeroOrPositive
 }

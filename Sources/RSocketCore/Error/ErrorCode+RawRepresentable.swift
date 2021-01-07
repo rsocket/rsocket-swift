@@ -102,12 +102,4 @@ extension ErrorCode: RawRepresentable {
             self = .other(rawValue)
         }
     }
-
-    public var isProtocolCode: Bool {
-        0x0001 <= self.rawValue && self.rawValue <= 0x00300
-    }
-
-    public var isApplicationLayerError: Bool {
-        0x00301 <= self.rawValue && self.rawValue <= 0xFFFFFFFE
-    }
 }

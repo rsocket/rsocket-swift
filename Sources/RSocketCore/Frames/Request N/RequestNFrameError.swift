@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum RequestNFrameError: Error {
+public enum RequestNFrameError: Swift.Error {
     case requestNIsNotPositive
 }

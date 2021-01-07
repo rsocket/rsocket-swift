@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum FrameHeaderError: Error {
+public enum FrameHeaderError: Swift.Error {
     case invalidStreamId(Int32)
     case unknownType(UInt8)
 }

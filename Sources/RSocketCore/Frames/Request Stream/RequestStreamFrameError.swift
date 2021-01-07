@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum RequestStreamFrameError: Error {
+public enum RequestStreamFrameError: Swift.Error {
     case initialRequestNIsNotPositive
 }

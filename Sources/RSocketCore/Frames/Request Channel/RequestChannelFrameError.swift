@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum RequestChannelFrameError: Error {
+public enum RequestChannelFrameError: Swift.Error {
     case initialRequestNIsNotPositive
 }

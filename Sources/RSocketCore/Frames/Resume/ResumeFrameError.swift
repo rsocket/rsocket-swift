@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum ResumeFrameError: Error {
+public enum ResumeFrameError: Swift.Error {
     case resumeIdentificationTokenTooBig
     case lastReceivedServerPositionIsNotZeroOrPositive
     case firstAvailableClientPositionIsNotZeroOrPositive

@@ -25,9 +25,9 @@ public struct ErrorFrameEncoder: FrameEncoding {
 
     public func encode(frame: ErrorFrame, using allocator: ByteBufferAllocator) throws -> ByteBuffer {
         var buffer = try headerEncoder.encode(header: frame.header, using: allocator)
-        buffer.writeInteger(frame.errorCode.rawValue)
-        if !frame.errorData.isEmpty {
-            let bytesWritten = buffer.writeString(frame.errorData)
+        buffer.writeInteger(frame.error.code.rawValue)
+        if !frame.error.message.isEmpty {
+            let bytesWritten = buffer.writeString(frame.error.message)
             guard bytesWritten > 0 else {
                 throw FrameError.stringContainsInvalidCharacters
             }

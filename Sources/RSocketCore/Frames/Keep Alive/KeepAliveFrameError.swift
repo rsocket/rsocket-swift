@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum KeepAliveFrameError: Error {
+public enum KeepAliveFrameError: Swift.Error {
     case streamIdIsNotZero
     case lastReceivedPositionIsNotPositiveOrZero
 }

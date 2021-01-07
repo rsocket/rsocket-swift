@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum LeaseFrameError: Error {
+public enum LeaseFrameError: Swift.Error {
     case streamIdIsNotZero
     case timeToLiveIsNotPositiveOrZero
     case numberOfRequestsIsNotPositiveOrZero

@@ -16,6 +16,6 @@
 
 import Foundation
 
-public enum ExtensionFrameError: Error {
+public enum ExtensionFrameError: Swift.Error {
     case extendedTypeIsNotPositiveOrZero
 }

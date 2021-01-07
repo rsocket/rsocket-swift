@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum SetupFrameError: Error {
+public enum SetupFrameError: Swift.Error {
     case streamIdIsNotZero
     case timeBetweenKeepaliveFramesIsNotPositive
     case maxLifetimeIsNotPositive

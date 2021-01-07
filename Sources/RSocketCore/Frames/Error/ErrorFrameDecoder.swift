@@ -21,20 +21,20 @@ public struct ErrorFrameDecoder: FrameDecoding {
         guard let codeValue: UInt32 = buffer.readInteger() else {
             throw FrameError.tooSmall
         }
-        let errorCode = ErrorCode(rawValue: codeValue)
-        let errorData: String
+        let code = ErrorCode(rawValue: codeValue)
+        let message: String
         if buffer.readableBytes > 0 {
             guard let string = buffer.readString(length: buffer.readableBytes) else {
                 throw FrameError.stringContainsInvalidCharacters
             }
-            errorData = string
+            message = string
         } else {
-            errorData = ""
+            message = ""
         }
+        let error = Error(code: code, message: message)
         return ErrorFrame(
             header: header,
-            errorCode: errorCode,
-            errorData: errorData
+            error: error
         )
     }
 }

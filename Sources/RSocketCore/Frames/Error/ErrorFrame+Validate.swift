@@ -19,23 +19,23 @@ import Foundation
 extension ErrorFrame {
     public func validate() throws {
         if header.streamId == 0 {
-            switch errorCode {
+            switch error.code {
             case .invalidSetup, .unsupportedSetup, .rejectedSetup, .connectionError, .connectionClose:
                 break
 
             default:
-                throw FrameError.error(.invalidErrorCode(errorCode))
+                throw FrameError.error(.invalidErrorCode(error.code))
             }
         } else {
-            switch errorCode {
+            switch error.code {
             case .applicationError, .rejected, .canceled, .invalid:
                 break
 
-            case .other where errorCode.isApplicationLayerError:
+            case .other where error.isApplicationLayerError:
                 break
 
             default:
-                throw FrameError.error(.invalidErrorCode(errorCode))
+                throw FrameError.error(.invalidErrorCode(error.code))
             }
         }
     }

@@ -17,29 +17,31 @@
 import Foundation
 
 /**
- Error frames are used for errors on individual requests/streams as well
+ Errors are used on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-public struct ErrorFrame {
-    /// The header of this frame
-    public let header: FrameHeader
-
+public struct Error: Swift.Error {
     /// The type of the error
-    public let error: Error
+    public let code: ErrorCode
+
+    /// Error information
+    public let message: String
 
     public init(
-        header: FrameHeader,
-        error: Error
+        code: ErrorCode,
+        message: String
     ) {
-        self.header = header
-        self.error = error
+        self.code = code
+        self.message = message
+    }
+}
+
+extension Error {
+    public var isProtocolError: Bool {
+        0x0001 <= code.rawValue && code.rawValue <= 0x00300
     }
 
-    public init(
-        streamId: Int32,
-        error: Error
-    ) {
-        self.header = FrameHeader(streamId: streamId, type: .error, flags: [])
-        self.error = error
+    public var isApplicationLayerError: Bool {
+        0x00301 <= code.rawValue && code.rawValue <= 0xFFFFFFFE
     }
 }

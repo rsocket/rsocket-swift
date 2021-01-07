@@ -16,7 +16,7 @@
 
 import Foundation
 
-public enum FrameError: Error {
+public enum FrameError: Swift.Error {
     /// The given data is too small and can not be parsed
     case tooSmall
 

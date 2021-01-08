@@ -18,7 +18,7 @@ import Foundation
 
 extension ResumeOkFrame {
     internal func validate() throws {
-        if lastReceivedClientPosition < 0 {
+        guard lastReceivedClientPosition >= 0 else {
             throw Error.connectionError(message: "lastReceivedClientPosition has to be equal or bigger than 0")
         }
     }

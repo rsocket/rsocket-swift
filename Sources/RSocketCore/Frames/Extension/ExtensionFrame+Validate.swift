@@ -18,7 +18,7 @@ import Foundation
 
 extension ExtensionFrame {
     internal func validate() throws {
-        if extendedType < 0 {
+        guard extendedType >= 0 else {
             throw Error.connectionError(message: "extendedType has to be equal or bigger than 0")
         }
     }

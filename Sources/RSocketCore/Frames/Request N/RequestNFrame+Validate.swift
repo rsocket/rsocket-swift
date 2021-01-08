@@ -18,7 +18,7 @@ import Foundation
 
 extension RequestNFrame {
     internal func validate() throws {
-        if requestN <= 0 {
+        guard requestN > 0 else {
             throw Error.connectionError(message: "requestN has to be bigger than 0")
         }
     }

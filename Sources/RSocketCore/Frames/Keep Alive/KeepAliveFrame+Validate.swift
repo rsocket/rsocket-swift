@@ -18,10 +18,10 @@ import Foundation
 
 extension KeepAliveFrame {
     internal func validate() throws {
-        if header.streamId != 0 {
+        guard header.streamId == 0 else {
             throw Error.connectionError(message: "streamId has to be 0")
         }
-        if lastReceivedPosition < 0 {
+        guard lastReceivedPosition >= 0 else {
             throw Error.connectionError(message: "lastReceivedPosition has to be equal or bigger than 0")
         }
     }

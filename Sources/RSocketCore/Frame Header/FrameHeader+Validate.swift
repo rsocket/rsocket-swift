@@ -18,7 +18,7 @@ import Foundation
 
 extension FrameHeader {
     internal func validate() throws {
-        if streamId < 0 {
+        guard streamId >= 0 else {
             throw Error.connectionError(message: "streamId has to be equal or bigger than 0")
         }
     }

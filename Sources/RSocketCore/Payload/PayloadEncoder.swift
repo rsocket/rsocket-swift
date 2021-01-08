@@ -17,14 +17,12 @@
 import Foundation
 import NIO
 
-public protocol PayloadEncoding {
+internal protocol PayloadEncoding {
     func encode(payload: Payload, to buffer: inout ByteBuffer) throws
 }
 
-public struct PayloadEncoder: PayloadEncoding {
-    public init() { }
-
-    public func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
+internal struct PayloadEncoder: PayloadEncoding {
+    internal func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
         if let metadata = payload.metadata {
             guard metadata.count <= FrameConstants.metadataMaximumLength else {
                 throw FrameError.metadataTooBig

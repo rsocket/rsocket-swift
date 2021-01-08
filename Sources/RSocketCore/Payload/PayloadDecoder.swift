@@ -17,14 +17,12 @@
 import Foundation
 import NIO
 
-public protocol PayloadDecoding {
+internal protocol PayloadDecoding {
     func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload
 }
 
-public struct PayloadDecoder: PayloadDecoding {
-    public init() { }
-
-    public func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload {
+internal struct PayloadDecoder: PayloadDecoding {
+    internal func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload {
         let metadata: Data?
         if hasMetadata {
             guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {

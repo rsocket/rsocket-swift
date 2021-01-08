@@ -26,7 +26,7 @@ internal struct RequestStreamFrameDecoder: FrameDecoding {
 
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestStreamFrame {
         guard let initialRequestN: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return RequestStreamFrame(

@@ -19,7 +19,7 @@ import Foundation
 extension MetadataPushFrame {
     internal func validate() throws {
         if header.streamId != 0 {
-            throw FrameError.metadataPush(.streamIdIsNotZero)
+            throw Error.connectionError(message: "streamId has to be 0")
         }
     }
 }

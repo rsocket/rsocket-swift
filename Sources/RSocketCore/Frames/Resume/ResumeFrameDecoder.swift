@@ -20,22 +20,22 @@ import NIO
 internal struct ResumeFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ResumeFrame {
         guard let majorVersion: UInt16 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let minorVersion: UInt16 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let resumeIdentificationToken = buffer.readData(length: Int(resumeTokenLength)) else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let lastReceivedServerPosition: Int64 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let firstAvailableClientPosition: Int64 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         return ResumeFrame(
             header: header,

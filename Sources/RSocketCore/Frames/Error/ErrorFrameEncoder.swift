@@ -29,7 +29,7 @@ internal struct ErrorFrameEncoder: FrameEncoding {
         if !frame.error.message.isEmpty {
             let bytesWritten = buffer.writeString(frame.error.message)
             guard bytesWritten > 0 else {
-                throw FrameError.stringContainsInvalidCharacters
+                throw Error.connectionError(message: "Error message contains invalid characters")
             }
         }
         return buffer

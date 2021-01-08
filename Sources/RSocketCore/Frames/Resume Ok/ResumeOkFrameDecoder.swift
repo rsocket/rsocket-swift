@@ -20,7 +20,7 @@ import NIO
 internal struct ResumeOkFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ResumeOkFrame {
         guard let lastReceivedClientPosition: Int64 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         return ResumeOkFrame(
             header: header,

@@ -20,10 +20,10 @@ import NIO
 internal struct LeaseFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> LeaseFrame {
         guard let timeToLive: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let numberOfRequests: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         let metadata: Data?
         if header.flags.contains(.metadata) {

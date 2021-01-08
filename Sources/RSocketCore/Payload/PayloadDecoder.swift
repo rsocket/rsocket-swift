@@ -26,11 +26,11 @@ internal struct PayloadDecoder: PayloadDecoding {
         let metadata: Data?
         if hasMetadata {
             guard let metadataLengthBytes = buffer.readBytes(length: FrameConstants.metadataLengthFieldLengthInBytes) else {
-                throw FrameError.tooSmall
+                throw Error.connectionError(message: "Frame is not big enough")
             }
             let metadataLength = Int(bytes: metadataLengthBytes)
             guard let metadataData = buffer.readData(length: metadataLength) else {
-                throw FrameError.tooSmall
+                throw Error.connectionError(message: "Frame is not big enough")
             }
             metadata = metadataData
         } else {

@@ -19,13 +19,13 @@ import Foundation
 extension LeaseFrame {
     internal func validate() throws {
         if header.streamId != 0 {
-            throw FrameError.lease(.streamIdIsNotZero)
+            throw Error.connectionError(message: "streamId has to be 0")
         }
         if timeToLive < 0 {
-            throw FrameError.lease(.timeToLiveIsNotPositiveOrZero)
+            throw Error.connectionError(message: "timeToLive has to be equal or bigger than 0")
         }
         if numberOfRequests < 0 {
-            throw FrameError.lease(.numberOfRequestsIsNotPositiveOrZero)
+            throw Error.connectionError(message: "numberOfRequests has to be equal or bigger than 0")
         }
     }
 }

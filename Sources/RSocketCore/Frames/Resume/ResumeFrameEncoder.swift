@@ -29,7 +29,7 @@ internal struct ResumeFrameEncoder: FrameEncoding {
         buffer.writeInteger(frame.majorVersion)
         buffer.writeInteger(frame.minorVersion)
         guard frame.resumeIdentificationToken.count <= UInt16.max else {
-            throw FrameError.resume(.resumeIdentificationTokenTooBig)
+            throw Error.connectionError(message: "resumeIdentificationToken is too big")
         }
         buffer.writeInteger(UInt16(frame.resumeIdentificationToken.count))
         buffer.writeData(frame.resumeIdentificationToken)

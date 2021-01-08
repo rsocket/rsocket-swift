@@ -20,7 +20,7 @@ import NIO
 internal struct KeepAliveFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> KeepAliveFrame {
         guard let lastReceivedPosition: Int64 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         let data: Data
         if buffer.readableBytes > 0 {

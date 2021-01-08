@@ -19,7 +19,7 @@ import Foundation
 extension RequestChannelFrame {
     internal func validate() throws {
         if initialRequestN <= 0 {
-            throw FrameError.requestChannel(.initialRequestNIsNotPositive)
+            throw Error.connectionError(message: "initialRequestN has to be bigger than 0")
         }
     }
 }

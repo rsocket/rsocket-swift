@@ -39,24 +39,24 @@ internal struct SetupFrameEncoder: FrameEncoding {
         buffer.writeInteger(frame.maxLifetime)
         if let token = frame.resumeIdentificationToken {
             guard token.count <= UInt16.max else {
-                throw FrameError.setup(.resumeIdentificationTokenTooBig)
+                throw Error.connectionError(message: "resumeIdentificationToken is too big")
             }
             buffer.writeInteger(UInt16(token.count))
             buffer.writeData(token)
         }
         guard let metadataEncodingMimeTypeAsciiData = frame.metadataEncodingMimeType.data(using: .ascii) else {
-            throw FrameError.setup(.metadataEncodingMimeTypeContainsInvalidCharacters)
+            throw Error.connectionError(message: "metadataEncodingMimeType contains invalid characters")
         }
         guard metadataEncodingMimeTypeAsciiData.count <= UInt8.max else {
-            throw FrameError.setup(.metadataEncodingMimeTypeTooBig)
+            throw Error.connectionError(message: "Metadata is too big")
         }
         buffer.writeInteger(UInt8(metadataEncodingMimeTypeAsciiData.count))
         buffer.writeData(metadataEncodingMimeTypeAsciiData)
         guard let dataEncodingMimeTypeAsciiData = frame.dataEncodingMimeType.data(using: .ascii) else {
-            throw FrameError.setup(.dataEncodingMimeTypeContainsInvalidCharacters)
+            throw Error.connectionError(message: "dataEncodingMimeType contains invalid characters")
         }
         guard dataEncodingMimeTypeAsciiData.count <= UInt8.max else {
-            throw FrameError.setup(.dataEncodingMimeTypeTooBig)
+            throw Error.connectionError(message: "Data is too big")
         }
         buffer.writeInteger(UInt8(dataEncodingMimeTypeAsciiData.count))
         buffer.writeData(dataEncodingMimeTypeAsciiData)

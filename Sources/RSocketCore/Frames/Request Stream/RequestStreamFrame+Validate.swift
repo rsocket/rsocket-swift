@@ -19,7 +19,7 @@ import Foundation
 extension RequestStreamFrame {
     internal func validate() throws {
         if initialRequestN <= 0 {
-            throw FrameError.requestStream(.initialRequestNIsNotPositive)
+            throw Error.connectionError(message: "initialRequestN has to be bigger than 0")
         }
     }
 }

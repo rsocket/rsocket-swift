@@ -19,7 +19,7 @@ import Foundation
 extension ExtensionFrame {
     internal func validate() throws {
         if extendedType < 0 {
-            throw FrameError.extension(.extendedTypeIsNotPositiveOrZero)
+            throw Error.connectionError(message: "extendedType has to be equal or bigger than 0")
         }
     }
 }

@@ -27,46 +27,46 @@ internal struct SetupFrameDecoder: FrameDecoding {
 
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> SetupFrame {
         guard let majorVersion: UInt16 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let minorVersion: UInt16 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let timeBetweenKeepaliveFrames: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let maxLifetime: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         let resumeIdentificationToken: Data?
         if header.flags.contains(.setupResume) {
             guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
-                throw FrameError.tooSmall
+                throw Error.connectionError(message: "Frame is not big enough")
             }
             guard let resumeTokenData = buffer.readData(length: Int(resumeTokenLength)) else {
-                throw FrameError.tooSmall
+                throw Error.connectionError(message: "Frame is not big enough")
             }
             resumeIdentificationToken = resumeTokenData
         } else {
             resumeIdentificationToken = nil
         }
         guard let metadataEncodingMimeTypeLength: UInt8 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard metadataEncodingMimeTypeLength <= buffer.readableBytes else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let metadataEncodingMimeType = buffer.readString(length: Int(metadataEncodingMimeTypeLength), encoding: .ascii) else {
-            throw FrameError.stringContainsInvalidCharacters
+            throw Error.connectionError(message: "metadataEncodingMimeType contains invalid characters")
         }
         guard let dataEncodingMimeTypeLength: UInt8 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard dataEncodingMimeTypeLength <= buffer.readableBytes else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let dataEncodingMimeType = buffer.readString(length: Int(dataEncodingMimeTypeLength), encoding: .ascii) else {
-            throw FrameError.stringContainsInvalidCharacters
+            throw Error.connectionError(message: "dataEncodingMimeType contains invalid characters")
         }
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return SetupFrame(

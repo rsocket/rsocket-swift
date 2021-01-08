@@ -19,10 +19,10 @@ import Foundation
 extension ResumeFrame {
     internal func validate() throws {
         if lastReceivedServerPosition < 0 {
-            throw FrameError.resume(.lastReceivedServerPositionIsNotZeroOrPositive)
+            throw Error.connectionError(message: "lastReceivedServerPosition has to be equal or bigger than 0")
         }
         if firstAvailableClientPosition < 0 {
-            throw FrameError.resume(.firstAvailableClientPositionIsNotZeroOrPositive)
+            throw Error.connectionError(message: "firstAvailableClientPosition has to be equal or bigger than 0")
         }
     }
 }

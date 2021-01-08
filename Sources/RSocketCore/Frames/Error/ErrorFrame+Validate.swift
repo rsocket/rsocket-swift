@@ -24,7 +24,7 @@ extension ErrorFrame {
                 break
 
             default:
-                throw FrameError.error(.invalidErrorCode(error.code))
+                throw Error.connectionError(message: "The given error code is not valid for this streamId")
             }
         } else {
             switch error {
@@ -35,7 +35,7 @@ extension ErrorFrame {
                 break
 
             default:
-                throw FrameError.error(.invalidErrorCode(error.code))
+                throw Error.connectionError(message: "The given error code is not valid for this streamId")
             }
         }
     }

@@ -20,7 +20,7 @@ import NIO
 internal struct RequestNFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> RequestNFrame {
         guard let requestN: Int32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         return RequestNFrame(header: header, requestN: requestN)
     }

@@ -19,13 +19,13 @@ import Foundation
 extension SetupFrame {
     internal func validate() throws {
         if header.streamId != 0 {
-            throw FrameError.setup(.streamIdIsNotZero)
+            throw Error.connectionError(message: "streamId has to be 0")
         }
         if timeBetweenKeepaliveFrames <= 0 {
-            throw FrameError.setup(.timeBetweenKeepaliveFramesIsNotPositive)
+            throw Error.connectionError(message: "timeBetweenKeepaliveFrames has to be bigger than 0")
         }
         if maxLifetime <= 0 {
-            throw FrameError.setup(.maxLifetimeIsNotPositive)
+            throw Error.connectionError(message: "maxLifetime has to be bigger than 0")
         }
     }
 }

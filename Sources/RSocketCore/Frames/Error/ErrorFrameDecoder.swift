@@ -19,12 +19,12 @@ import NIO
 internal struct ErrorFrameDecoder: FrameDecoding {
     internal func decode(header: FrameHeader, buffer: inout ByteBuffer) throws -> ErrorFrame {
         guard let code: UInt32 = buffer.readInteger() else {
-            throw FrameError.tooSmall
+            throw Error.connectionError(message: "Frame is not big enough")
         }
         let message: String
         if buffer.readableBytes > 0 {
             guard let string = buffer.readString(length: buffer.readableBytes) else {
-                throw FrameError.stringContainsInvalidCharacters
+                throw Error.connectionError(message: "Error message contains invalid characters")
             }
             message = string
         } else {

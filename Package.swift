@@ -17,9 +17,13 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
+        .package(url: "https://github.com/apple/swift-nio", from: "2.0.0")
     ],
     targets: [
-        .target(name: "RSocketCore", dependencies: []),
+        .target(name: "RSocketCore", dependencies: [
+            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOFoundationCompat", package: "swift-nio")
+        ]),
         .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
         .target(name: "RSocketReactiveSwift", dependencies: ["RSocketCore", "ReactiveSwift"]),
         .testTarget(name: "RSocketCoreTests", dependencies: ["RSocketCore"]),

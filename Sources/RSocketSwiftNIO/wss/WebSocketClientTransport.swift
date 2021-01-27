@@ -22,7 +22,7 @@ public final class WebSocketClientTransport: ClientTransport {
     var httpHeaders = HTTPHeaders()
     let url: URL
 
-   public init(url: URL) {
+    public init(url: URL) {
         self.url = url
     }
 

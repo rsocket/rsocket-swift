@@ -26,10 +26,6 @@ public final class WebSocketClientTransport: ClientTransport {
         self.url = url
     }
 
-    public convenience init(url: String) {
-        self.init(url: URL(string: url)!)
-    }
-
     /**
      HTTP headers are not case sensitive, and here as we are
      setting the key: value as String will make case sensitive,

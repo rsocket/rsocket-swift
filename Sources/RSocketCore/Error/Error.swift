@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
-
 /**
  Errors are used on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.

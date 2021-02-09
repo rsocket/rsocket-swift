@@ -17,6 +17,32 @@
 import Foundation
 import NIO
 
+
+func tcpBootstrapExample() {
+    let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    let bootstrap = ClientBootstrap(group: group)
+        .channelInitializer { (channel) -> EventLoopFuture<Void> in
+            channel.pipeline.addHandlers([
+                /// `LengthFieldBasedFrameDecoder` and `LengthFieldBasedFrameDecoder` are part of apple/swift-nio-extra and do not yet support a lenght field lenght of 3 bytes but they are exactly what we need to support RSocket over TCP
+                // LengthFieldBasedFrameDecoder(lengthFieldLength: .three),
+                // LengthFieldPrepender(lengthFieldLength: .three),
+                RSocketFrameDecoder(),
+                RSocketFrameEncoder(),
+                RSocketMultiplexer(
+                    isConnectionInitialiser: true,
+                    streamChannelInitializer: { channel, header  in
+                        channel.pipeline.addHandlers([
+                            RSocketHeaderPrepender(streamID: header.streamId),
+                            // TODO: add appropiated handler for given frame type
+                        ])
+                    }),
+                RSocketHeaderPrepender(streamID: .connection),
+                // ConnectionStreamHandler(), // not yet implemented
+            ])
+        }
+    _ = bootstrap.connect(host: "localhost", port: 1234)
+}
+
 final class RSocketFrameDecoder: ChannelInboundHandler {
     public typealias InboundIn = ByteBuffer
     public typealias InboundOut = Frame
@@ -45,15 +71,20 @@ final class RSocketFrameEncoder: ChannelOutboundHandler {
     }
 }
 
-final class Multiplexer: ChannelInboundHandler {
+final class RSocketMultiplexer: ChannelInboundHandler {
     typealias InboundIn = Frame
     typealias InboundOut = FrameBody
     private var isConnectionInitialiser: Bool
+    private var streamChannelInitializer: (Channel, FrameHeader) throws -> EventLoopFuture<Void>
 
     private var streams: [StreamID: Channel] = [:]
     
-    internal init(isConnectionInitialiser: Bool) {
+    internal init(
+        isConnectionInitialiser: Bool,
+        streamChannelInitializer: @escaping (Channel, FrameHeader) throws -> EventLoopFuture<Void>
+    ) {
         self.isConnectionInitialiser = isConnectionInitialiser
+        self.streamChannelInitializer = streamChannelInitializer
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -71,7 +102,7 @@ final class Multiplexer: ChannelInboundHandler {
     }
 }
 
-final class StreamChannel: Channel {
+final class RSocketStreamChannel: Channel {
     var onWrite: ((NIOAny, EventLoopPromise<Void>?) -> ())?
     
     var parent: Channel? { _parent }
@@ -112,7 +143,7 @@ final class StreamChannel: Channel {
     }
 }
 
-extension StreamChannel: ChannelCore {
+extension RSocketStreamChannel: ChannelCore {
     func localAddress0() throws -> SocketAddress {
         fatalError("not implemented \(#function)")
     }
@@ -162,7 +193,7 @@ extension StreamChannel: ChannelCore {
     }
 }
 
-final class HeaderPrepender: ChannelOutboundHandler {
+final class RSocketHeaderPrepender: ChannelOutboundHandler {
     typealias OutboundIn = FrameBody
     typealias OutboundOut = Frame
     private let streamID: StreamID

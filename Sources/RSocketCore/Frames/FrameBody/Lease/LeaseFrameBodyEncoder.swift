@@ -16,20 +16,12 @@
 
 import NIO
 
-internal protocol PayloadEncoding {
-    func encode(payload: Payload, to buffer: inout ByteBuffer) throws
-}
-
-internal struct PayloadEncoder: PayloadEncoding {
-    internal func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
-        if let metadata = payload.metadata {
-            guard metadata.count <= FrameBodyConstants.metadataMaximumLength else {
-                throw Error.connectionError(message: "Metadata is too big")
-            }
-            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameBodyConstants.metadataLengthFieldLengthInBytes)
-            buffer.writeBytes(metadataLengthBytes)
+internal struct LeaseFrameBodyEncoder: FrameBodyEncoding {
+    internal func encode(frame: LeaseFrameBody, into buffer: inout ByteBuffer) throws {
+        buffer.writeInteger(frame.timeToLive)
+        buffer.writeInteger(frame.numberOfRequests)
+        if let metadata = frame.metadata {
             buffer.writeData(metadata)
         }
-        buffer.writeData(payload.data)
     }
 }

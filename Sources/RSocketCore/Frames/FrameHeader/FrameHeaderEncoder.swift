@@ -22,7 +22,7 @@ internal protocol FrameHeaderEncoding {
 
 internal struct FrameHeaderEncoder: FrameHeaderEncoding {
     internal func encode(header: FrameHeader, into buffer: inout ByteBuffer) throws {
-        buffer.writeInteger(header.streamId)
+        buffer.writeInteger(header.streamId.rawValue)
         // shift type by amount of flag bits
         let typeBits = UInt16(header.type.rawValue) << 10
         // only use trailing 10 bits for flags

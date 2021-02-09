@@ -38,6 +38,6 @@ extension KeepAliveFrameBody {
         if respondWithKeepalive {
             flags.insert(.keepAliveRespond)
         }
-        return FrameHeader(streamId: 0, type: .keepalive, flags: flags)
+        return FrameHeader(streamId: .connection, type: .keepalive, flags: flags)
     }
 }

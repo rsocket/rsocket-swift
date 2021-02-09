@@ -24,7 +24,7 @@ internal struct RequestResponseFrameBody {
 }
 
 extension RequestResponseFrameBody {
-    func header(withStreamId streamId: Int32) -> FrameHeader {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {
             flags.insert(.metadata)

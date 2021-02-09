@@ -24,7 +24,7 @@ internal struct ErrorFrameBody {
 }
 
 extension ErrorFrameBody {
-    func header(withStreamId streamId: Int32) -> FrameHeader {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
         FrameHeader(streamId: streamId, type: .error, flags: [])
     }
 }

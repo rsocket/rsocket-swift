@@ -48,6 +48,6 @@ extension LeaseFrameBody {
         if metadata != nil {
             flags.insert(.metadata)
         }
-        return FrameHeader(streamId: 0, type: .lease, flags: flags)
+        return FrameHeader(streamId: .connection, type: .lease, flags: flags)
     }
 }

@@ -31,7 +31,7 @@ internal struct ExtensionFrameBody {
 }
 
 extension ExtensionFrameBody {
-    func header(withStreamId streamId: Int32) -> FrameHeader {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if canBeIgnored {
             flags.insert(.ignore)

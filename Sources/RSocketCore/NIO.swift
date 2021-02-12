@@ -47,7 +47,7 @@ func tcpBootstrapServerExample() {
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
                 RSocketConnectionEstablishmentHandler()
-                    .multiplexerIntializer({ (channel) -> EventLoopFuture<Void> in
+                    .multiplexerInitializer({ (channel) -> EventLoopFuture<Void> in
                         channel.pipeline.addHandlers([
                             RSocketMultiplexer(isConnectionInitialiser: false),
                             RSocketHeaderPrepender(streamID: .connection),
@@ -63,9 +63,9 @@ final class RSocketConnectionEstablishmentHandler: ChannelInboundHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
     
-    private var multiplexerIntializer: ((Channel) -> EventLoopFuture<Void>)?
-    func multiplexerIntializer(_ initializer: @escaping (Channel) -> EventLoopFuture<Void>) -> Self {
-        multiplexerIntializer = initializer
+    private var multiplexerInitializer: ((Channel) -> EventLoopFuture<Void>)?
+    func multiplexerInitializer(_ initializer: @escaping (Channel) -> EventLoopFuture<Void>) -> Self {
+        multiplexerInitializer = initializer
         return self
     }
     // TODO: implement conneciton establishment

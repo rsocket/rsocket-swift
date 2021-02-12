@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-internal final class RSocketRequester: RSocket {
+internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamAdapter] = [:]
 
@@ -98,4 +98,8 @@ internal final class RSocketRequester: RSocket {
     internal func sendOutbound(frame: Frame) {
         sendFrame(frame)
     }
+}
+
+extension Requester: RSocket {
+    // TODO: implement RSocket callbacks using `requestStream`
 }

@@ -30,7 +30,7 @@ internal struct RequestChannelFrameBodyDecoder: FrameBodyDecoding {
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return RequestChannelFrameBody(
             fragmentsFollow: header.flags.contains(.requestChannelFollows),
-            isCompletion: header.flags.contains(.requestChannelComplete),
+            isCompleted: header.flags.contains(.requestChannelComplete),
             initialRequestN: initialRequestN,
             payload: payload
         )

@@ -70,7 +70,7 @@ internal class StreamAdapter: StreamOutput {
             }
             // TODO: payload fragmentation
             stream = createStream(
-                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompletion),
+                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                 body.payload,
                 self
             )

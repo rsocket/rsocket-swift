@@ -41,15 +41,15 @@ internal class StreamAdapter: StreamOutput {
             switch frame.body {
             case let .requestResponse(body):
                 // TODO: payload fragmentation
-                stream = createStream(.response, body.payload, self)
+                self.stream = createStream(.response, body.payload, self)
 
             case let .requestFnf(body):
                 // TODO: payload fragmentation
-                stream = createStream(.fireAndForget, body.payload, self)
+                self.stream = createStream(.fireAndForget, body.payload, self)
 
             case let .requestStream(body):
                 // TODO: payload fragmentation
-                stream = createStream(
+                self.stream = createStream(
                     .stream(initialRequestN: body.initialRequestN),
                     body.payload,
                     self
@@ -57,7 +57,7 @@ internal class StreamAdapter: StreamOutput {
 
             case let .requestChannel(body):
                 // TODO: payload fragmentation
-                stream = createStream(
+                self.stream = createStream(
                     .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                     body.payload,
                     self

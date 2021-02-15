@@ -18,7 +18,7 @@ internal struct FrameHeader {
     internal static let lengthInBytes = 6
 
     /// The id of the corresponding stream
-    internal let streamId: Int32
+    internal let streamId: StreamID
 
     /// The type of the frame
     internal let type: FrameType

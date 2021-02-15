@@ -24,6 +24,6 @@ internal struct MetadataPushFrameBody {
 
 extension MetadataPushFrameBody {
     func header() -> FrameHeader {
-        FrameHeader(streamId: 0, type: .metadataPush, flags: .metadata)
+        FrameHeader(streamId: .connection, type: .metadataPush, flags: .metadata)
     }
 }

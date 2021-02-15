@@ -40,6 +40,6 @@ internal struct ResumeFrameBody {
 
 extension ResumeFrameBody {
     func header() -> FrameHeader {
-        FrameHeader(streamId: 0, type: .resume, flags: [])
+        FrameHeader(streamId: .connection, type: .resume, flags: [])
     }
 }

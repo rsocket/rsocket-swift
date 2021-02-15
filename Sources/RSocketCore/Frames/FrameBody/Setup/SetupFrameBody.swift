@@ -89,6 +89,6 @@ extension SetupFrameBody {
         if honorsLease {
             flags.insert(.setupLease)
         }
-        return FrameHeader(streamId: 0, type: .setup, flags: flags)
+        return FrameHeader(streamId: .connection, type: .setup, flags: flags)
     }
 }

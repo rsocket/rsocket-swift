@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-/// A cancel frame indicates the cancellation of an outstanding request
-internal struct CancelFrameBody { }
+/// A identifier of a stream.
+internal struct StreamID: RawRepresentable {
+    internal var rawValue: Int32
+}
 
-extension CancelFrameBody {
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        FrameHeader(streamId: streamId, type: .cancel, flags: [])
-    }
+extension StreamID: Hashable {}
+
+extension StreamID {
+    /// Stream ID for any operation involving the connection
+    internal static let connection = StreamID(rawValue: 0)
 }

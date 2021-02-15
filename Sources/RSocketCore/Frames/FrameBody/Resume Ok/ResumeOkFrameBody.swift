@@ -22,6 +22,6 @@ internal struct ResumeOkFrameBody {
 
 extension ResumeOkFrameBody {
     func header() -> FrameHeader {
-        FrameHeader(streamId: 0, type: .resumeOk, flags: [])
+        FrameHeader(streamId: .connection, type: .resumeOk, flags: [])
     }
 }

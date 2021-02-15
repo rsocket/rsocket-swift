@@ -36,6 +36,6 @@ internal struct FrameHeaderDecoder: FrameHeaderDecoding {
         // trailing 10 bits are the flags
         let flagValue = typeAndFlagBytes & 0b0000001111111111
         let flags = FrameFlags(rawValue: flagValue)
-        return FrameHeader(streamId: streamId, type: type, flags: flags)
+        return FrameHeader(streamId: .init(rawValue: streamId), type: type, flags: flags)
     }
 }

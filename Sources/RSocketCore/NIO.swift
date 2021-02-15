@@ -18,7 +18,7 @@ import Foundation
 import NIO
 
 
-func tcpBootstrapExample() {
+func tcpBootstrapClientExample() {
     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     let bootstrap = ClientBootstrap(group: group)
         .channelInitializer { (channel) -> EventLoopFuture<Void> in
@@ -28,19 +28,52 @@ func tcpBootstrapExample() {
                 // LengthFieldPrepender(lengthFieldLength: .three),
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
-                RSocketMultiplexer(
-                    isConnectionInitialiser: true,
-                    streamChannelInitializer: { channel, header  in
-                        channel.pipeline.addHandlers([
-                            RSocketHeaderPrepender(streamID: header.streamId),
-                            // TODO: add appropiated handler for given frame type
-                        ])
-                    }),
+                RSocketMultiplexer(isConnectionInitialiser: true),
                 RSocketHeaderPrepender(streamID: .connection),
-                // ConnectionStreamHandler(), // not yet implemented
+                ConnectionStreamHandler(), // not yet implemented
             ])
         }
     _ = bootstrap.connect(host: "localhost", port: 1234)
+}
+
+func tcpBootstrapServerExample() {
+    let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    let server = ServerBootstrap(group: group)
+        .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
+            channel.pipeline.addHandlers([
+                /// `LengthFieldBasedFrameDecoder` and `LengthFieldBasedFrameDecoder` are part of apple/swift-nio-extra and do not yet support a lenght field lenght of 3 bytes but they are exactly what we need to support RSocket over TCP
+                // LengthFieldBasedFrameDecoder(lengthFieldLength: .three),
+                // LengthFieldPrepender(lengthFieldLength: .three),
+                RSocketFrameDecoder(),
+                RSocketFrameEncoder(),
+                RSocketConnectionEstablishmentHandler()
+                    .multiplexerIntializer({ (channel) -> EventLoopFuture<Void> in
+                        channel.pipeline.addHandlers([
+                            RSocketMultiplexer(isConnectionInitialiser: false),
+                            RSocketHeaderPrepender(streamID: .connection),
+                            ConnectionStreamHandler(), // not yet implemented
+                        ])
+                    })
+            ])
+        }
+    _ = server.bind(host: "localhost", port: 1234)
+}
+
+final class RSocketConnectionEstablishmentHandler: ChannelInboundHandler {
+    typealias InboundIn = Frame
+    typealias OutboundOut = Frame
+    
+    private var multiplexerIntializer: ((Channel) -> EventLoopFuture<Void>)?
+    func multiplexerIntializer(_ initializer: @escaping (Channel) -> EventLoopFuture<Void>) -> Self {
+        multiplexerIntializer = initializer
+        return self
+    }
+    // TODO: implement conneciton establishment
+}
+
+final class ConnectionStreamHandler: ChannelInboundHandler {
+    typealias InboundIn = FrameBody
+    typealias OutboundOut = FrameBody
 }
 
 final class RSocketFrameDecoder: ChannelInboundHandler {
@@ -75,16 +108,13 @@ final class RSocketMultiplexer: ChannelInboundHandler {
     typealias InboundIn = Frame
     typealias InboundOut = FrameBody
     private var isConnectionInitialiser: Bool
-    private var streamChannelInitializer: (Channel, FrameHeader) throws -> EventLoopFuture<Void>
 
     private var streams: [StreamID: Channel] = [:]
     
     internal init(
-        isConnectionInitialiser: Bool,
-        streamChannelInitializer: @escaping (Channel, FrameHeader) throws -> EventLoopFuture<Void>
+        isConnectionInitialiser: Bool
     ) {
         self.isConnectionInitialiser = isConnectionInitialiser
-        self.streamChannelInitializer = streamChannelInitializer
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -99,97 +129,6 @@ final class RSocketMultiplexer: ChannelInboundHandler {
         } else {
             // TODO: initialise channel if appropriated or throw error
         }
-    }
-}
-
-final class RSocketStreamChannel: Channel {
-    var onWrite: ((NIOAny, EventLoopPromise<Void>?) -> ())?
-    
-    var parent: Channel? { _parent }
-    
-    var allocator: ByteBufferAllocator { _parent.allocator }
-    
-    let closePromise: EventLoopPromise<Void>
-    
-    var closeFuture: EventLoopFuture<Void> { closePromise.futureResult }
-    
-    lazy private(set) var pipeline: ChannelPipeline = .init(channel: self)
-    
-    var localAddress: SocketAddress? { _parent.localAddress }
-    
-    var remoteAddress: SocketAddress? { _parent.remoteAddress }
-    
-    private var _parent: Channel
-    
-    func setOption<Option>(_ option: Option, value: Option.Value) -> EventLoopFuture<Void> where Option : ChannelOption {
-        fatalError("not implemented")
-    }
-    
-    func getOption<Option>(_ option: Option) -> EventLoopFuture<Option.Value> where Option : ChannelOption {
-        fatalError("not implemented")
-    }
-    
-    var isWritable: Bool { _parent.isWritable }
-    
-    var isActive: Bool { _parent.isActive }
-    
-    var _channelCore: ChannelCore { self }
-    
-    var eventLoop: EventLoop { _parent.eventLoop }
-    
-    init(parent: Channel) {
-        self._parent = parent
-        self.closePromise = parent.eventLoop.makePromise()
-    }
-}
-
-extension RSocketStreamChannel: ChannelCore {
-    func localAddress0() throws -> SocketAddress {
-        fatalError("not implemented \(#function)")
-    }
-    
-    func remoteAddress0() throws -> SocketAddress {
-        fatalError("not implemented \(#function)")
-    }
-    
-    func register0(promise: EventLoopPromise<Void>?) {
-        fatalError("not implemented \(#function)")
-    }
-
-    func bind0(to: SocketAddress, promise: EventLoopPromise<Void>?) {
-        fatalError("not implemented \(#function)")
-    }
-
-    func connect0(to: SocketAddress, promise: EventLoopPromise<Void>?) {
-        fatalError("not implemented \(#function)")
-    }
-    
-    func write0(_ data: NIOAny, promise: EventLoopPromise<Void>?) {
-        onWrite?(data, promise)
-    }
-    
-    func flush0() {
-        _parent.flush()
-    }
-    
-    func read0() {
-        _parent.read()
-    }
-    
-    func close0(error: Swift.Error, mode: CloseMode, promise: EventLoopPromise<Void>?) {
-        // TODO: close stream
-    }
-    
-    func triggerUserOutboundEvent0(_ event: Any, promise: EventLoopPromise<Void>?) {
-        // do nothing
-    }
-    
-    func channelRead0(_ data: NIOAny) {
-        // do nothing
-    }
-    
-    func errorCaught0(error: Swift.Error) {
-        // do nothing
     }
 }
 

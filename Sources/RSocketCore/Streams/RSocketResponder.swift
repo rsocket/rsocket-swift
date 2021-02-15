@@ -16,15 +16,24 @@
 
 import NIO
 
+internal protocol FrameHandler {
+    func receiveInbound(frame: Frame)
+}
+
 internal final class Responder {
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
+    private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamAdapter] = [:]
 
-    init(createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput) {
+    internal init(
+        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
+        sendFrame: @escaping (Frame) -> Void
+    ) {
         self.createStream = createStream
+        self.sendFrame = sendFrame
     }
 
-    func receiveInbound(frame: Frame) {
+    internal func receiveInbound(frame: Frame) {
         let streamId = frame.header.streamId
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
@@ -46,7 +55,7 @@ internal final class Responder {
         }
     }
 
-    func sendOutbound(frame: Frame) {
-        // TODO: send to multiplexer
+    internal func sendOutbound(frame: Frame) {
+        sendFrame(frame)
     }
 }

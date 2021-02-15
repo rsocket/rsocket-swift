@@ -15,10 +15,15 @@
  */
 
 internal final class RSocketRequester: RSocket {
+    private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamAdapter] = [:]
 
+    internal init(sendFrame: @escaping (Frame) -> Void) {
+        self.sendFrame = sendFrame
+    }
+
     @discardableResult
-    func createAdapter(
+    internal func requestStream(
         for type: StreamType,
         payload: Payload,
         input: StreamInput
@@ -82,7 +87,7 @@ internal final class RSocketRequester: RSocket {
         .connection
     }
 
-    func receiveInbound(frame: Frame) {
+    internal func receiveInbound(frame: Frame) {
         guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
             // TODO: error no active stream for given id
             return
@@ -90,7 +95,7 @@ internal final class RSocketRequester: RSocket {
         existingStreamAdapter.receive(frame: frame)
     }
 
-    func sendOutbound(frame: Frame) {
-        // TODO: send to multiplexer
+    internal func sendOutbound(frame: Frame) {
+        sendFrame(frame)
     }
 }

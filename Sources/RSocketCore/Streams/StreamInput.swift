@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
-internal struct RSocketRequester: RSocket {
-    
+public protocol StreamInput {
+    func onNext(_ payload: Payload)
+    func onError(_ error: Error)
+    func onComplete()
+    func onCancel()
+    func onRequestN(_ requestN: Int32)
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
+}
+
+extension StreamInput {
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) { }
 }

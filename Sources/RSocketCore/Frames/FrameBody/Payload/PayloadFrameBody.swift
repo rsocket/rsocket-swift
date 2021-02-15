@@ -23,10 +23,10 @@ internal struct PayloadFrameBody {
     /// If more fragments follow this frame
     internal let fragmentsFollow: Bool
 
-    /// If this frame marks the completion of a set of fragments
+    /// If this frame marks the completion of the stream
     internal let isCompletion: Bool
 
-    /// If there is a next frame
+    /// If this is a new payload
     internal let isNext: Bool
 
     /// Payload for Reactive Streams `onNext`

@@ -79,17 +79,17 @@ final class ConnectionStreamHandler: ChannelInboundHandler {
 final class RSocketFrameDecoder: ChannelInboundHandler {
     public typealias InboundIn = ByteBuffer
     public typealias InboundOut = Frame
-    public typealias OutboundOut = Frame
+
+    private let frameDecoder = FrameDecoder()
 
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let buffer = unwrapInboundIn(data)
+        var buffer = unwrapInboundIn(data)
         do {
-            // TODO: decode
+            let frame = try frameDecoder.decode(from: &buffer)
+            context.fireChannelRead(wrapInboundOut(frame))
         } catch {
             context.fireErrorCaught(error)
         }
-        
-        context.fireChannelRead(wrapInboundOut(Frame(header: .init(streamId: .connection, type: .cancel, flags: []), body: .cancel(.init()))))
     }
 }
 
@@ -97,10 +97,22 @@ final class RSocketFrameEncoder: ChannelOutboundHandler {
     public typealias OutboundIn = Frame
     public typealias OutboundOut = ByteBuffer
 
+    private let frameEncoder = FrameEncoder()
+
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let frame = unwrapOutboundIn(data)
-        // TODO: encode
-        context.write(wrapOutboundOut(ByteBuffer()), promise: promise)
+        do {
+            // Todo: performance optimization, we could calculate the actual capacity of the current frame
+            // but for now the buffer will grow automatically
+            var buffer = context.channel.allocator.buffer(capacity: FrameHeader.lengthInBytes)
+            try frameEncoder.encode(frame: frame, into: &buffer)
+            context.write(wrapOutboundOut(buffer), promise: promise)
+        } catch {
+            if frame.header.flags.contains(.ignore) {
+                return
+            }
+            context.fireErrorCaught(error)
+        }
     }
 }
 

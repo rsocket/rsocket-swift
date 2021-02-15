@@ -22,6 +22,25 @@ internal final class Requester: FrameHandler {
         self.sendFrame = sendFrame
     }
 
+    fileprivate func generateNewStreamId() -> StreamID {
+        // TODO: generate ids
+        .connection
+    }
+
+    internal func receiveInbound(frame: Frame) {
+        guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
+            // TODO: error no active stream for given id
+            return
+        }
+        existingStreamAdapter.receive(frame: frame)
+    }
+
+    internal func sendOutbound(frame: Frame) {
+        sendFrame(frame)
+    }
+}
+
+extension Requester: RSocket {
     @discardableResult
     internal func requestStream(
         for type: StreamType,
@@ -33,7 +52,14 @@ internal final class Requester: FrameHandler {
             streamId: streamId,
             createStream: { _, _, _ in input },
             sendFrame: { [weak self] in self?.sendOutbound(frame: $0) },
-            terminate: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) })
+            closeStream: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) },
+            closeConnection: { [weak self] error in
+                let body = ErrorFrameBody(error: error)
+                let header = body.header(withStreamId: .connection)
+                let frame = Frame(header: header, body: .error(body))
+                self?.sendOutbound(frame: frame)
+                // TODO: close connection
+            })
         activeStreams[streamId] = adapter
         let header: FrameHeader
         let body: FrameBody
@@ -82,24 +108,5 @@ internal final class Requester: FrameHandler {
         return adapter
     }
 
-    private func generateNewStreamId() -> StreamID {
-        // TODO: generate ids
-        .connection
-    }
-
-    internal func receiveInbound(frame: Frame) {
-        guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
-            // TODO: error no active stream for given id
-            return
-        }
-        existingStreamAdapter.receive(frame: frame)
-    }
-
-    internal func sendOutbound(frame: Frame) {
-        sendFrame(frame)
-    }
-}
-
-extension Requester: RSocket {
     // TODO: implement RSocket callbacks using `requestStream`
 }

@@ -20,19 +20,22 @@ internal class StreamAdapter: StreamOutput {
     private let streamId: StreamID
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private let sendFrame: (Frame) -> Void
-    private let terminate: () -> Void
+    private let closeStream: () -> Void
+    private let closeConnection: (Error) -> Void
     internal var stream: StreamInput?
 
     internal init(
         streamId: StreamID,
         createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
         sendFrame: @escaping (Frame) -> Void,
-        terminate: @escaping () -> Void
+        closeStream: @escaping () -> Void,
+        closeConnection: @escaping (Error) -> Void
     ) {
         self.streamId = streamId
         self.createStream = createStream
         self.sendFrame = sendFrame
-        self.terminate = terminate
+        self.closeStream = closeStream
+        self.closeConnection = closeConnection
     }
 
     internal func receive(frame: Frame) {
@@ -64,8 +67,11 @@ internal class StreamAdapter: StreamOutput {
                 )
 
             default:
-                // TODO: error unsupported frame
-                terminate()
+                if frame.header.flags.contains(.ignore) {
+                    closeStream()
+                } else {
+                    closeConnection(.connectionError(message: "Invalid frame type for creating a new stream"))
+                }
             }
             return
         }
@@ -77,7 +83,7 @@ internal class StreamAdapter: StreamOutput {
 
         case .cancel:
             stream.onCancel()
-            terminate()
+            closeStream()
 
         case let .payload(body):
             // TODO: fragmentation
@@ -86,12 +92,12 @@ internal class StreamAdapter: StreamOutput {
             }
             if body.isCompletion {
                 stream.onComplete()
-                terminate()
+                closeStream()
             }
 
         case let .error(body):
             stream.onError(body.error)
-            terminate()
+            closeStream()
 
         case let .ext(body):
             stream.onExtension(
@@ -101,8 +107,11 @@ internal class StreamAdapter: StreamOutput {
             )
 
         default:
-            // TODO: error unsupported frame
-            terminate()
+            if frame.header.flags.contains(.ignore) {
+                closeStream()
+            } else {
+                closeConnection(.connectionError(message: "Invalid frame type for an active stream"))
+            }
         }
     }
 
@@ -124,6 +133,7 @@ internal class StreamAdapter: StreamOutput {
         let header = body.header(withStreamId: streamId)
         let frame = Frame(header: header, body: .error(body))
         sendFrame(frame)
+        closeStream()
     }
 
     internal func sendComplete() {
@@ -136,7 +146,7 @@ internal class StreamAdapter: StreamOutput {
         let header = body.header(withStreamId: streamId)
         let frame = Frame(header: header, body: .payload(body))
         sendFrame(frame)
-        terminate()
+        closeStream()
     }
 
     internal func sendCancel() {
@@ -144,6 +154,7 @@ internal class StreamAdapter: StreamOutput {
         let header = body.header(withStreamId: streamId)
         let frame = Frame(header: header, body: .cancel(body))
         sendFrame(frame)
+        closeStream()
     }
 
     internal func sendRequestN(_ requestN: Int32) {

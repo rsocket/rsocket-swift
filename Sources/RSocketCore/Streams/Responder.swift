@@ -41,7 +41,14 @@ internal final class Responder: FrameHandler {
                 streamId: streamId,
                 createStream: createStream,
                 sendFrame: { [weak self] in self?.sendOutbound(frame: $0) },
-                terminate: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) }
+                closeStream: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) },
+                closeConnection: { [weak self] error in
+                    let body = ErrorFrameBody(error: error)
+                    let header = body.header(withStreamId: .connection)
+                    let frame = Frame(header: header, body: .error(body))
+                    self?.sendOutbound(frame: frame)
+                    // TODO: close connection
+                }
             )
             activeStreams[streamId] = adapter
             adapter.receive(frame: frame)

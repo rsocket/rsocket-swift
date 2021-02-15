@@ -16,13 +16,6 @@
 
 import NIO
 
-public enum StreamType {
-    case response
-    case fireAndForget
-    case stream(initialRequestN: Int32)
-    case channel(initialRequestN: Int32, isCompleted: Bool)
-}
-
 internal final class Responder {
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private var activeStreams: [StreamID: StreamAdapter] = [:]

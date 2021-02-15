@@ -30,29 +30,47 @@ internal final class RSocketRequester: RSocket {
             sendFrame: { [weak self] in self?.sendOutbound(frame: $0) },
             terminate: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) })
         activeStreams[streamId] = adapter
-        // todo: payload fragmentation
         let header: FrameHeader
         let body: FrameBody
         switch type {
         case .response:
-            let requestResponseBody = RequestResponseFrameBody(fragmentsFollow: false, payload: payload)
+            // todo: payload fragmentation
+            let requestResponseBody = RequestResponseFrameBody(
+                fragmentsFollow: false,
+                payload: payload
+            )
             header = requestResponseBody.header(withStreamId: streamId)
             body = .requestResponse(requestResponseBody)
 
         case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(fragmentsFollow: false, payload: payload)
+            // todo: payload fragmentation
+            let fireAndForgetBody = RequestFireAndForgetFrameBody(
+                fragmentsFollow: false,
+                payload: payload
+            )
             header = fireAndForgetBody.header(withStreamId: streamId)
-            body = .requestFnf(.init(fragmentsFollow: false, payload: payload))
+            body = .requestFnf(fireAndForgetBody)
 
         case let .stream(initialRequestN):
-            let streamBody = RequestStreamFrameBody(fragmentsFollow: false, initialRequestN: initialRequestN, payload: payload)
+            // todo: payload fragmentation
+            let streamBody = RequestStreamFrameBody(
+                fragmentsFollow: false,
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
             header = streamBody.header(withStreamId: streamId)
-            body = .requestStream(.init(fragmentsFollow: false, initialRequestN: 0, payload: payload))
+            body = .requestStream(streamBody)
 
         case let .channel(initialRequestN, isCompleted):
-            let channelBody = RequestChannelFrameBody(fragmentsFollow: false, isCompletion: false, initialRequestN: initialRequestN, payload: payload)
+            // todo: payload fragmentation
+            let channelBody = RequestChannelFrameBody(
+                fragmentsFollow: false,
+                isCompleted: isCompleted,
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
             header = channelBody.header(withStreamId: streamId)
-            body = .requestChannel(.init(fragmentsFollow: false, isCompletion: isCompleted, initialRequestN: 0, payload: payload))
+            body = .requestChannel(channelBody)
         }
         let frame = Frame(header: header, body: body)
         sendOutbound(frame: frame)

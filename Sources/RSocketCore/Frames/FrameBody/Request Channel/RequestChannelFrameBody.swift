@@ -20,7 +20,7 @@ internal struct RequestChannelFrameBody {
     internal let fragmentsFollow: Bool
 
     /// If the channel is already completed
-    internal let isCompletion: Bool
+    internal let isCompleted: Bool
 
     /**
      The initial number of items to request
@@ -42,7 +42,7 @@ extension RequestChannelFrameBody {
         if fragmentsFollow {
             flags.insert(.requestChannelFollows)
         }
-        if isCompletion {
+        if isCompleted {
             flags.insert(.requestChannelComplete)
         }
         return FrameHeader(streamId: streamId, type: .requestChannel, flags: flags)

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import Foundation
+
 internal class StreamAdapter: StreamOutput {
     private let streamId: StreamID
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
@@ -34,94 +36,71 @@ internal class StreamAdapter: StreamOutput {
     }
 
     internal func receive(frame: Frame) {
+        guard let stream = stream else {
+            // stream not active yet
+            switch frame.body {
+            case let .requestResponse(body):
+                // TODO: payload fragmentation
+                stream = createStream(.response, body.payload, self)
+
+            case let .requestFnf(body):
+                // TODO: payload fragmentation
+                stream = createStream(.fireAndForget, body.payload, self)
+
+            case let .requestStream(body):
+                // TODO: payload fragmentation
+                stream = createStream(
+                    .stream(initialRequestN: body.initialRequestN),
+                    body.payload,
+                    self
+                )
+
+            case let .requestChannel(body):
+                // TODO: payload fragmentation
+                stream = createStream(
+                    .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
+                    body.payload,
+                    self
+                )
+
+            default:
+                // TODO: error unsupported frame
+                terminate()
+            }
+            return
+        }
+
+        // handle active stream
         switch frame.body {
-        case let .requestResponse(body):
-            guard stream == nil else {
-                // TODO: error stream already active
-                return
-            }
-            // TODO: payload fragmentation
-            stream = createStream(.response, body.payload, self)
-
-        case let .requestFnf(body):
-            guard stream == nil else {
-                // TODO: error stream already active
-                return
-            }
-            // TODO: payload fragmentation
-            stream = createStream(.fireAndForget, body.payload, self)
-
-        case let .requestStream(body):
-            guard stream == nil else {
-                // TODO: error stream already active
-                return
-            }
-            // TODO: payload fragmentation
-            stream = createStream(
-                .stream(initialRequestN: body.initialRequestN),
-                body.payload,
-                self
-            )
-
-        case let .requestChannel(body):
-            guard stream == nil else {
-                // TODO: error stream already active
-                return
-            }
-            // TODO: payload fragmentation
-            stream = createStream(
-                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
-                body.payload,
-                self
-            )
-
         case let .requestN(body):
-            guard let stream = stream else {
-                // TODO: error stream not active
-                return
-            }
             stream.onRequestN(body.requestN)
 
         case .cancel:
-            guard let stream = stream else {
-                // TODO: error stream not active
-                return
-            }
             stream.onCancel()
             terminate()
 
         case let .payload(body):
-            guard let stream = stream else {
-                // TODO: error stream not active
-                return
-            }
             // TODO: fragmentation
-            stream.onNext(body.payload)
+            if body.isNext {
+                stream.onNext(body.payload)
+            }
             if body.isCompletion {
                 stream.onComplete()
                 terminate()
             }
 
         case let .error(body):
-            guard let stream = stream else {
-                // TODO: error stream not active
-                return
-            }
             stream.onError(body.error)
             terminate()
 
         case let .ext(body):
-            guard let stream = stream else {
-                // TODO: error stream not active
-                return
-            }
             stream.onExtension(
                 extendedType: body.extendedType,
                 payload: body.payload,
                 canBeIgnored: body.canBeIgnored
             )
 
-        case .setup, .lease, .keepalive, .resumeOk, .resume, .metadataPush:
+        default:
             // TODO: error unsupported frame
             terminate()
         }
@@ -148,12 +127,16 @@ internal class StreamAdapter: StreamOutput {
     }
 
     internal func sendComplete() {
-        // todo which type?
-//        let body =
-//        let header = body.header(withStreamId: streamId)
-//        let frame = Frame(header: header, body: body)
-//        sendFrame(frame)
-//        terminate()
+        let body = PayloadFrameBody(
+            fragmentsFollow: false,
+            isCompletion: true,
+            isNext: false,
+            payload: .empty
+        )
+        let header = body.header(withStreamId: streamId)
+        let frame = Frame(header: header, body: .payload(body))
+        sendFrame(frame)
+        terminate()
     }
 
     internal func sendCancel() {
@@ -176,4 +159,8 @@ internal class StreamAdapter: StreamOutput {
         let frame = Frame(header: header, body: .ext(body))
         sendFrame(frame)
     }
+}
+
+extension Payload {
+    static var empty: Payload { Payload(data: Data()) }
 }

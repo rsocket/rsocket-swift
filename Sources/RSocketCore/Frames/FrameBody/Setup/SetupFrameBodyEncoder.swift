@@ -25,8 +25,8 @@ internal struct SetupFrameBodyEncoder: FrameBodyEncoding {
     }
 
     internal func encode(frame: SetupFrameBody, into buffer: inout ByteBuffer) throws {
-        buffer.writeInteger(frame.majorVersion)
-        buffer.writeInteger(frame.minorVersion)
+        buffer.writeInteger(frame.version.major)
+        buffer.writeInteger(frame.version.minor)
         buffer.writeInteger(frame.timeBetweenKeepaliveFrames)
         buffer.writeInteger(frame.maxLifetime)
         if let token = frame.resumeIdentificationToken {

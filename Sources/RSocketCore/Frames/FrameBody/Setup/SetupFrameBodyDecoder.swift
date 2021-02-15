@@ -71,8 +71,7 @@ internal struct SetupFrameBodyDecoder: FrameBodyDecoding {
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return SetupFrameBody(
             honorsLease: header.flags.contains(.setupLease),
-            majorVersion: majorVersion,
-            minorVersion: minorVersion,
+            version: .init(major: majorVersion, minor: minorVersion),
             timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
             maxLifetime: maxLifetime,
             resumeIdentificationToken: resumeIdentificationToken,

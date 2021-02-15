@@ -16,11 +16,7 @@
 
 import NIO
 
-internal protocol FrameHandler {
-    func receiveInbound(frame: Frame)
-}
-
-internal final class Responder {
+internal final class Responder: FrameHandler {
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamAdapter] = [:]

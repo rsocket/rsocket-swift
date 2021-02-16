@@ -23,6 +23,7 @@ internal class StreamAdapter: StreamOutput {
     private let closeStream: () -> Void
     private let closeConnection: (Error) -> Void
     internal var stream: StreamInput?
+    private var fragmentedFrameAssembler = FragmentedFrameAssembler()
 
     internal init(
         streamId: StreamID,
@@ -39,19 +40,31 @@ internal class StreamAdapter: StreamOutput {
     }
 
     internal func receive(frame: Frame) {
+        switch fragmentedFrameAssembler.process(frame: frame) {
+        case let .complete(completeFrame):
+            process(frame: completeFrame)
+
+        case .incomplete:
+            break
+
+        case let .error(reason: reason):
+            // TODO: throw error with reason
+            fatalError(reason)
+        }
+    }
+
+    /// Process the **non-fragmented** frame
+    private func process(frame: Frame) {
         guard let stream = stream else {
             // stream not active yet
             switch frame.body {
             case let .requestResponse(body):
-                // TODO: payload fragmentation
                 self.stream = createStream(.response, body.payload, self)
 
             case let .requestFnf(body):
-                // TODO: payload fragmentation
                 self.stream = createStream(.fireAndForget, body.payload, self)
 
             case let .requestStream(body):
-                // TODO: payload fragmentation
                 self.stream = createStream(
                     .stream(initialRequestN: body.initialRequestN),
                     body.payload,
@@ -59,7 +72,6 @@ internal class StreamAdapter: StreamOutput {
                 )
 
             case let .requestChannel(body):
-                // TODO: payload fragmentation
                 self.stream = createStream(
                     .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                     body.payload,
@@ -86,7 +98,6 @@ internal class StreamAdapter: StreamOutput {
             closeStream()
 
         case let .payload(body):
-            // TODO: fragmentation
             if body.isNext {
                 stream.onNext(body.payload)
             }

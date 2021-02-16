@@ -81,16 +81,43 @@ public typealias ClientAcceptorCallback = (ClientInfo) -> ClientAcceptorResult
 
 public typealias InitializeConnection = (ClientInfo, Channel) -> EventLoopFuture<Void>
 
+
+/// `MessageBufferHandler` buffers all incoming messages until `self` is removed from the `ChannelPipeline`.
+/// On removal, it forwards all received messages in order to the next channel handler.
+fileprivate final class MessageBufferHandler: ChannelInboundHandler, RemovableChannelHandler {
+    typealias InboundIn = NIOAny
+    
+    /// buffered messages that come in while `state` == `.processing`
+    private var receivedMessagesDuringProcessing: [NIOAny] = []
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        receivedMessagesDuringProcessing.append(data)
+    }
+    func removeHandler(context: ChannelHandlerContext, removalToken: ChannelHandlerContext.RemovalToken) {
+        /// We have been formally removed from the pipeline. We should send any buffered data we have.
+        /// Note that we loop twice. This is because we want to guard against being reentrantly called from fireChannelReadComplete.
+        /// NOTE: original source from NIOHTTP1/HTTPServerUpgradeHandler.swift  (apple/swift-nio)
+        while self.receivedMessagesDuringProcessing.count > 0 {
+            while self.receivedMessagesDuringProcessing.count > 0 {
+                let bufferedPart = self.receivedMessagesDuringProcessing.removeFirst()
+                context.fireChannelRead(bufferedPart)
+            }
+
+            context.fireChannelReadComplete()
+        }
+
+        context.leavePipeline(removalToken: removalToken)
+    }
+}
+
 internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
     
     private enum State {
-        /// waiting initial setup frame from client
+        /// waiting for initial setup frame from client
         case idle
         /// Did receive a frame and the frame is now being processed.
-        /// Some operations, like add/removing channel handlers, are async.
-        /// During the processing state, all incoming frames need to be buffered and replayed after successful setup.
+        /// No new frame should be received during this state.
         case processing
     }
     
@@ -112,9 +139,13 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     }
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         guard state == .idle else {
-            receivedMessagesDuringProcessing.append(data)
+            assertionFailure("Did receive a message during processing. This should not happen because we have added a message buffer in front of this handler which should not forward any messages")
             return
         }
+        /// adding `MessageBuffer` in front of us to buffer all messages that arrive during processing the frame
+        let messageBuffer = MessageBufferHandler()
+        _ = context.pipeline.addHandler(messageBuffer, position: .before(self))
+        
         state = .processing
         
         let frame = unwrapInboundIn(data)
@@ -129,8 +160,10 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
                         // something failed in initializeConnection
                         self.writeErrorAndCloseConnection(context: context, error: error)
                     case .success:
-                        // When we remove ourselves we'll be delivering any buffered data.
-                        context.pipeline.removeHandler(context: context, promise: nil)
+                        context.pipeline.removeHandler(context: context).whenComplete { _ in
+                            /// When we remove `messageBuffer` we'll be delivering any buffered
+                            context.pipeline.removeHandler(messageBuffer, promise: nil)
+                        }
                     }
                 }
         } catch {
@@ -138,19 +171,7 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         }
     }
     
-    public func removeHandler(context: ChannelHandlerContext, removalToken: ChannelHandlerContext.RemovalToken) {
-        /// We have been formally removed from the pipeline. We should send any buffered data we have.
-        /// Note that we loop twice. This is because we want to guard against being reentrantly called from fireChannelReadComplete.
-        /// NOTE: original source from NIOHTTP1/HTTPServerUpgradeHandler.swift  (apple/swift-nio)
-        while self.receivedMessagesDuringProcessing.count > 0 {
-            while self.receivedMessagesDuringProcessing.count > 0 {
-                let bufferedPart = self.receivedMessagesDuringProcessing.removeFirst()
-                context.fireChannelRead(bufferedPart)
-            }
-
-            context.fireChannelReadComplete()
-        }
-
+    func removeHandler(context: ChannelHandlerContext, removalToken: ChannelHandlerContext.RemovalToken) {
         context.leavePipeline(removalToken: removalToken)
     }
     

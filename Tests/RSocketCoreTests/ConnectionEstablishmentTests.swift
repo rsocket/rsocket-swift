@@ -18,6 +18,12 @@ import XCTest
 import NIO
 @testable import RSocketCore
 
+extension StreamID: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int32) {
+        self.init(rawValue: value)
+    }
+}
+
 final class ConnectionEstablishmentTests: XCTestCase {
     func testSuccessfulEstablishment() throws {
         let initializeConnection = self.expectation(description: "should initialize connection")
@@ -35,7 +41,8 @@ final class ConnectionEstablishmentTests: XCTestCase {
                 shouldAcceptSetup.fulfill()
                 return .accept
             }))
-        let frameBody = SetupFrameBody(
+        
+        try channel.writeInbound(SetupFrameBody(
             honorsLease: false,
             version: .v0_2,
             timeBetweenKeepaliveFrames: 500,
@@ -44,9 +51,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
             metadataEncodingMimeType: "utf8",
             dataEncodingMimeType: "utf8",
             payload: .empty
-        )
-        let frame = Frame(header: frameBody.header(), body: .setup(frameBody))
-        try channel.writeInbound(frame)
+        ).frame())
         
         XCTAssertThrowsError(
             try channel.pipeline.handler(type: ConnectionEstablishmentHandler.self).wait(),
@@ -65,7 +70,8 @@ final class ConnectionEstablishmentTests: XCTestCase {
             handler: ConnectionEstablishmentHandler(initializeConnection: { _, _ in
                 connectionInitialization.futureResult
             }), loop: loop)
-        let setupFrameBody = SetupFrameBody(
+        
+        try channel.writeInbound(SetupFrameBody(
             honorsLease: false,
             version: .v0_2,
             timeBetweenKeepaliveFrames: 500,
@@ -74,16 +80,14 @@ final class ConnectionEstablishmentTests: XCTestCase {
             metadataEncodingMimeType: "utf8",
             dataEncodingMimeType: "utf8",
             payload: .empty
-        )
-        let setupFrame = Frame(header: setupFrameBody.header(), body: .setup(setupFrameBody))
-        try channel.writeInbound(setupFrame)
+        ).frame())
         
-        let frameBody = RequestResponseFrameBody(fragmentsFollow: false, payload: .empty)
-        let frame = Frame(header: frameBody.header(withStreamId: .init(rawValue: 3)), body: .requestResponse(frameBody))
+        let frame = RequestResponseFrameBody(fragmentsFollow: false, payload: .empty)
+            .frame(withStreamId: 3)
         try channel.writeInbound(frame)
         
         connectionInitialization.completeWith(.success(()))
         
-        XCTAssertNotNil(try channel.readInbound(as: Frame.self))
+        XCTAssertEqual(try channel.readInbound(as: Frame.self), frame)
     }
 }

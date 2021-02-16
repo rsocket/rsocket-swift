@@ -23,7 +23,8 @@ internal struct RequestFireAndForgetFrameBody: Hashable {
     internal let payload: Payload
 }
 
-extension RequestFireAndForgetFrameBody {
+extension RequestFireAndForgetFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestFnf(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

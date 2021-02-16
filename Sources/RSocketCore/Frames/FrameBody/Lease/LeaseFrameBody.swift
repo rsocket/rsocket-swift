@@ -42,7 +42,8 @@ internal struct LeaseFrameBody: Hashable {
     internal let metadata: Data?
 }
 
-extension LeaseFrameBody {
+extension LeaseFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .lease(self) }
     func header() -> FrameHeader {
         var flags = FrameFlags()
         if metadata != nil {

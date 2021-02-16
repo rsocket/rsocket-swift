@@ -30,7 +30,8 @@ internal struct RequestStreamFrameBody: Hashable {
     internal let payload: Payload
 }
 
-extension RequestStreamFrameBody {
+extension RequestStreamFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestStream(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

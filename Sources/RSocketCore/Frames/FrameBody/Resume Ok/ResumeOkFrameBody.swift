@@ -20,7 +20,8 @@ internal struct ResumeOkFrameBody: Hashable {
     internal let lastReceivedClientPosition: Int64
 }
 
-extension ResumeOkFrameBody {
+extension ResumeOkFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .resumeOk(self) }
     func header() -> FrameHeader {
         FrameHeader(streamId: .connection, type: .resumeOk, flags: [])
     }

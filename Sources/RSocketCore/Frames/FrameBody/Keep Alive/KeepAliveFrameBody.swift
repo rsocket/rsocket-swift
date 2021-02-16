@@ -32,7 +32,8 @@ internal struct KeepAliveFrameBody: Hashable {
     internal let data: Data
 }
 
-extension KeepAliveFrameBody {
+extension KeepAliveFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .keepalive(self) }
     func header() -> FrameHeader {
         var flags = FrameFlags()
         if respondWithKeepalive {

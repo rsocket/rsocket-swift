@@ -22,7 +22,8 @@ internal struct MetadataPushFrameBody: Hashable {
     internal let metadata: Data
 }
 
-extension MetadataPushFrameBody {
+extension MetadataPushFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .metadataPush(self) }
     func header() -> FrameHeader {
         FrameHeader(streamId: .connection, type: .metadataPush, flags: .metadata)
     }

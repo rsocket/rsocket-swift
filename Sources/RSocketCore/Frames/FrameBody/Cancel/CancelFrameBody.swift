@@ -17,7 +17,8 @@
 /// A cancel frame indicates the cancellation of an outstanding request
 internal struct CancelFrameBody: Hashable { }
 
-extension CancelFrameBody {
+extension CancelFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .cancel(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         FrameHeader(streamId: streamId, type: .cancel, flags: [])
     }

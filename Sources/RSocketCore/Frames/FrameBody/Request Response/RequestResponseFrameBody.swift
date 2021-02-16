@@ -23,7 +23,8 @@ internal struct RequestResponseFrameBody: Hashable {
     internal let payload: Payload
 }
 
-extension RequestResponseFrameBody {
+extension RequestResponseFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestResponse(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

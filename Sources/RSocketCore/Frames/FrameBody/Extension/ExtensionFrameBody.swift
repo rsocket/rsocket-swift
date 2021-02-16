@@ -30,7 +30,8 @@ internal struct ExtensionFrameBody: Hashable {
     internal let payload: Payload
 }
 
-extension ExtensionFrameBody {
+extension ExtensionFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .ext(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if canBeIgnored {

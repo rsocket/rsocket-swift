@@ -38,7 +38,8 @@ internal struct ResumeFrameBody: Hashable {
     internal let firstAvailableClientPosition: Int64
 }
 
-extension ResumeFrameBody {
+extension ResumeFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .resume(self) }
     func header() -> FrameHeader {
         FrameHeader(streamId: .connection, type: .resume, flags: [])
     }

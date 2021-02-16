@@ -22,66 +22,33 @@ internal enum FragmentationResult {
     case error(reason: String)
 }
 
+fileprivate protocol FragmentableFrameBody {
+    var fragmentsFollow: Bool { get }
+}
+
+extension RequestResponseFrameBody: FragmentableFrameBody {}
+extension RequestFireAndForgetFrameBody: FragmentableFrameBody {}
+extension RequestStreamFrameBody: FragmentableFrameBody {}
+extension RequestChannelFrameBody: FragmentableFrameBody {}
+extension PayloadFrameBody: FragmentableFrameBody {}
+
 internal struct FragmentedFrameAssembler {
+    
     private var fragments: Fragments?
 
     internal mutating func process(frame: Frame) -> FragmentationResult {
         switch frame.body {
         case let .requestResponse(body):
-            guard fragments == nil else {
-                return .error(reason: "Current set of fragments is not complete")
-            }
-            if body.fragmentsFollow {
-                fragments = Fragments(initialFrame: frame)
-                return .incomplete
-            } else {
-                return .complete(frame)
-            }
-
+            return processInitialFragment(body, fullFrame: frame)
         case let .requestFnf(body):
-            guard fragments == nil else {
-                return .error(reason: "Current set of fragments is not complete")
-            }
-            if body.fragmentsFollow {
-                fragments = Fragments(initialFrame: frame)
-                return .incomplete
-            } else {
-                return .complete(frame)
-            }
-
+            return processInitialFragment(body, fullFrame: frame)
         case let .requestStream(body):
-            guard fragments == nil else {
-                return .error(reason: "Current set of fragments is not complete")
-            }
-            if body.fragmentsFollow {
-                fragments = Fragments(initialFrame: frame)
-                return .incomplete
-            } else {
-                return .complete(frame)
-            }
-
+            return processInitialFragment(body, fullFrame: frame)
         case let .requestChannel(body):
-            guard fragments == nil else {
-                return .error(reason: "Current set of fragments is not complete")
-            }
-            if body.fragmentsFollow {
-                fragments = Fragments(initialFrame: frame)
-                return .incomplete
-            } else {
-                return .complete(frame)
-            }
-
+            return processInitialFragment(body, fullFrame: frame)
         case let .payload(body):
             if body.isNext {
-                guard fragments == nil else {
-                    return .error(reason: "Current set of fragments is not complete")
-                }
-                if body.fragmentsFollow {
-                    fragments = Fragments(initialFrame: frame)
-                    return .incomplete
-                } else {
-                    return .complete(frame)
-                }
+                return processInitialFragment(body, fullFrame: frame)
             } else {
                 guard var fragments = fragments else {
                     return .error(reason: "There is no current set of fragments to extend")
@@ -106,6 +73,17 @@ internal struct FragmentedFrameAssembler {
             guard fragments == nil else {
                 return .error(reason: "Current set of fragments is not complete")
             }
+            return .complete(frame)
+        }
+    }
+    private mutating func processInitialFragment<FrameBody>(_ body: FrameBody, fullFrame frame: Frame) -> FragmentationResult where FrameBody: FragmentableFrameBody {
+        guard fragments == nil else {
+            return .error(reason: "Current set of fragments is not complete")
+        }
+        if body.fragmentsFollow {
+            fragments = Fragments(initialFrame: frame)
+            return .incomplete
+        } else {
             return .complete(frame)
         }
     }

@@ -56,35 +56,7 @@ internal class StreamAdapter: StreamOutput {
     /// Process the **non-fragmented** frame
     private func process(frame: Frame) {
         guard let stream = stream else {
-            // stream not active yet
-            switch frame.body {
-            case let .requestResponse(body):
-                self.stream = createStream(.response, body.payload, self)
-
-            case let .requestFnf(body):
-                self.stream = createStream(.fireAndForget, body.payload, self)
-
-            case let .requestStream(body):
-                self.stream = createStream(
-                    .stream(initialRequestN: body.initialRequestN),
-                    body.payload,
-                    self
-                )
-
-            case let .requestChannel(body):
-                self.stream = createStream(
-                    .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
-                    body.payload,
-                    self
-                )
-
-            default:
-                if frame.header.flags.contains(.ignore) {
-                    closeStream()
-                } else {
-                    closeConnection(.connectionError(message: "Invalid frame type for creating a new stream"))
-                }
-            }
+            startNewStream(with: frame)
             return
         }
 
@@ -122,6 +94,37 @@ internal class StreamAdapter: StreamOutput {
                 closeStream()
             } else {
                 closeConnection(.connectionError(message: "Invalid frame type for an active stream"))
+            }
+        }
+    }
+
+    private func startNewStream(with frame: Frame) {
+        switch frame.body {
+        case let .requestResponse(body):
+            self.stream = createStream(.response, body.payload, self)
+
+        case let .requestFnf(body):
+            self.stream = createStream(.fireAndForget, body.payload, self)
+
+        case let .requestStream(body):
+            self.stream = createStream(
+                .stream(initialRequestN: body.initialRequestN),
+                body.payload,
+                self
+            )
+
+        case let .requestChannel(body):
+            self.stream = createStream(
+                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
+                body.payload,
+                self
+            )
+
+        default:
+            if frame.header.flags.contains(.ignore) {
+                closeStream()
+            } else {
+                closeConnection(.connectionError(message: "Invalid frame type for creating a new stream"))
             }
         }
     }

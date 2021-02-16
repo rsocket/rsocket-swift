@@ -127,8 +127,6 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     private let initializeConnection: InitializeConnection
     
     private var state: State = .idle
-    /// buffered messages that come in while `state` == `.processing`
-    private var receivedMessagesDuringProcessing: [NIOAny] = []
     
     init(
         initializeConnection: @escaping InitializeConnection,
@@ -142,11 +140,11 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
             assertionFailure("Did receive a message during processing. This should not happen because we have added a message buffer in front of this handler which should not forward any messages")
             return
         }
+        state = .processing
+        
         /// adding `MessageBuffer` in front of us to buffer all messages that arrive during processing the frame
         let messageBuffer = MessageBufferHandler()
         _ = context.pipeline.addHandler(messageBuffer, position: .before(self))
-        
-        state = .processing
         
         let frame = unwrapInboundIn(data)
         do {
@@ -203,8 +201,7 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     }
     private func writeErrorAndCloseConnection(context: ChannelHandlerContext, error: Swift.Error) {
         let error = error as? Error ?? Error.connectionError(message: "unknown error")
-        let body = ErrorFrameBody(error: error)
-        let frame = Frame(header: body.header(withStreamId: .connection), body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         
         let writePromise = context.writeAndFlush(wrapOutboundOut(frame))
         writePromise.whenComplete { _ in

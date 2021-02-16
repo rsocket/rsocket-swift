@@ -105,7 +105,7 @@ extension Requester: RSocket {
         }
         let frame = Frame(header: header, body: body)
         sendOutbound(frame: frame)
-        return adapter
+        return adapter.weakStreamOutputs
     }
 
     // TODO: implement RSocket callbacks using `requestStream`

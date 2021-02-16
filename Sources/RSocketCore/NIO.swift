@@ -46,14 +46,11 @@ func tcpBootstrapServerExample() {
                 // LengthFieldPrepender(lengthFieldLength: .three),
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
-                RSocketConnectionEstablishmentHandler()
-                    .multiplexerInitializer({ (channel) -> EventLoopFuture<Void> in
-                        channel.pipeline.addHandlers([
-                            RSocketMultiplexer(isConnectionInitialiser: false),
-                            RSocketHeaderPrepender(streamID: .connection),
-                            ConnectionStreamHandler(), // not yet implemented
-                        ])
-                    })
+                ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
+                    channel.pipeline.addHandlers([
+                        RSocketMultiplexer(isConnectionInitialiser: true),
+                    ])
+                })
             ])
         }
     _ = server.bind(host: "localhost", port: 1234)

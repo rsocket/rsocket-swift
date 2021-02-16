@@ -15,7 +15,7 @@
  */
 
 extension StreamOutput {
-    internal var weakStreamOutputs: StreamOutput {
+    internal var weakStreamOutput: StreamOutput {
         WeakStreamOutput(self)
     }
 }
@@ -27,27 +27,37 @@ internal class WeakStreamOutput: StreamOutput {
         self.streamOutput = streamOutput
     }
 
+    private func assertStreamNotDeallocated() {
+        assert(streamOutput != nil, "Stream is already deallocated")
+    }
+
     internal func sendNext(_ payload: Payload, isCompletion: Bool) {
+        assertStreamNotDeallocated()
         streamOutput?.sendNext(payload, isCompletion: isCompletion)
     }
 
     internal func sendError(_ error: Error) {
+        assertStreamNotDeallocated()
         streamOutput?.sendError(error)
     }
 
     internal func sendComplete() {
+        assertStreamNotDeallocated()
         streamOutput?.sendComplete()
     }
 
     internal func sendCancel() {
+        assertStreamNotDeallocated()
         streamOutput?.sendCancel()
     }
 
     internal func sendRequestN(_ requestN: Int32) {
+        assertStreamNotDeallocated()
         streamOutput?.sendRequestN(requestN)
     }
 
     internal func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+        assertStreamNotDeallocated()
         streamOutput?.sendExtension(extendedType: extendedType, payload: payload, canBeIgnored: canBeIgnored)
     }
 }

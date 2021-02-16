@@ -101,23 +101,23 @@ internal class StreamAdapter {
     private func startNewStream(with frame: Frame) {
         switch frame.body {
         case let .requestResponse(body):
-            self.stream = createStream(.response, body.payload, weakStreamOutputs)
+            self.stream = createStream(.response, body.payload, weakStreamOutput)
 
         case let .requestFnf(body):
-            self.stream = createStream(.fireAndForget, body.payload, weakStreamOutputs)
+            self.stream = createStream(.fireAndForget, body.payload, weakStreamOutput)
 
         case let .requestStream(body):
             self.stream = createStream(
                 .stream(initialRequestN: body.initialRequestN),
                 body.payload,
-                weakStreamOutputs
+                weakStreamOutput
             )
 
         case let .requestChannel(body):
             self.stream = createStream(
                 .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                 body.payload,
-                weakStreamOutputs
+                weakStreamOutput
             )
 
         default:

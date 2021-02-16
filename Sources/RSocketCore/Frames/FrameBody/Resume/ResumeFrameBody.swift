@@ -22,11 +22,8 @@ import Foundation
  It replaces the `SETUP` frame.
  */
 internal struct ResumeFrameBody: Hashable {
-    /// Major version number of the protocol
-    internal let majorVersion: UInt16
-
-    /// Minor version number of the protocol
-    internal let minorVersion: UInt16
+    /// version of the client protocol implementation
+    internal let version: Version
 
     /// Token used for client resume identification
     internal let resumeIdentificationToken: Data

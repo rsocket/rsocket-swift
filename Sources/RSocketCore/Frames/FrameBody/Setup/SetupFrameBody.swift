@@ -23,10 +23,10 @@ import Foundation
  */
 internal struct SetupFrameBody: Hashable {
     /// If the connection should honor `LEASE`
-    internal let honorsLease: Bool
+    internal var honorsLease: Bool
     
     /// version of the client protocol implementation
-    internal let version: Version
+    internal var version: Version
     /**
      Time (in milliseconds) between `KEEPALIVE` frames that the client will send
 
@@ -34,7 +34,7 @@ internal struct SetupFrameBody: Hashable {
      - For server-to-server connections, a reasonable time interval between client `KEEPALIVE` frames is 500ms.
      - For mobile-to-server connections, the time interval between client `KEEPALIVE` frames is often > 30,000ms.
      */
-    internal let timeBetweenKeepaliveFrames: Int32
+    internal var timeBetweenKeepaliveFrames: Int32
 
     /**
      Time (in milliseconds) that a client will allow a server to not respond to a `KEEPALIVE`
@@ -42,10 +42,10 @@ internal struct SetupFrameBody: Hashable {
 
      Value MUST be > `0`.
      */
-    internal let maxLifetime: Int32
+    internal var maxLifetime: Int32
 
     /// Token used for client resume identification
-    internal let resumeIdentificationToken: Data?
+    internal var resumeIdentificationToken: Data?
 
     /**
      MIME Type for encoding of Metadata
@@ -56,7 +56,7 @@ internal struct SetupFrameBody: Hashable {
      For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
      The string MUST NOT be null terminated.
      */
-    internal let metadataEncodingMimeType: String
+    internal var metadataEncodingMimeType: String
 
     /**
      MIME Type for encoding of Data
@@ -67,10 +67,10 @@ internal struct SetupFrameBody: Hashable {
      For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
      The string MUST NOT be null terminated.
      */
-    internal let dataEncodingMimeType: String
+    internal var dataEncodingMimeType: String
 
     /// Payload of this frame describing connection capabilities of the endpoint sending the Setup header
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension SetupFrameBody: FrameBodyBoundToConnection {

@@ -17,7 +17,7 @@
 import Foundation
 
 /// A Metadata Push frame can be used to send asynchronous metadata notifications from a Requester or Responder to its peer
-internal struct MetadataPushFrameBody {
+internal struct MetadataPushFrameBody: Hashable {
     /// Metadata of this frame
     internal let metadata: Data
 }

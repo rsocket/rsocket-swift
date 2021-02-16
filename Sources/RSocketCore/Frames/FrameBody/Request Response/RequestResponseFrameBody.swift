@@ -15,7 +15,7 @@
  */
 
 /// Request single response
-internal struct RequestResponseFrameBody {
+internal struct RequestResponseFrameBody: Hashable {
     /// If fragments follow this frame
     internal let fragmentsFollow: Bool
 

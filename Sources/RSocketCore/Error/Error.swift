@@ -18,7 +18,7 @@
  Errors are used on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-public enum Error: Swift.Error {
+public enum Error: Swift.Error, Hashable {
     /// Reserved
     case reservedLower(message: String)
 

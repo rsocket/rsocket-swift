@@ -15,7 +15,7 @@
  */
 
 /// Request `N` more items with Reactive Streams semantics
-internal struct RequestNFrameBody {
+internal struct RequestNFrameBody: Hashable {
     /**
      The number of items to request
 

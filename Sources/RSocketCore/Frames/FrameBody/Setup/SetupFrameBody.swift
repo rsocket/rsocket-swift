@@ -21,7 +21,7 @@ import Foundation
 
  The usage and message sequence used is shown in Connection Establishment.
  */
-internal struct SetupFrameBody {
+internal struct SetupFrameBody: Hashable {
     /// If the connection should honor `LEASE`
     internal let honorsLease: Bool
     

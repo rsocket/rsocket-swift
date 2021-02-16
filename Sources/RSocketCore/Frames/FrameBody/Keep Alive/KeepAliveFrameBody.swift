@@ -17,7 +17,7 @@
 import Foundation
 
 /// Indicates to the receiver that the sender is alive
-internal struct KeepAliveFrameBody {
+internal struct KeepAliveFrameBody: Hashable {
     /// If the receiver should respond with a `KEEPALIVE`
     internal let respondWithKeepalive: Bool
 

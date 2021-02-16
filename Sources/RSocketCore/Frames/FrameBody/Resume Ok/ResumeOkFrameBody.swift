@@ -15,7 +15,7 @@
  */
 
 /// The `RESUME_OK` frame is sent in response to a `RESUME` if resuming operation possible
-internal struct ResumeOkFrameBody {
+internal struct ResumeOkFrameBody: Hashable {
     /// The last implied position the server received from the client
     internal let lastReceivedClientPosition: Int64
 }

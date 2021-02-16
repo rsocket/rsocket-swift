@@ -15,7 +15,7 @@
  */
 
 /// A single one-way message
-internal struct RequestFireAndForgetFrameBody {
+internal struct RequestFireAndForgetFrameBody: Hashable {
     /// If fragments follow this frame
     internal let fragmentsFollow: Bool
 

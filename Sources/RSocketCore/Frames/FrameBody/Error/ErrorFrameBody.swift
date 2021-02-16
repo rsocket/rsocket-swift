@@ -18,7 +18,7 @@
  Error frames are used for errors on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-internal struct ErrorFrameBody {
+internal struct ErrorFrameBody: Hashable {
     /// The error that occurred
     internal let error: Error
 }

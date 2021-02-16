@@ -19,7 +19,7 @@
 
  For example, response to a request, or message on a channel.
  */
-internal struct PayloadFrameBody {
+internal struct PayloadFrameBody: Hashable {
     /// If more fragments follow this frame
     internal let fragmentsFollow: Bool
 

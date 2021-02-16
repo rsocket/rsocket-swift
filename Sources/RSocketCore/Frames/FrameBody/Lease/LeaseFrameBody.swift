@@ -23,7 +23,7 @@ import Foundation
 
  The last received `LEASE` frame overrides all previous `LEASE` frame values.
  */
-internal struct LeaseFrameBody {
+internal struct LeaseFrameBody: Hashable {
     /**
      Time (in milliseconds) for validity of `LEASE` from time of reception
 

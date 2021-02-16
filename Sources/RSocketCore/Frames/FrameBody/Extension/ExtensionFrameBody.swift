@@ -15,7 +15,7 @@
  */
 
 /// Used To extend more frame types as well as extensions
-internal struct ExtensionFrameBody {
+internal struct ExtensionFrameBody: Hashable {
     /// If the frame can be ignored
     internal let canBeIgnored: Bool
 

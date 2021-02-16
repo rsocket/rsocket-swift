@@ -15,7 +15,7 @@
  */
 
 /// Request a completable stream
-internal struct RequestStreamFrameBody {
+internal struct RequestStreamFrameBody: Hashable {
     /// If fragments follow this frame
     internal let fragmentsFollow: Bool
 

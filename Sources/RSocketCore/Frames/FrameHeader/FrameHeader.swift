@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-internal struct FrameHeader {
+internal struct FrameHeader: Hashable {
     internal static let lengthInBytes = 6
 
     /// The id of the corresponding stream

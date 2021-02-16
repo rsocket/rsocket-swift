@@ -21,7 +21,7 @@ import Foundation
 
  It replaces the `SETUP` frame.
  */
-internal struct ResumeFrameBody {
+internal struct ResumeFrameBody: Hashable {
     /// Major version number of the protocol
     internal let majorVersion: UInt16
 

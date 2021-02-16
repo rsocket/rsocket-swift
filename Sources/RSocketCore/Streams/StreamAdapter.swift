@@ -16,7 +16,7 @@
 
 import Foundation
 
-internal class StreamAdapter: StreamOutput {
+internal class StreamAdapter {
     private let streamId: StreamID
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private let sendFrame: (Frame) -> Void
@@ -128,7 +128,9 @@ internal class StreamAdapter: StreamOutput {
             }
         }
     }
+}
 
+extension StreamAdapter: StreamOutput {
     internal func sendNext(_ payload: Payload, isCompletion: Bool) {
         // TODO: payload fragmentation
         let body = PayloadFrameBody(

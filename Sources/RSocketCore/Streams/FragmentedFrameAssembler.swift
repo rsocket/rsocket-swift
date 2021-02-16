@@ -92,9 +92,13 @@ internal struct FragmentedFrameAssembler {
                     self.fragments = fragments
                     return .incomplete
                 } else {
-                    let completedFrame = fragments.buildFrame()
-                    self.fragments = nil
-                    return .complete(completedFrame)
+                    switch fragments.buildFrame() {
+                    case let .success(completedFrame):
+                        self.fragments = nil
+                        return .complete(completedFrame)
+                    case let .error(reason: reason):
+                        return .error(reason: reason)
+                    }
                 }
             }
 
@@ -107,12 +111,17 @@ internal struct FragmentedFrameAssembler {
     }
 }
 
+private enum FrameBuildResult {
+    case success(Frame)
+    case error(reason: String)
+}
+
 private struct Fragments {
     var initialFrame: Frame
     var additionalFragments: [Payload] = []
     var isCompletion: Bool = false
 
-    func buildFrame() -> Frame {
+    func buildFrame() -> FrameBuildResult {
         // get initial payload
         let initialPayload: Payload
         switch initialFrame.body {
@@ -124,26 +133,27 @@ private struct Fragments {
         default:
             // Only those frame types above can be fragmented
             // Thus the FragmentedFrameAssembler will never instantiate this with a different frame type
-            fatalError("Unsupported frame type for frame fragmentation")
+            return .error(reason: "Unsupported initial frame")
         }
 
         // concatenate fragments
-        var fragmentsHaveMetadata: Bool = initialPayload.metadata != nil
-        var metadata: Data = initialPayload.metadata ?? Data()
+        var metadata: Data? = initialPayload.metadata
         var data: Data = initialPayload.data
         for fragment in additionalFragments {
             if let metadataFragment = fragment.metadata {
-                fragmentsHaveMetadata = true
-                metadata.append(metadataFragment)
+                guard data.isEmpty else {
+                    return .error(reason: "Fragment has metadata even though previous fragments had data")
+                }
+                if let previousMetadata = metadata {
+                    metadata = previousMetadata + metadataFragment
+                } else {
+                    // previous fragments didn't have metadata or data
+                    metadata = metadataFragment
+                }
             }
-            data.append(fragment.data)
+            data += fragment.data
         }
-        let newPayload: Payload
-        if fragmentsHaveMetadata {
-            newPayload = Payload(metadata: metadata, data: data)
-        } else {
-            newPayload = Payload(metadata: nil, data: data)
-        }
+        let newPayload = Payload(metadata: metadata, data: data)
 
         // build assembled frame
         switch initialFrame.body {
@@ -153,7 +163,7 @@ private struct Fragments {
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return Frame(header: newHeader, body: .requestResponse(newBody))
+            return .success(Frame(header: newHeader, body: .requestResponse(newBody)))
 
         case .requestFnf:
             let newBody = RequestFireAndForgetFrameBody(
@@ -161,7 +171,7 @@ private struct Fragments {
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return Frame(header: newHeader, body: .requestFnf(newBody))
+            return .success(Frame(header: newHeader, body: .requestFnf(newBody)))
 
         case let .requestStream(body):
             let newBody = RequestStreamFrameBody(
@@ -170,7 +180,7 @@ private struct Fragments {
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return Frame(header: newHeader, body: .requestStream(newBody))
+            return .success(Frame(header: newHeader, body: .requestStream(newBody)))
 
         case let .requestChannel(body):
             let newBody = RequestChannelFrameBody(
@@ -180,7 +190,7 @@ private struct Fragments {
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return Frame(header: newHeader, body: .requestChannel(newBody))
+            return .success(Frame(header: newHeader, body: .requestChannel(newBody)))
 
         case .payload:
             let newBody = PayloadFrameBody(
@@ -190,12 +200,12 @@ private struct Fragments {
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return Frame(header: newHeader, body: .payload(newBody))
+            return .success(Frame(header: newHeader, body: .payload(newBody)))
 
         default:
             // Only those frame types above can be fragmented
             // Thus the FragmentedFrameAssembler will never instantiate this with a different frame type
-            fatalError("Unsupported frame type for frame fragmentation")
+            return .error(reason: "Unsupported initial frame")
         }
     }
 }

@@ -70,6 +70,51 @@ public struct ClientInfo {
     public let payload: Payload
 }
 
+internal struct SetupValidator {
+    internal var minimumClientVersion = Version.v0_2
+    
+    internal func validate(frame: Frame) throws -> ClientInfo {
+        try validateSetup(try getSetupBody(frame))
+    }
+    
+    private func getSetupBody(_ frame: Frame) throws -> SetupFrameBody {
+        guard frame.header.streamId == .connection else {
+            throw Error.invalidSetup(message: "connection needs to be setup on stream 0")
+        }
+        guard frame.header.type != .resume else {
+            throw Error.rejectedResume(message: "resume is not supported")
+        }
+        guard case let .setup(setup) = frame.body else {
+            throw Error.invalidSetup(message: "connection must be setup before anything else")
+        }
+        return setup
+    }
+    
+    private func validateSetup(_ setup: SetupFrameBody) throws -> ClientInfo {
+        guard setup.version >= minimumClientVersion else {
+            throw Error.unsupportedSetup(message: "only version \(minimumClientVersion) and higher is supported")
+        }
+        guard setup.honorsLease == false else {
+            throw Error.unsupportedSetup(message: "leasing is not supported")
+        }
+        return ClientInfo(setup)
+    }
+}
+
+extension ClientInfo {
+    fileprivate init(_ setup: SetupFrameBody) {
+        self.honorsLease = setup.honorsLease
+        self.version = setup.version
+        self.timeBetweenKeepaliveFrames = Int(setup.timeBetweenKeepaliveFrames)
+        self.maxLifetime = Int(setup.maxLifetime)
+        self.resumeIdentificationToken = setup.resumeIdentificationToken
+        self.metadataEncodingMimeType = setup.metadataEncodingMimeType
+        self.dataEncodingMimeType = setup.dataEncodingMimeType
+        self.payload = setup.payload
+    }
+}
+
+
 public enum ClientAcceptorResult {
     case accept
     case reject(reason: String)
@@ -121,12 +166,12 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         case processing
     }
     
-    private let minimumClientVersion = Version.v0_2
-    
     private let customAcceptor: ClientAcceptorCallback?
     private let initializeConnection: InitializeConnection
     
     private var state: State = .idle
+    
+    private let setupValidator = SetupValidator()
     
     init(
         initializeConnection: @escaping InitializeConnection,
@@ -148,8 +193,16 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         
         let frame = unwrapInboundIn(data)
         do {
-            let setup = try getSetupBody(frame)
-            let info = try validateSetup(setup)
+            let info = try setupValidator.validate(frame: frame)
+            
+            if let acceptor = customAcceptor {
+                switch acceptor(info) {
+                case .accept: break
+                case let .reject(reason):
+                throw Error.rejectedSetup(message: reason)
+                }
+            }
+            
             initializeConnection(info, context.channel)
                 .hop(to: context.eventLoop) // the user might return a future from another EventLoop.
                 .whenComplete { result in
@@ -169,36 +222,6 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         }
     }
     
-    private func getSetupBody(_ frame: Frame) throws -> SetupFrameBody {
-        guard frame.header.streamId == .connection else {
-            throw Error.invalidSetup(message: "connection needs to be setup on stream 0")
-        }
-        guard frame.header.type != .resume else {
-            throw Error.rejectedResume(message: "resume is not supported")
-        }
-        guard case let .setup(setup) = frame.body else {
-            throw Error.invalidSetup(message: "connection must be setup before anything else")
-        }
-        return setup
-    }
-    private func validateSetup(_ setup: SetupFrameBody) throws -> ClientInfo {
-        guard setup.version >= minimumClientVersion else {
-            throw Error.unsupportedSetup(message: "only version \(minimumClientVersion) and higher is supported")
-        }
-        guard setup.honorsLease == false else {
-            throw Error.unsupportedSetup(message: "leasing is not supported")
-        }
-        let info = ClientInfo(setup)
-        
-        if let acceptor = customAcceptor {
-            switch acceptor(info) {
-            case .accept: break
-            case let .reject(reason):
-            throw Error.rejectedSetup(message: reason)
-            }
-        }
-        return info
-    }
     private func writeErrorAndCloseConnection(context: ChannelHandlerContext, error: Swift.Error) {
         let error = error as? Error ?? Error.connectionError(message: "unknown error")
         let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
@@ -207,18 +230,5 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         writePromise.whenComplete { _ in
             context.close(promise: nil)
         }
-    }
-}
-
-extension ClientInfo {
-    fileprivate init(_ setup: SetupFrameBody) {
-        self.honorsLease = setup.honorsLease
-        self.version = setup.version
-        self.timeBetweenKeepaliveFrames = Int(setup.timeBetweenKeepaliveFrames)
-        self.maxLifetime = Int(setup.maxLifetime)
-        self.resumeIdentificationToken = setup.resumeIdentificationToken
-        self.metadataEncodingMimeType = setup.metadataEncodingMimeType
-        self.dataEncodingMimeType = setup.dataEncodingMimeType
-        self.payload = setup.payload
     }
 }

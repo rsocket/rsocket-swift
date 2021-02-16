@@ -171,10 +171,6 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
         }
     }
     
-    func removeHandler(context: ChannelHandlerContext, removalToken: ChannelHandlerContext.RemovalToken) {
-        context.leavePipeline(removalToken: removalToken)
-    }
-    
     private func getSetupBody(_ frame: Frame) throws -> SetupFrameBody {
         guard frame.header.streamId == .connection else {
             throw Error.invalidSetup(message: "connection needs to be setup on stream 0")

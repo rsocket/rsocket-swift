@@ -211,7 +211,7 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
 }
 
 extension ClientInfo {
-    init(_ setup: SetupFrameBody) {
+    fileprivate init(_ setup: SetupFrameBody) {
         self.honorsLease = setup.honorsLease
         self.version = setup.version
         self.timeBetweenKeepaliveFrames = Int(setup.timeBetweenKeepaliveFrames)

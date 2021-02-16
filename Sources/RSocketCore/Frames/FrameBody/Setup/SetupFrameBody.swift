@@ -21,7 +21,7 @@ import Foundation
 
  The usage and message sequence used is shown in Connection Establishment.
  */
-internal struct SetupFrameBody {
+internal struct SetupFrameBody: Hashable {
     /// If the connection should honor `LEASE`
     internal let honorsLease: Bool
     
@@ -73,7 +73,8 @@ internal struct SetupFrameBody {
     internal let payload: Payload
 }
 
-extension SetupFrameBody {
+extension SetupFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .setup(self) }
     func header() -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

@@ -15,7 +15,7 @@
  */
 
 /// Request single response
-internal struct RequestResponseFrameBody {
+internal struct RequestResponseFrameBody: Hashable {
     /// If fragments follow this frame
     internal let fragmentsFollow: Bool
 
@@ -23,7 +23,8 @@ internal struct RequestResponseFrameBody {
     internal let payload: Payload
 }
 
-extension RequestResponseFrameBody {
+extension RequestResponseFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestResponse(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

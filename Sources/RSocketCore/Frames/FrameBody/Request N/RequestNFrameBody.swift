@@ -15,7 +15,7 @@
  */
 
 /// Request `N` more items with Reactive Streams semantics
-internal struct RequestNFrameBody {
+internal struct RequestNFrameBody: Hashable {
     /**
      The number of items to request
 
@@ -24,7 +24,8 @@ internal struct RequestNFrameBody {
     internal let requestN: Int32
 }
 
-extension RequestNFrameBody {
+extension RequestNFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestN(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         FrameHeader(streamId: streamId, type: .requestN, flags: [])
     }

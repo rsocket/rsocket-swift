@@ -50,49 +50,49 @@ internal struct FrameDecoder: FrameDecoding {
             throw Error.unsupportedFrameType
 
         case .setup:
-            body = .setup(try setupDecoder.decode(from: &buffer, header: header))
+            body = try setupDecoder.decode(from: &buffer, header: header).body()
 
         case .lease:
-            body = .lease(try leaseDecoder.decode(from: &buffer, header: header))
+            body = try leaseDecoder.decode(from: &buffer, header: header).body()
 
         case .keepalive:
-            body = .keepalive(try keepAliveDecoder.decode(from: &buffer, header: header))
+            body = try keepAliveDecoder.decode(from: &buffer, header: header).body()
 
         case .requestResponse:
-            body = .requestResponse(try requestResponseDecoder.decode(from: &buffer, header: header))
+            body = try requestResponseDecoder.decode(from: &buffer, header: header).body()
 
         case .requestFnf:
-            body = .requestFnf(try requestFireAndForgetDecoder.decode(from: &buffer, header: header))
+            body = try requestFireAndForgetDecoder.decode(from: &buffer, header: header).body()
 
         case .requestStream:
-            body = .requestStream(try requestStreamDecoder.decode(from: &buffer, header: header))
+            body = try requestStreamDecoder.decode(from: &buffer, header: header).body()
 
         case .requestChannel:
-            body = .requestChannel(try requestChannelDecoder.decode(from: &buffer, header: header))
+            body = try requestChannelDecoder.decode(from: &buffer, header: header).body()
 
         case .requestN:
-            body = .requestN(try requestNDecoder.decode(from: &buffer, header: header))
+            body = try requestNDecoder.decode(from: &buffer, header: header).body()
 
         case .cancel:
-            body = .cancel(try cancelDecoder.decode(from: &buffer, header: header))
+            body = try cancelDecoder.decode(from: &buffer, header: header).body()
 
         case .payload:
-            body = .payload(try payloadDecoder.decode(from: &buffer, header: header))
+            body = try payloadDecoder.decode(from: &buffer, header: header).body()
 
         case .error:
-            body = .error(try errorDecoder.decode(from: &buffer, header: header))
+            body = try errorDecoder.decode(from: &buffer, header: header).body()
 
         case .metadataPush:
-            body = .metadataPush(try metadataPushDecoder.decode(from: &buffer, header: header))
+            body = try metadataPushDecoder.decode(from: &buffer, header: header).body()
 
         case .resume:
-            body = .resume(try resumeDecoder.decode(from: &buffer, header: header))
+            body = try resumeDecoder.decode(from: &buffer, header: header).body()
 
         case .resumeOk:
-            body = .resumeOk(try resumeOkDecoder.decode(from: &buffer, header: header))
+            body = try resumeOkDecoder.decode(from: &buffer, header: header).body()
 
         case .ext:
-            body = .ext(try extensionDecoder.decode(from: &buffer, header: header))
+            body = try extensionDecoder.decode(from: &buffer, header: header).body()
         }
         return Frame(header: header, body: body)
     }

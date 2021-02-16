@@ -15,7 +15,7 @@
  */
 
 /// A single one-way message
-internal struct RequestFireAndForgetFrameBody {
+internal struct RequestFireAndForgetFrameBody: Hashable {
     /// If fragments follow this frame
     internal let fragmentsFollow: Bool
 
@@ -23,7 +23,8 @@ internal struct RequestFireAndForgetFrameBody {
     internal let payload: Payload
 }
 
-extension RequestFireAndForgetFrameBody {
+extension RequestFireAndForgetFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestFnf(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

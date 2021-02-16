@@ -18,12 +18,13 @@
  Error frames are used for errors on individual requests/streams as well
  as connection errors and in response to `SETUP` frames.
  */
-internal struct ErrorFrameBody {
+internal struct ErrorFrameBody: Hashable {
     /// The error that occurred
     internal let error: Error
 }
 
-extension ErrorFrameBody {
+extension ErrorFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .error(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         FrameHeader(streamId: streamId, type: .error, flags: [])
     }

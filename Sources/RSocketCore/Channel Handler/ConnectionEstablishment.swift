@@ -178,6 +178,11 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     
     private let setupValidator = SetupValidator()
     
+    
+    /// Configure `ConnectionEstablishmentHandler`.  If `shouldAcceptClient` is nil, valid clients are always accepted.
+    /// - Parameters:
+    ///   - initializeConnection: called after successful handshake and after `shouldAcceptClient`did accept the client.
+    ///   - shouldAcceptClient: called after successful validation of setup information. Use this to accept or reject individual clients.
     init(
         initializeConnection: @escaping InitializeConnection,
         shouldAcceptClient: ClientAcceptorCallback? = nil

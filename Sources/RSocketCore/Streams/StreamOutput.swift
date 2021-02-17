@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-public protocol StreamOutput: AnyObject {
+public protocol StreamOutput {
     func sendNext(_ payload: Payload, isCompletion: Bool)
     func sendError(_ error: Error)
     func sendComplete()

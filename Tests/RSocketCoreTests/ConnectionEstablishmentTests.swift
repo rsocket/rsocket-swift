@@ -37,7 +37,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
             handler: ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
                 initializeConnection.fulfill()
                 return channel.eventLoop.makeSucceededFuture(())
-            }, shouldAcceptSetup: { (info) -> ClientAcceptorResult in
+            }, shouldAcceptClient: { (info) -> ClientAcceptorResult in
                 shouldAcceptSetup.fulfill()
                 return .accept
             }))

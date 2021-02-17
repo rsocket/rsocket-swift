@@ -49,10 +49,6 @@ internal final class Responder: FrameHandler {
             break
         }
     }
-
-    internal func sendOutbound(frame: Frame) {
-        sendFrame(frame)
-    }
 }
 
 extension Responder: StreamAdapterDelegate {

@@ -18,25 +18,35 @@ import Foundation
 import NIO
 
 
-func tcpBootstrapClientExample() {
+func tcpBootstrapClientExample(
+    createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput
+) {
     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     let bootstrap = ClientBootstrap(group: group)
         .channelInitializer { (channel) -> EventLoopFuture<Void> in
-            channel.pipeline.addHandlers([
+            let sendFrame: (Frame) -> () = { [weak channel] frame in
+                channel?.writeAndFlush(frame, promise: nil)
+            }
+            return channel.pipeline.addHandlers([
                 /// `LengthFieldBasedFrameDecoder` and `LengthFieldBasedFrameDecoder` are part of apple/swift-nio-extra and do not yet support a lenght field lenght of 3 bytes but they are exactly what we need to support RSocket over TCP
                 // LengthFieldBasedFrameDecoder(lengthFieldLength: .three),
                 // LengthFieldPrepender(lengthFieldLength: .three),
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
-                RSocketMultiplexer(isConnectionInitialiser: true),
-                RSocketHeaderPrepender(streamID: .connection),
-                ConnectionStreamHandler(), // not yet implemented
+                DemultiplexerHandler(
+                    connectionSide: .client,
+                    requester: Requester(sendFrame: sendFrame),
+                    responder: Responder(createStream: createStream, sendFrame: sendFrame)
+                ),
+                ConnectionStreamHandler(),
             ])
         }
     _ = bootstrap.connect(host: "localhost", port: 1234)
 }
 
-func tcpBootstrapServerExample() {
+func tcpBootstrapServerExample(
+    createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput
+) {
     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     let server = ServerBootstrap(group: group)
         .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
@@ -47,25 +57,21 @@ func tcpBootstrapServerExample() {
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
                 ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
-                    channel.pipeline.addHandlers([
-                        RSocketMultiplexer(isConnectionInitialiser: true),
+                    let sendFrame: (Frame) -> () = { [weak channel] frame in
+                        channel?.writeAndFlush(frame, promise: nil)
+                    }
+                    return channel.pipeline.addHandlers([
+                        DemultiplexerHandler(
+                            connectionSide: .server,
+                            requester: Requester(sendFrame: sendFrame),
+                            responder: Responder(createStream: createStream, sendFrame: sendFrame)
+                        ),
+                        ConnectionStreamHandler(),
                     ])
                 })
             ])
         }
     _ = server.bind(host: "localhost", port: 1234)
-}
-
-final class RSocketConnectionEstablishmentHandler: ChannelInboundHandler {
-    typealias InboundIn = Frame
-    typealias OutboundOut = Frame
-    
-    private var multiplexerInitializer: ((Channel) -> EventLoopFuture<Void>)?
-    func multiplexerInitializer(_ initializer: @escaping (Channel) -> EventLoopFuture<Void>) -> Self {
-        multiplexerInitializer = initializer
-        return self
-    }
-    // TODO: implement conneciton establishment
 }
 
 final class ConnectionStreamHandler: ChannelInboundHandler {
@@ -109,34 +115,6 @@ final class RSocketFrameEncoder: ChannelOutboundHandler {
                 return
             }
             context.fireErrorCaught(error)
-        }
-    }
-}
-
-final class RSocketMultiplexer: ChannelInboundHandler {
-    typealias InboundIn = Frame
-    typealias InboundOut = FrameBody
-    private var isConnectionInitialiser: Bool
-
-    private var streams: [StreamID: Channel] = [:]
-    
-    internal init(
-        isConnectionInitialiser: Bool
-    ) {
-        self.isConnectionInitialiser = isConnectionInitialiser
-    }
-    
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = unwrapInboundIn(data)
-        guard frame.header.streamId != .connection else {
-            context.fireChannelRead(wrapInboundOut(frame.body))
-            return
-        }
-        
-        if let stream = streams[frame.header.streamId] {
-            stream.pipeline.fireChannelRead(wrapInboundOut(frame.body))
-        } else {
-            // TODO: initialise channel if appropriated or throw error
         }
     }
 }

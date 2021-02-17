@@ -34,9 +34,29 @@ internal final class Requester: FrameHandler {
         }
         existingStreamAdapter.receive(frame: frame)
     }
+}
 
-    internal func sendOutbound(frame: Frame) {
+extension Requester: StreamAdapterDelegate {
+    func register(adapter: StreamAdapter) -> StreamID {
+        let newId = generateNewStreamId()
+        activeStreams[newId] = adapter
+        return newId
+    }
+
+    func send(frame: Frame) {
         sendFrame(frame)
+    }
+
+    func closeStream(id: StreamID) {
+        activeStreams.removeValue(forKey: id)
+    }
+
+    func closeConnection(with error: Error) {
+        let body = ErrorFrameBody(error: error)
+        let header = body.header(withStreamId: .connection)
+        let frame = Frame(header: header, body: .error(body))
+        sendFrame(frame)
+        // TODO: close connection
     }
 }
 
@@ -47,64 +67,54 @@ extension Requester: RSocket {
         payload: Payload,
         input: StreamInput
     ) -> StreamOutput {
-        let streamId = generateNewStreamId()
         let adapter = StreamAdapter(
-            streamId: streamId,
-            createStream: { _, _, _ in input },
-            sendFrame: { [weak self] in self?.sendOutbound(frame: $0) },
-            closeStream: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) },
-            closeConnection: { [weak self] error in
-                let body = ErrorFrameBody(error: error)
-                let header = body.header(withStreamId: .connection)
-                let frame = Frame(header: header, body: .error(body))
-                self?.sendOutbound(frame: frame)
-                // TODO: close connection
-            })
-        activeStreams[streamId] = adapter
-        let header: FrameHeader
-        let body: FrameBody
-        switch type {
-        case .response:
-            // todo: payload fragmentation
-            let requestResponseBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = requestResponseBody.header(withStreamId: streamId)
-            body = .requestResponse(requestResponseBody)
-
-        case .fireAndForget:
-            // todo: payload fragmentation
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = fireAndForgetBody.header(withStreamId: streamId)
-            body = .requestFnf(fireAndForgetBody)
-
-        case let .stream(initialRequestN):
-            // todo: payload fragmentation
-            let streamBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = streamBody.header(withStreamId: streamId)
-            body = .requestStream(streamBody)
-
-        case let .channel(initialRequestN, isCompleted):
-            // todo: payload fragmentation
-            let channelBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
-                isCompleted: isCompleted,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = channelBody.header(withStreamId: streamId)
-            body = .requestChannel(channelBody)
-        }
-        let frame = Frame(header: header, body: body)
-        sendOutbound(frame: frame)
+            delegate: self,
+            createStream: { _, _, _ in input }
+        )
+//        let header: FrameHeader
+//        let body: FrameBody
+//        switch type {
+//        case .response:
+//            // todo: payload fragmentation
+//            let requestResponseBody = RequestResponseFrameBody(
+//                fragmentsFollow: false,
+//                payload: payload
+//            )
+//            header = requestResponseBody.header(withStreamId: streamId)
+//            body = .requestResponse(requestResponseBody)
+//
+//        case .fireAndForget:
+//            // todo: payload fragmentation
+//            let fireAndForgetBody = RequestFireAndForgetFrameBody(
+//                fragmentsFollow: false,
+//                payload: payload
+//            )
+//            header = fireAndForgetBody.header(withStreamId: streamId)
+//            body = .requestFnf(fireAndForgetBody)
+//
+//        case let .stream(initialRequestN):
+//            // todo: payload fragmentation
+//            let streamBody = RequestStreamFrameBody(
+//                fragmentsFollow: false,
+//                initialRequestN: initialRequestN,
+//                payload: payload
+//            )
+//            header = streamBody.header(withStreamId: streamId)
+//            body = .requestStream(streamBody)
+//
+//        case let .channel(initialRequestN, isCompleted):
+//            // todo: payload fragmentation
+//            let channelBody = RequestChannelFrameBody(
+//                fragmentsFollow: false,
+//                isCompleted: isCompleted,
+//                initialRequestN: initialRequestN,
+//                payload: payload
+//            )
+//            header = channelBody.header(withStreamId: streamId)
+//            body = .requestChannel(channelBody)
+//        }
+//        let frame = Frame(header: header, body: body)
+//        sendOutbound(frame: frame)
         return adapter.weakStreamOutput
     }
 

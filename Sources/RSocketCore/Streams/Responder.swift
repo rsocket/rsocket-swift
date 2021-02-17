@@ -38,18 +38,10 @@ internal final class Responder: FrameHandler {
         switch frame.body {
         case .requestResponse, .requestFnf, .requestStream, .requestChannel:
             let adapter = StreamAdapter(
-                streamId: streamId,
-                createStream: createStream,
-                sendFrame: { [weak self] in self?.sendOutbound(frame: $0) },
-                closeStream: { [weak self] in self?.activeStreams.removeValue(forKey: streamId) },
-                closeConnection: { [weak self] error in
-                    let body = ErrorFrameBody(error: error)
-                    let header = body.header(withStreamId: .connection)
-                    let frame = Frame(header: header, body: .error(body))
-                    self?.sendOutbound(frame: frame)
-                    // TODO: close connection
-                }
+                delegate: self,
+                createStream: createStream
             )
+            adapter.streamId = streamId
             activeStreams[streamId] = adapter
             adapter.receive(frame: frame)
         default:
@@ -60,5 +52,27 @@ internal final class Responder: FrameHandler {
 
     internal func sendOutbound(frame: Frame) {
         sendFrame(frame)
+    }
+}
+
+extension Responder: StreamAdapterDelegate {
+    func register(adapter: StreamAdapter) -> StreamID {
+        fatalError("StreamAdapter should not register itself at the responder.")
+    }
+
+    func send(frame: Frame) {
+        sendFrame(frame)
+    }
+
+    func closeStream(id: StreamID) {
+        activeStreams.removeValue(forKey: id)
+    }
+
+    func closeConnection(with error: Error) {
+        let body = ErrorFrameBody(error: error)
+        let header = body.header(withStreamId: .connection)
+        let frame = Frame(header: header, body: .error(body))
+        sendFrame(frame)
+        // TODO: close connection
     }
 }

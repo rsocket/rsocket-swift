@@ -16,58 +16,65 @@
 
 import Foundation
 
+internal protocol StreamAdapterDelegate: AnyObject {
+    func register(adapter: StreamAdapter) -> StreamID
+    func send(frame: Frame)
+    func closeStream(id: StreamID)
+    func closeConnection(with error: Error)
+}
+
 internal class StreamAdapter {
-    private let streamId: StreamID
+    internal weak var delegate: StreamAdapterDelegate?
+    internal var streamId: StreamID?
+    private var stream: StreamInput?
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
-    private let sendFrame: (Frame) -> Void
-    private let closeStream: () -> Void
-    private let closeConnection: (Error) -> Void
-    internal var stream: StreamInput?
+
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
 
     internal init(
-        streamId: StreamID,
-        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
-        sendFrame: @escaping (Frame) -> Void,
-        closeStream: @escaping () -> Void,
-        closeConnection: @escaping (Error) -> Void
+        delegate: StreamAdapterDelegate,
+        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput
     ) {
-        self.streamId = streamId
+        self.delegate = delegate
         self.createStream = createStream
-        self.sendFrame = sendFrame
-        self.closeStream = closeStream
-        self.closeConnection = closeConnection
     }
 
+    /// Receive frame from upstream (requester/responder)
     internal func receive(frame: Frame) {
+        guard let streamId = streamId else {
+            assertionFailure("StreamAdapter needs to be registered before receiving frames")
+            return
+        }
         switch fragmentedFrameAssembler.process(frame: frame) {
         case let .complete(completeFrame):
-            process(frame: completeFrame)
+            process(streamId: streamId, frame: completeFrame)
 
         case .incomplete:
             break
 
-        case let .error(reason: reason):
-            // TODO: throw error with reason
-            fatalError(reason)
+        case let .error(reason):
+            if !frame.header.flags.contains(.ignore) {
+                // TODO: Should we close the stream or just reset the state of fragmentedFrameAssembler?
+                delegate?.closeStream(id: streamId)
+            } else {
+                delegate?.closeConnection(with: .connectionError(message: reason))
+            }
         }
     }
 
     /// Process the **non-fragmented** frame
-    private func process(frame: Frame) {
+    private func process(streamId: StreamID, frame: Frame) {
         guard let stream = stream else {
-            startNewStream(with: frame)
+            createNewStream(with: streamId, frame: frame)
             return
         }
-
-        // handle active stream
         switch frame.body {
         case let .requestN(body):
             stream.onRequestN(body.requestN)
 
         case .cancel:
             stream.onCancel()
-            closeStream()
+            delegate?.closeStream(id: streamId)
 
         case let .payload(body):
             if body.isNext {
@@ -75,12 +82,12 @@ internal class StreamAdapter {
             }
             if body.isCompletion {
                 stream.onComplete()
-                closeStream()
+                delegate?.closeStream(id: streamId)
             }
 
         case let .error(body):
             stream.onError(body.error)
-            closeStream()
+            delegate?.closeStream(id: streamId)
 
         case let .ext(body):
             stream.onExtension(
@@ -91,30 +98,31 @@ internal class StreamAdapter {
 
         default:
             if frame.header.flags.contains(.ignore) {
-                closeStream()
+                delegate?.closeStream(id: streamId)
             } else {
-                closeConnection(.connectionError(message: "Invalid frame type for an active stream"))
+                delegate?.closeConnection(with: .connectionError(message: "Invalid frame type for an active stream"))
             }
         }
     }
 
-    private func startNewStream(with frame: Frame) {
+    /// Creates a new stream for a given request frame (when `StreamAdapter` is instantiated by the responder)
+    private func createNewStream(with id: StreamID, frame: Frame) {
         switch frame.body {
         case let .requestResponse(body):
-            self.stream = createStream(.response, body.payload, weakStreamOutput)
+            stream = createStream(.response, body.payload, weakStreamOutput)
 
         case let .requestFnf(body):
-            self.stream = createStream(.fireAndForget, body.payload, weakStreamOutput)
+            stream = createStream(.fireAndForget, body.payload, weakStreamOutput)
 
         case let .requestStream(body):
-            self.stream = createStream(
+            stream = createStream(
                 .stream(initialRequestN: body.initialRequestN),
                 body.payload,
                 weakStreamOutput
             )
 
         case let .requestChannel(body):
-            self.stream = createStream(
+            stream = createStream(
                 .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                 body.payload,
                 weakStreamOutput
@@ -122,9 +130,9 @@ internal class StreamAdapter {
 
         default:
             if frame.header.flags.contains(.ignore) {
-                closeStream()
+                delegate?.closeStream(id: id)
             } else {
-                closeConnection(.connectionError(message: "Invalid frame type for creating a new stream"))
+                delegate?.closeConnection(with: .connectionError(message: "Invalid frame type for creating a new stream"))
             }
         }
     }
@@ -133,58 +141,58 @@ internal class StreamAdapter {
 extension StreamAdapter: StreamOutput {
     internal func sendNext(_ payload: Payload, isCompletion: Bool) {
         // TODO: payload fragmentation
-        let body = PayloadFrameBody(
-            fragmentsFollow: false,
-            isCompletion: isCompletion,
-            isNext: true,
-            payload: payload
-        )
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .payload(body))
-        sendFrame(frame)
+//        let body = PayloadFrameBody(
+//            fragmentsFollow: false,
+//            isCompletion: isCompletion,
+//            isNext: true,
+//            payload: payload
+//        )
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .payload(body))
+//        sendFrame(frame)
     }
 
     internal func sendError(_ error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .error(body))
-        sendFrame(frame)
-        closeStream()
+//        let body = ErrorFrameBody(error: error)
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .error(body))
+//        sendFrame(frame)
+//        closeStream()
     }
 
     internal func sendComplete() {
-        let body = PayloadFrameBody(
-            fragmentsFollow: false,
-            isCompletion: true,
-            isNext: false,
-            payload: .empty
-        )
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .payload(body))
-        sendFrame(frame)
-        closeStream()
+//        let body = PayloadFrameBody(
+//            fragmentsFollow: false,
+//            isCompletion: true,
+//            isNext: false,
+//            payload: .empty
+//        )
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .payload(body))
+//        sendFrame(frame)
+//        closeStream()
     }
 
     internal func sendCancel() {
-        let body = CancelFrameBody()
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .cancel(body))
-        sendFrame(frame)
-        closeStream()
+//        let body = CancelFrameBody()
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .cancel(body))
+//        sendFrame(frame)
+//        closeStream()
     }
 
     internal func sendRequestN(_ requestN: Int32) {
-        let body = RequestNFrameBody(requestN: requestN)
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .requestN(body))
-        sendFrame(frame)
+//        let body = RequestNFrameBody(requestN: requestN)
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .requestN(body))
+//        sendFrame(frame)
     }
 
     internal func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
-        let body = ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload)
-        let header = body.header(withStreamId: streamId)
-        let frame = Frame(header: header, body: .ext(body))
-        sendFrame(frame)
+//        let body = ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload)
+//        let header = body.header(withStreamId: streamId)
+//        let frame = Frame(header: header, body: .ext(body))
+//        sendFrame(frame)
     }
 }
 

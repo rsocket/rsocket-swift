@@ -34,17 +34,17 @@ internal final class Responder: FrameHandler {
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
             if frame.isTerminating {
-                activeStreams.removeValue(forKey: frame.header.streamId)
+                activeStreams.removeValue(forKey: streamId)
             }
             return
         }
+        let adapter = StreamAdapter(
+            id: streamId,
+            delegate: self
+        )
+        activeStreams[streamId] = adapter
         switch frame.body {
         case let .requestResponse(body):
-            let adapter = StreamAdapter(
-                id: streamId,
-                delegate: self
-            )
-            activeStreams[streamId] = adapter
             adapter.input = createStream(
                 .response,
                 body.payload,
@@ -52,11 +52,6 @@ internal final class Responder: FrameHandler {
             )
 
         case let .requestFnf(body):
-            let adapter = StreamAdapter(
-                id: streamId,
-                delegate: self
-            )
-            activeStreams[streamId] = adapter
             adapter.input = createStream(
                 .fireAndForget,
                 body.payload,
@@ -64,11 +59,6 @@ internal final class Responder: FrameHandler {
             )
 
         case let .requestStream(body):
-            let adapter = StreamAdapter(
-                id: streamId,
-                delegate: self
-            )
-            activeStreams[streamId] = adapter
             adapter.input = createStream(
                 .stream(initialRequestN: body.initialRequestN),
                 body.payload,
@@ -76,11 +66,6 @@ internal final class Responder: FrameHandler {
             )
 
         case let .requestChannel(body):
-            let adapter = StreamAdapter(
-                id: streamId,
-                delegate: self
-            )
-            activeStreams[streamId] = adapter
             adapter.input = createStream(
                 .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
                 body.payload,
@@ -88,12 +73,13 @@ internal final class Responder: FrameHandler {
             )
 
         default:
+            activeStreams.removeValue(forKey: streamId)
             closeConnection(with: .connectionError(message: "No active stream for given id and frame is not requesting new stream"))
             return
         }
 
         if frame.isTerminating {
-            activeStreams.removeValue(forKey: frame.header.streamId)
+            activeStreams.removeValue(forKey: streamId)
         }
     }
 

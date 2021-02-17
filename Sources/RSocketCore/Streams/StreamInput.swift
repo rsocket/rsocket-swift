@@ -24,5 +24,5 @@ public protocol StreamInput {
 }
 
 extension StreamInput {
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) { }
+    public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) { }
 }

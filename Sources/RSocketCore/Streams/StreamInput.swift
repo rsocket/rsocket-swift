@@ -22,7 +22,3 @@ public protocol StreamInput: AnyObject {
     func onRequestN(_ requestN: Int32)
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }
-
-extension StreamInput {
-    public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) { }
-}

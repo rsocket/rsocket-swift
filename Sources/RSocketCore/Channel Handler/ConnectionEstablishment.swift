@@ -154,6 +154,11 @@ fileprivate final class MessageBufferHandler: ChannelInboundHandler, RemovableCh
     }
 }
 
+/// `ConnectionEstablishmentHandler` does the connection handshake with a client.
+/// It waits for a `SetupBodyFrame` and validates it.
+/// The validated information is then given to `shouldAcceptClient`, so the user can accept each client individually.
+/// Finally, `initializeConnection` is called to setup the pipeline after successful connection establishment.
+/// `ConnectionEstablishmentHandler` will remove itself after it the returned promise of `initializeConnection` is fulfilled.
 internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
@@ -175,10 +180,10 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     
     init(
         initializeConnection: @escaping InitializeConnection,
-        shouldAcceptSetup: ClientAcceptorCallback? = nil
+        shouldAcceptClient: ClientAcceptorCallback? = nil
     ) {
         self.initializeConnection = initializeConnection
-        self.customAcceptor = shouldAcceptSetup
+        self.customAcceptor = shouldAcceptClient
     }
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         guard state == .idle else {

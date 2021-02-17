@@ -58,7 +58,7 @@ extension Requester: StreamAdapterDelegate {
 extension Requester: RSocket {
     /// Creates a stream that is already active
     @discardableResult
-    internal func requestStream(
+    public func requestStream(
         for type: StreamType,
         payload: Payload,
         input: StreamInput
@@ -70,8 +70,54 @@ extension Requester: RSocket {
         )
         adapter.input = input
         activeStreams[newId] = adapter
-        adapter.sendRequest(for: type, payload: payload)
+        sendRequest(id: newId, type: type, payload: payload)
         return adapter
+    }
+
+    private func sendRequest(id: StreamID, type: StreamType, payload: Payload) {
+        let header: FrameHeader
+        let body: FrameBody
+        switch type {
+        case .response:
+            let requestResponseBody = RequestResponseFrameBody(
+                fragmentsFollow: false,
+                payload: payload
+            )
+            header = requestResponseBody.header(withStreamId: id)
+            body = .requestResponse(requestResponseBody)
+
+        case .fireAndForget:
+            let fireAndForgetBody = RequestFireAndForgetFrameBody(
+                fragmentsFollow: false,
+                payload: payload
+            )
+            header = fireAndForgetBody.header(withStreamId: id)
+            body = .requestFnf(fireAndForgetBody)
+
+        case let .stream(initialRequestN):
+            let streamBody = RequestStreamFrameBody(
+                fragmentsFollow: false,
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
+            header = streamBody.header(withStreamId: id)
+            body = .requestStream(streamBody)
+
+        case let .channel(initialRequestN, isCompleted):
+            let channelBody = RequestChannelFrameBody(
+                fragmentsFollow: false,
+                isCompleted: isCompleted,
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
+            header = channelBody.header(withStreamId: id)
+            body = .requestChannel(channelBody)
+        }
+        let frame = Frame(header: header, body: body)
+        // TODO: adjust MTU
+        for fragment in frame.fragments(mtu: 64) {
+            send(frame: fragment)
+        }
     }
 
     // TODO: implement RSocket callbacks using `requestStream`

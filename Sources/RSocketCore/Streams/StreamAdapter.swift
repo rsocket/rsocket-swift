@@ -20,13 +20,6 @@ internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)
 }
 
-extension Frame {
-    func fragments(mtu: Int32) -> [Frame] {
-        // TODO
-        []
-    }
-}
-
 internal class StreamAdapter {
     private let id: StreamID
     internal weak var delegate: StreamAdapterDelegate?
@@ -43,55 +36,9 @@ internal class StreamAdapter {
         self.input = input
     }
 
-    internal func sendRequest(for type: StreamType, payload: Payload) {
-        guard let delegate = delegate else { return }
-        let header: FrameHeader
-        let body: FrameBody
-        switch type {
-        case .response:
-            let requestResponseBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = requestResponseBody.header(withStreamId: id)
-            body = .requestResponse(requestResponseBody)
-
-        case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = fireAndForgetBody.header(withStreamId: id)
-            body = .requestFnf(fireAndForgetBody)
-
-        case let .stream(initialRequestN):
-            let streamBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = streamBody.header(withStreamId: id)
-            body = .requestStream(streamBody)
-
-        case let .channel(initialRequestN, isCompleted):
-            let channelBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
-                isCompleted: isCompleted,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = channelBody.header(withStreamId: id)
-            body = .requestChannel(channelBody)
-        }
-        let frame = Frame(header: header, body: body)
-        // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
-            delegate.send(frame: fragment)
-        }
-    }
-
     /// Receive frame from upstream (requester/responder)
     internal func receive(frame: Frame) {
+        // TODO: move fragmentation logic to separate component
         switch fragmentedFrameAssembler.process(frame: frame) {
         case let .complete(completeFrame):
             process(frame: completeFrame)

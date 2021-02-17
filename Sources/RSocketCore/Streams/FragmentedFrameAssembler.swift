@@ -40,12 +40,16 @@ internal struct FragmentedFrameAssembler {
         switch frame.body {
         case let .requestResponse(body):
             return processInitialFragment(body, fullFrame: frame)
+            
         case let .requestFnf(body):
             return processInitialFragment(body, fullFrame: frame)
+
         case let .requestStream(body):
             return processInitialFragment(body, fullFrame: frame)
+
         case let .requestChannel(body):
             return processInitialFragment(body, fullFrame: frame)
+
         case let .payload(body):
             if body.isNext {
                 return processInitialFragment(body, fullFrame: frame)
@@ -76,6 +80,7 @@ internal struct FragmentedFrameAssembler {
             return .complete(frame)
         }
     }
+
     private mutating func processInitialFragment<FrameBody>(_ body: FrameBody, fullFrame frame: Frame) -> FragmentationResult where FrameBody: FragmentableFrameBody {
         guard fragments == nil else {
             return .error(reason: "Current set of fragments is not complete")

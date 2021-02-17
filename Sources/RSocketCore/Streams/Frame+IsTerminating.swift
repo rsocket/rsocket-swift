@@ -15,7 +15,7 @@
  */
 
 extension Frame {
-    var isTerminating: Bool {
+    internal var isTerminating: Bool {
         switch body {
         case let .payload(body):
             return body.isCompletion

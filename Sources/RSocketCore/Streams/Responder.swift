@@ -92,7 +92,7 @@ internal final class Responder: FrameHandler {
 }
 
 extension Responder: StreamAdapterDelegate {
-    func send(frame: Frame) {
+    internal func send(frame: Frame) {
         sendFrame(frame)
         if frame.isTerminating && frame.header.streamId != .connection {
             activeStreams.removeValue(forKey: frame.header.streamId)

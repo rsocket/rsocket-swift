@@ -47,7 +47,7 @@ internal final class Requester: FrameHandler {
 }
 
 extension Requester: StreamAdapterDelegate {
-    func send(frame: Frame) {
+    internal func send(frame: Frame) {
         sendFrame(frame)
         if frame.isTerminating && frame.header.streamId != .connection {
             activeStreams.removeValue(forKey: frame.header.streamId)
@@ -55,7 +55,7 @@ extension Requester: StreamAdapterDelegate {
     }
 }
 
-extension Requester: RSocket {
+extension Requester {
     /// Creates a stream that is already active
     @discardableResult
     public func requestStream(
@@ -119,6 +119,4 @@ extension Requester: RSocket {
             send(frame: fragment)
         }
     }
-
-    // TODO: implement RSocket callbacks using `requestStream`
 }

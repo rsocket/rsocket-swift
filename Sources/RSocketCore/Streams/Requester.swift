@@ -29,93 +29,49 @@ internal final class Requester: FrameHandler {
 
     internal func receiveInbound(frame: Frame) {
         guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
-            // TODO: error no active stream for given id
+            closeConnection(with: .connectionError(message: "No active stream for given id"))
             return
         }
         existingStreamAdapter.receive(frame: frame)
-    }
-}
-
-extension Requester: StreamAdapterDelegate {
-    func register(adapter: StreamAdapter) -> StreamID {
-        let newId = generateNewStreamId()
-        activeStreams[newId] = adapter
-        return newId
+        if frame.isTerminating {
+            activeStreams.removeValue(forKey: frame.header.streamId)
+        }
     }
 
-    func send(frame: Frame) {
-        sendFrame(frame)
-    }
-
-    func closeStream(id: StreamID) {
-        activeStreams.removeValue(forKey: id)
-    }
-
-    func closeConnection(with error: Error) {
+    private func closeConnection(with error: Error) {
         let body = ErrorFrameBody(error: error)
         let header = body.header(withStreamId: .connection)
         let frame = Frame(header: header, body: .error(body))
         sendFrame(frame)
-        // TODO: close connection
+    }
+}
+
+extension Requester: StreamAdapterDelegate {
+    func send(frame: Frame) {
+        sendFrame(frame)
+        if frame.isTerminating && frame.header.streamId != .connection {
+            activeStreams.removeValue(forKey: frame.header.streamId)
+        }
     }
 }
 
 extension Requester: RSocket {
+    /// Creates a stream that is already active
     @discardableResult
     internal func requestStream(
         for type: StreamType,
         payload: Payload,
         input: StreamInput
     ) -> StreamOutput {
+        let newId = generateNewStreamId()
         let adapter = StreamAdapter(
-            delegate: self,
-            createStream: { _, _, _ in input }
+            id: newId,
+            delegate: self
         )
-//        let header: FrameHeader
-//        let body: FrameBody
-//        switch type {
-//        case .response:
-//            // todo: payload fragmentation
-//            let requestResponseBody = RequestResponseFrameBody(
-//                fragmentsFollow: false,
-//                payload: payload
-//            )
-//            header = requestResponseBody.header(withStreamId: streamId)
-//            body = .requestResponse(requestResponseBody)
-//
-//        case .fireAndForget:
-//            // todo: payload fragmentation
-//            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-//                fragmentsFollow: false,
-//                payload: payload
-//            )
-//            header = fireAndForgetBody.header(withStreamId: streamId)
-//            body = .requestFnf(fireAndForgetBody)
-//
-//        case let .stream(initialRequestN):
-//            // todo: payload fragmentation
-//            let streamBody = RequestStreamFrameBody(
-//                fragmentsFollow: false,
-//                initialRequestN: initialRequestN,
-//                payload: payload
-//            )
-//            header = streamBody.header(withStreamId: streamId)
-//            body = .requestStream(streamBody)
-//
-//        case let .channel(initialRequestN, isCompleted):
-//            // todo: payload fragmentation
-//            let channelBody = RequestChannelFrameBody(
-//                fragmentsFollow: false,
-//                isCompleted: isCompleted,
-//                initialRequestN: initialRequestN,
-//                payload: payload
-//            )
-//            header = channelBody.header(withStreamId: streamId)
-//            body = .requestChannel(channelBody)
-//        }
-//        let frame = Frame(header: header, body: body)
-//        sendOutbound(frame: frame)
-        return adapter.weakStreamOutput
+        adapter.input = input
+        activeStreams[newId] = adapter
+        adapter.sendRequest(for: type, payload: payload)
+        return adapter
     }
 
     // TODO: implement RSocket callbacks using `requestStream`

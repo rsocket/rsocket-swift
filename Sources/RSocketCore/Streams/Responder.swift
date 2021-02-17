@@ -33,42 +33,83 @@ internal final class Responder: FrameHandler {
         let streamId = frame.header.streamId
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
+            if frame.isTerminating {
+                activeStreams.removeValue(forKey: frame.header.streamId)
+            }
             return
         }
         switch frame.body {
-        case .requestResponse, .requestFnf, .requestStream, .requestChannel:
+        case let .requestResponse(body):
             let adapter = StreamAdapter(
-                delegate: self,
-                createStream: createStream
+                id: streamId,
+                delegate: self
             )
-            adapter.streamId = streamId
             activeStreams[streamId] = adapter
-            adapter.receive(frame: frame)
+            adapter.input = createStream(
+                .response,
+                body.payload,
+                adapter
+            )
+
+        case let .requestFnf(body):
+            let adapter = StreamAdapter(
+                id: streamId,
+                delegate: self
+            )
+            activeStreams[streamId] = adapter
+            adapter.input = createStream(
+                .fireAndForget,
+                body.payload,
+                adapter
+            )
+
+        case let .requestStream(body):
+            let adapter = StreamAdapter(
+                id: streamId,
+                delegate: self
+            )
+            activeStreams[streamId] = adapter
+            adapter.input = createStream(
+                .stream(initialRequestN: body.initialRequestN),
+                body.payload,
+                adapter
+            )
+
+        case let .requestChannel(body):
+            let adapter = StreamAdapter(
+                id: streamId,
+                delegate: self
+            )
+            activeStreams[streamId] = adapter
+            adapter.input = createStream(
+                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
+                body.payload,
+                adapter
+            )
+
         default:
-            // TODO: error unsupported frame type in this situation
-            break
+            closeConnection(with: .connectionError(message: "No active stream for given id and frame is not requesting new stream"))
+            return
+        }
+
+        if frame.isTerminating {
+            activeStreams.removeValue(forKey: frame.header.streamId)
         }
     }
-}
 
-extension Responder: StreamAdapterDelegate {
-    func register(adapter: StreamAdapter) -> StreamID {
-        fatalError("StreamAdapter should not register itself at the responder.")
-    }
-
-    func send(frame: Frame) {
-        sendFrame(frame)
-    }
-
-    func closeStream(id: StreamID) {
-        activeStreams.removeValue(forKey: id)
-    }
-
-    func closeConnection(with error: Error) {
+    private func closeConnection(with error: Error) {
         let body = ErrorFrameBody(error: error)
         let header = body.header(withStreamId: .connection)
         let frame = Frame(header: header, body: .error(body))
         sendFrame(frame)
-        // TODO: close connection
+    }
+}
+
+extension Responder: StreamAdapterDelegate {
+    func send(frame: Frame) {
+        sendFrame(frame)
+        if frame.isTerminating && frame.header.streamId != .connection {
+            activeStreams.removeValue(forKey: frame.header.streamId)
+        }
     }
 }

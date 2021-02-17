@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-public protocol StreamInput: AnyObject {
-    func onNext(_ payload: Payload)
-    func onError(_ error: Error)
-    func onComplete()
-    func onCancel()
-    func onRequestN(_ requestN: Int32)
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
-}
+extension Frame {
+    var isTerminating: Bool {
+        switch body {
+        case let .payload(body):
+            return body.isCompletion
 
-extension StreamInput {
-    public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) { }
+        case .cancel, .error:
+            return true
+
+        default:
+            return false
+        }
+    }
 }

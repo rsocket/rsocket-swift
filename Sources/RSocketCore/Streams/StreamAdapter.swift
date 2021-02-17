@@ -215,7 +215,3 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 }
-
-extension Payload {
-    static var empty: Payload { Payload(data: Data()) }
-}

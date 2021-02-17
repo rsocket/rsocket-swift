@@ -23,6 +23,9 @@ extension Frame {
         case .cancel, .error:
             return true
 
+        case let .requestChannel(body):
+            return body.isCompleted
+
         default:
             return false
         }

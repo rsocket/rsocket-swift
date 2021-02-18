@@ -37,9 +37,9 @@ fileprivate extension FrameBodyProtocol {
 }
 
 final class SetupValidationTests: XCTestCase {
-    private let validator = SetupValidator(minimumClientVersion: .v0_2)
-    func testToOldVersionIsRejected() {
-        XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
+    private let validator = SetupValidator(maximumClientVersion: .v0_2)
+    func testToOldVersionIsAccepted() {
+        XCTAssertNoThrow(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 0, minor: 1)
         }).frame()))
     }
@@ -48,15 +48,19 @@ final class SetupValidationTests: XCTestCase {
             $0.version = .current
         }).frame()))
     }
-    func testNewerVersionIsAccepted() {
-        XCTAssertNoThrow(try validator.validate(frame: goodSetup.modify({
+    func testNewerVersionIsRejected() {
+        XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 1, minor: 1)
-        }).frame()))
+        }).frame())){ error in
+            XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
+        }
     }
     func testLeaseIsNotSupported() {
         XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.honorsLease = true
-        }).frame()))
+        }).frame())){ error in
+            XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
+        }
     }
     func testResumeIsRejected() {
         XCTAssertThrowsError(try validator.validate(frame: ResumeFrameBody(

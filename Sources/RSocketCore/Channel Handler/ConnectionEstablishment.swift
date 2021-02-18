@@ -71,7 +71,7 @@ public struct ClientInfo {
 }
 
 internal struct SetupValidator {
-    internal var minimumClientVersion = Version.v0_2
+    internal var maximumClientVersion = Version.v0_2
     
     internal func validate(frame: Frame) throws -> ClientInfo {
         try validateSetup(try getSetupBody(frame))
@@ -91,8 +91,8 @@ internal struct SetupValidator {
     }
     
     private func validateSetup(_ setup: SetupFrameBody) throws -> ClientInfo {
-        guard setup.version >= minimumClientVersion else {
-            throw Error.unsupportedSetup(message: "only version \(minimumClientVersion) and higher is supported")
+        guard setup.version <= maximumClientVersion else {
+            throw Error.unsupportedSetup(message: "only version \(maximumClientVersion) and lower are supported")
         }
         guard setup.honorsLease == false else {
             throw Error.unsupportedSetup(message: "leasing is not supported")
@@ -178,6 +178,11 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     
     private let setupValidator = SetupValidator()
     
+    
+    /// Configure `ConnectionEstablishmentHandler`.  If `shouldAcceptClient` is nil, valid clients are always accepted.
+    /// - Parameters:
+    ///   - initializeConnection: called after successful handshake and after `shouldAcceptClient`did accept the client.
+    ///   - shouldAcceptClient: called after successful validation of setup information. Use this to accept or reject individual clients.
     init(
         initializeConnection: @escaping InitializeConnection,
         shouldAcceptClient: ClientAcceptorCallback? = nil

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-enum FrameBody {
+enum FrameBody: Hashable {
     /// Setup: Sent by client to initiate protocol processing
     case setup(SetupFrameBody)
 

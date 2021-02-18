@@ -19,7 +19,7 @@
 
  For example, response to a request, or message on a channel.
  */
-internal struct PayloadFrameBody {
+internal struct PayloadFrameBody: Hashable {
     /// If more fragments follow this frame
     internal let fragmentsFollow: Bool
 
@@ -33,7 +33,8 @@ internal struct PayloadFrameBody {
     internal let payload: Payload
 }
 
-extension PayloadFrameBody {
+extension PayloadFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .payload(self) }
     func header(withStreamId streamId: StreamID) -> FrameHeader {
         var flags = FrameFlags()
         if payload.metadata != nil {

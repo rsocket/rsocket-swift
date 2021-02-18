@@ -18,8 +18,8 @@ import NIO
 
 internal struct ResumeFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: ResumeFrameBody, into buffer: inout ByteBuffer) throws {
-        buffer.writeInteger(frame.majorVersion)
-        buffer.writeInteger(frame.minorVersion)
+        buffer.writeInteger(frame.version.major)
+        buffer.writeInteger(frame.version.minor)
         guard frame.resumeIdentificationToken.count <= UInt16.max else {
             throw Error.connectionError(message: "resumeIdentificationToken is too big")
         }

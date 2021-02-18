@@ -23,7 +23,7 @@ import Foundation
 
  The last received `LEASE` frame overrides all previous `LEASE` frame values.
  */
-internal struct LeaseFrameBody {
+internal struct LeaseFrameBody: Hashable {
     /**
      Time (in milliseconds) for validity of `LEASE` from time of reception
 
@@ -42,7 +42,8 @@ internal struct LeaseFrameBody {
     internal let metadata: Data?
 }
 
-extension LeaseFrameBody {
+extension LeaseFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .lease(self) }
     func header() -> FrameHeader {
         var flags = FrameFlags()
         if metadata != nil {

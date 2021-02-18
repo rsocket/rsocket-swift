@@ -15,20 +15,21 @@
  */
 
 /// A version of the RSocket protocol
-internal struct Version: Hashable {
+public struct Version: Hashable {
     /// Major version number of the protocol
-    internal let major: UInt16
+    public let major: UInt16
 
     /// Minor version number of the protocol
-    internal let minor: UInt16
+    public let minor: UInt16
 }
 
-extension Version {
+public extension Version {
     static let v0_2 = Version(major: 0, minor: 2)
+    static let current = Version.v0_2
 }
 
 extension Version: Comparable {
-    static func < (lhs: Version, rhs: Version) -> Bool {
+    public static func < (lhs: Version, rhs: Version) -> Bool {
         guard lhs.major == rhs.major else {
             return lhs.major < rhs.major
         }
@@ -37,5 +38,5 @@ extension Version: Comparable {
 }
 
 extension Version: CustomStringConvertible {
-    var description: String { "\(major).\(minor)" }
+    public var description: String { "\(major).\(minor)" }
 }

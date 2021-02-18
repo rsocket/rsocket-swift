@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-internal struct FrameFlags: OptionSet {
+internal struct FrameFlags: OptionSet, Hashable {
     internal let rawValue: UInt16
 
     /**

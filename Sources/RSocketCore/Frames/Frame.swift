@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-internal struct Frame {
+internal struct Frame: Hashable {
     internal let header: FrameHeader
     internal let body: FrameBody
 }

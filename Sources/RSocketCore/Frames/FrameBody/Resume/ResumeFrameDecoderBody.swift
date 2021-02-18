@@ -37,8 +37,7 @@ internal struct ResumeFrameBodyDecoder: FrameBodyDecoding {
             throw Error.connectionError(message: "Frame is not big enough")
         }
         return ResumeFrameBody(
-            majorVersion: majorVersion,
-            minorVersion: minorVersion,
+            version: .init(major: majorVersion, minor: minorVersion),
             resumeIdentificationToken: resumeIdentificationToken,
             lastReceivedServerPosition: lastReceivedServerPosition,
             firstAvailableClientPosition: firstAvailableClientPosition

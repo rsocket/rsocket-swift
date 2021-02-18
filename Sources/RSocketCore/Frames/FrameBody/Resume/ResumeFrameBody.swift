@@ -21,12 +21,9 @@ import Foundation
 
  It replaces the `SETUP` frame.
  */
-internal struct ResumeFrameBody {
-    /// Major version number of the protocol
-    internal let majorVersion: UInt16
-
-    /// Minor version number of the protocol
-    internal let minorVersion: UInt16
+internal struct ResumeFrameBody: Hashable {
+    /// version of the client protocol implementation
+    internal let version: Version
 
     /// Token used for client resume identification
     internal let resumeIdentificationToken: Data
@@ -38,7 +35,8 @@ internal struct ResumeFrameBody {
     internal let firstAvailableClientPosition: Int64
 }
 
-extension ResumeFrameBody {
+extension ResumeFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .resume(self) }
     func header() -> FrameHeader {
         FrameHeader(streamId: .connection, type: .resume, flags: [])
     }

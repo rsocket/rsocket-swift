@@ -41,6 +41,7 @@ internal final class Responder: FrameHandler {
 
         let fragmenter = StreamFragmenter(streamId: streamId, createInput: createStream)
         activeStreams[streamId] = fragmenter
+        fragmenter.receive(frame: frame)
 
         if frame.isTerminating {
             activeStreams.removeValue(forKey: streamId)

@@ -73,7 +73,9 @@ internal class StreamFragmenter: StreamAdapterDelegate {
                         adapter
                     )
                 default:
-                    closeConnection(with: .connectionError(message: "No active stream for given id and frame is not requesting new stream"))
+                    if !frame.header.flags.contains(.ignore) {
+                        closeConnection(with: .connectionError(message: "Frame is not requesting new stream"))
+                    }
                     return
                 }
                 state = .active(adapter)

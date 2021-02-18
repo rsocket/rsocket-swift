@@ -31,7 +31,7 @@ extension Signal.Observer: StreamInput where Value == Payload, Error == RSocketC
 private func createStream() {
     let requester = Requester(sendFrame: { _ in })
     let _ = SignalProducer<Payload, Error> { observer, lifetime in
-        let output = requester.requestStream(for: .response, payload: .empty, input: observer)
+        let output = requester.requestStream(for: .response, payload: .empty, createInput: { _ in observer })
         lifetime.observeEnded(output.sendCancel)
     }
 }

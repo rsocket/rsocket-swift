@@ -40,6 +40,7 @@ internal final class Responder: FrameHandler {
         }
 
         let fragmenter = StreamFragmenter(streamId: streamId, createInput: createStream)
+        fragmenter.delegate = self
         activeStreams[streamId] = fragmenter
         fragmenter.receive(frame: frame)
 

@@ -19,7 +19,7 @@ import NIO
 internal final class Responder: FrameHandler {
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private let sendFrame: (Frame) -> Void
-    private var activeStreams: [StreamID: StreamAdapter] = [:]
+    private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(
         createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
@@ -38,45 +38,9 @@ internal final class Responder: FrameHandler {
             }
             return
         }
-        let adapter = StreamAdapter(
-            id: streamId,
-            delegate: self
-        )
-        activeStreams[streamId] = adapter
-        switch frame.body {
-        case let .requestResponse(body):
-            adapter.input = createStream(
-                .response,
-                body.payload,
-                adapter
-            )
 
-        case let .requestFnf(body):
-            adapter.input = createStream(
-                .fireAndForget,
-                body.payload,
-                adapter
-            )
-
-        case let .requestStream(body):
-            adapter.input = createStream(
-                .stream(initialRequestN: body.initialRequestN),
-                body.payload,
-                adapter
-            )
-
-        case let .requestChannel(body):
-            adapter.input = createStream(
-                .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
-                body.payload,
-                adapter
-            )
-
-        default:
-            activeStreams.removeValue(forKey: streamId)
-            closeConnection(with: .connectionError(message: "No active stream for given id and frame is not requesting new stream"))
-            return
-        }
+        let fragmenter = StreamFragmenter(streamId: streamId, createInput: createStream)
+        activeStreams[streamId] = fragmenter
 
         if frame.isTerminating {
             activeStreams.removeValue(forKey: streamId)

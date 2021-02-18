@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
-
 internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)
 }
@@ -24,37 +22,12 @@ internal class StreamAdapter {
     private let id: StreamID
     internal weak var delegate: StreamAdapterDelegate?
     internal weak var input: StreamInput?
-    private var fragmentedFrameAssembler = FragmentedFrameAssembler()
 
-    internal init(
-        id: StreamID,
-        delegate: StreamAdapterDelegate,
-        input: StreamInput? = nil
-    ) {
+    internal init(id: StreamID) {
         self.id = id
-        self.delegate = delegate
-        self.input = input
     }
 
-    /// Receive frame from upstream (requester/responder)
     internal func receive(frame: Frame) {
-        // TODO: move fragmentation logic to separate component
-        switch fragmentedFrameAssembler.process(frame: frame) {
-        case let .complete(completeFrame):
-            process(frame: completeFrame)
-
-        case .incomplete:
-            break
-
-        case let .error(reason):
-            if !frame.header.flags.contains(.ignore) {
-                closeConnection(with: .connectionError(message: reason))
-            }
-        }
-    }
-
-    /// Process the **non-fragmented** frame
-    private func process(frame: Frame) {
         guard let input = input else {
             // input is deallocated so the active stream should be cancelled
             sendCancel()
@@ -93,10 +66,11 @@ internal class StreamAdapter {
     }
 
     private func closeConnection(with error: Error) {
+        guard let delegate = delegate else { return }
         let body = ErrorFrameBody(error: error)
         let header = body.header(withStreamId: .connection)
         let frame = Frame(header: header, body: .error(body))
-        delegate?.send(frame: frame)
+        delegate.send(frame: frame)
     }
 }
 
@@ -111,10 +85,7 @@ extension StreamAdapter: StreamOutput {
         )
         let header = body.header(withStreamId: id)
         let frame = Frame(header: header, body: .payload(body))
-        // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
-            delegate.send(frame: fragment)
-        }
+        delegate.send(frame: frame)
     }
 
     internal func sendError(_ error: Error) {

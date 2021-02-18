@@ -16,7 +16,7 @@
 
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
-    private var activeStreams: [StreamID: StreamAdapter] = [:]
+    private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(sendFrame: @escaping (Frame) -> Void) {
         self.sendFrame = sendFrame
@@ -64,12 +64,11 @@ extension Requester {
         input: StreamInput
     ) -> StreamOutput {
         let newId = generateNewStreamId()
-        let adapter = StreamAdapter(
-            id: newId,
-            delegate: self
-        )
+        let adapter = StreamAdapter(id: newId)
         adapter.input = input
-        activeStreams[newId] = adapter
+        let fragmeter = StreamFragmenter(streamId: newId, adapter: adapter)
+        fragmeter.delegate = self
+        activeStreams[newId] = fragmeter
         sendRequest(id: newId, type: type, payload: payload)
         return adapter
     }

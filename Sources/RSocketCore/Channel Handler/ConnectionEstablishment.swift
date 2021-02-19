@@ -97,6 +97,12 @@ internal struct SetupValidator {
         guard setup.honorsLease == false else {
             throw Error.unsupportedSetup(message: "leasing is not supported")
         }
+        guard setup.timeBetweenKeepaliveFrames > 0 else {
+            throw Error.unsupportedSetup(message: "time between keepalive frames must be greater than 0")
+        }
+        guard setup.maxLifetime > 0 else {
+            throw Error.unsupportedSetup(message: "max lifetime must be greater than 0")
+        }
         return ClientInfo(setup)
     }
 }

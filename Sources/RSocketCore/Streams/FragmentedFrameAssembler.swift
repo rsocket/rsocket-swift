@@ -53,6 +53,14 @@ internal struct FragmentedFrameAssembler {
         case let .payload(body):
             if body.isNext {
                 return processInitialFragment(body, fullFrame: frame)
+            } else if body.isCompletion {
+                guard fragments == nil else {
+                    return .error(reason: "has not processed fragments but did receive fragment without isNext flag but with isCompletion flag set")
+                }
+                guard body.fragmentsFollow == false else {
+                    return .error(reason: "has fragments flow flag but without isNext flag")
+                }
+                return .complete(frame)
             } else {
                 guard var fragments = fragments else {
                     return .error(reason: "There is no current set of fragments to extend")

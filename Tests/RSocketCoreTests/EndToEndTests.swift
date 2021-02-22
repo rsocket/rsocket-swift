@@ -96,6 +96,17 @@ extension TestStreamInput {
     }
 }
 
+extension Payload: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.init(data: value.data(using: .utf8)!)
+    }
+}
+
+extension TestStreamInput.Event: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self = .next(.init(stringLiteral: value))
+    }
+}
 
 
 final class EndToEndTests: XCTestCase {
@@ -214,7 +225,7 @@ final class EndToEndTests: XCTestCase {
         let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
         
         let response = self.expectation(description: "receive response")
-        let helloWorld = Payload(data: "Hello World".data(using: .utf8)!)
+        let helloWorld: Payload = "Hello World"
         let input = TestStreamInput { payload in
             XCTAssertEqual(payload, helloWorld)
             response.fulfill()
@@ -222,6 +233,39 @@ final class EndToEndTests: XCTestCase {
         _ = requester.requestStream(for: .response, payload: helloWorld) { _ in
             input
         }
+        self.wait(for: [response], timeout: 1)
+    }
+    func testChannelEcho() throws {
+        var echo: TestStreamInput?
+        let server = makeServerBootstrap { type, payload, output in
+            echo = TestStreamInput.echo(to: output)
+            // just echo back
+            output.sendNext(payload, isCompletion: false)
+            return echo!
+        }
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
+        
+        let client = makeClientBootstrap()
+        let channel = try client.connect(host: host, port: port).wait()
+        let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
+        
+        let response = self.expectation(description: "receive response")
+        var input: TestStreamInput!
+        weak var weakInput: TestStreamInput?
+        input = TestStreamInput(onComplete: {
+            response.fulfill()
+            XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
+        })
+        weakInput = input
+        let output = requester.requestStream(for: .channel(initialRequestN: .max, isCompleted: false), payload: "Hello") { _ in
+            input!
+        }
+        output.sendNext(" ", isCompletion: false)
+        output.sendNext("W", isCompletion: false)
+        output.sendNext("o", isCompletion: false)
+        output.sendNext("r", isCompletion: false)
+        output.sendNext("l", isCompletion: false)
+        output.sendNext("d", isCompletion: true)
         self.wait(for: [response], timeout: 1)
     }
 }

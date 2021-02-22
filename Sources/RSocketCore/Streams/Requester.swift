@@ -57,9 +57,11 @@ internal final class Requester: FrameHandler {
 extension Requester: StreamAdapterDelegate {
     internal func send(frame: Frame) {
         sendFrame(frame)
-        if frame.isTerminating && frame.header.streamId != .connection {
-            activeStreams.removeValue(forKey: frame.header.streamId)
-        }
+        /// we can not just terminate the connection if it is a terminating frame, because it may be a stream of type channel.
+        /// In that case, we would terminate too early. We need to wait until both sides have been terminated.
+//        if frame.isTerminating && frame.header.streamId != .connection {
+//            activeStreams.removeValue(forKey: frame.header.streamId)
+//        }
     }
 }
 

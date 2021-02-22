@@ -16,6 +16,7 @@
 
 import XCTest
 import NIO
+import NIOExtras
 @testable import RSocketCore
 
 final class TestStreamInput: RSocketCore.StreamInput {
@@ -104,9 +105,8 @@ final class EndToEndTests: XCTestCase {
         ServerBootstrap(group: eventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
-                    /// `LengthFieldBasedFrameDecoder` and `LengthFieldBasedFrameDecoder` are part of apple/swift-nio-extra and do not yet support a lenght field lenght of 3 bytes but they are exactly what we need to support RSocket over TCP
-                    // LengthFieldBasedFrameDecoder(lengthFieldLength: .three),
-                    // LengthFieldPrepender(lengthFieldLength: .three),
+                    ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
+                    LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     RSocketFrameDecoder(),
                     RSocketFrameEncoder(),
                     ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
@@ -136,9 +136,8 @@ final class EndToEndTests: XCTestCase {
                     channel?.writeAndFlush(frame, promise: nil)
                 }
                 return channel.pipeline.addHandlers([
-                    /// `LengthFieldBasedFrameDecoder` and `LengthFieldBasedFrameDecoder` are part of apple/swift-nio-extra and do not yet support a lenght field lenght of 3 bytes but they are exactly what we need to support RSocket over TCP
-                    // LengthFieldBasedFrameDecoder(lengthFieldLength: .three),
-                    // LengthFieldPrepender(lengthFieldLength: .three),
+                    ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
+                    LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     RSocketFrameDecoder(),
                     RSocketFrameEncoder(),
                     SetupWriter(config: config),
@@ -179,8 +178,6 @@ final class EndToEndTests: XCTestCase {
         let channel = try client.connect(host: "localhost", port: 1234).wait()
         XCTAssertTrue(channel.isActive)
         self.wait(for: [clientDidConnect], timeout: 1)
-        
-        try XCTSkipIf(true, "Not yet fully implemented")
         
         let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
         

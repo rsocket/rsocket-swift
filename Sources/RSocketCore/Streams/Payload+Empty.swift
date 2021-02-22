@@ -17,5 +17,5 @@
 import Foundation
 
 extension Payload {
-    internal static var empty: Payload { Payload(data: Data()) }
+    public static let empty = Payload(data: Data())
 }

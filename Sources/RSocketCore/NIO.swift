@@ -19,7 +19,8 @@ import NIO
 
 
 func tcpBootstrapClientExample(
-    createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput
+    createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
+    config: ClientSetupConfig
 ) {
     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     let bootstrap = ClientBootstrap(group: group)
@@ -33,6 +34,7 @@ func tcpBootstrapClientExample(
                 // LengthFieldPrepender(lengthFieldLength: .three),
                 RSocketFrameDecoder(),
                 RSocketFrameEncoder(),
+                SetupWriter(config: config),
                 DemultiplexerHandler(
                     connectionSide: .client,
                     requester: Requester(sendFrame: sendFrame),

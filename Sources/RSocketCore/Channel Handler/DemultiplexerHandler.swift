@@ -45,9 +45,9 @@ internal struct DemultiplexerRouter {
         case (nil, _):
             return .connection
         case (.client, .client), (.server, .server):
-            return .responder
-        case (.client, .server), (.server, .client):
             return .requester
+        case (.client, .server), (.server, .client):
+            return .responder
         }
     }
 }
@@ -57,8 +57,8 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
     typealias InboundOut = Frame
     
     private let router: DemultiplexerRouter
-    var requester: Requester
-    var responder: Responder
+    let requester: Requester
+    let responder: Responder
     
     internal init(connectionSide: ConnectionRole, requester: Requester, responder: Responder) {
         self.router = .init(connectionSide: connectionSide)

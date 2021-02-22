@@ -37,7 +37,7 @@ func tcpBootstrapClientExample(
                 SetupWriter(config: config),
                 DemultiplexerHandler(
                     connectionSide: .client,
-                    requester: Requester(sendFrame: sendFrame),
+                    requester: Requester(streamIdGenerator: .client, sendFrame: sendFrame),
                     responder: Responder(createStream: createStream, sendFrame: sendFrame)
                 ),
                 ConnectionStreamHandler(),
@@ -65,7 +65,7 @@ func tcpBootstrapServerExample(
                     return channel.pipeline.addHandlers([
                         DemultiplexerHandler(
                             connectionSide: .server,
-                            requester: Requester(sendFrame: sendFrame),
+                            requester: Requester(streamIdGenerator: .server, sendFrame: sendFrame),
                             responder: Responder(createStream: createStream, sendFrame: sendFrame)
                         ),
                         ConnectionStreamHandler(),

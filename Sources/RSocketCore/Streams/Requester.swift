@@ -16,15 +16,23 @@
 
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
+    private var streamIdGenerator: StreamIDGenerator
     private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
-    internal init(sendFrame: @escaping (Frame) -> Void) {
+    internal init(
+        streamIdGenerator: StreamIDGenerator,
+        sendFrame: @escaping (Frame) -> Void
+    ) {
+        self.streamIdGenerator = streamIdGenerator
         self.sendFrame = sendFrame
     }
 
     fileprivate func generateNewStreamId() -> StreamID {
-        // TODO: generate ids
-        .connection
+        guard let id = streamIdGenerator.next() else {
+            // TODO: handle stream id limit
+            fatalError("stream id limit reached")
+        }
+        return id
     }
 
     internal func receiveInbound(frame: Frame) {

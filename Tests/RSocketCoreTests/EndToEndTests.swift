@@ -116,7 +116,7 @@ final class EndToEndTests: XCTestCase {
                         return channel.pipeline.addHandlers([
                             DemultiplexerHandler(
                                 connectionSide: .server,
-                                requester: Requester(sendFrame: sendFrame),
+                                requester: Requester(streamIdGenerator: .server, sendFrame: sendFrame),
                                 responder: Responder(createStream: createStream, sendFrame: sendFrame)
                             ),
                             ConnectionStreamHandler(),
@@ -125,6 +125,9 @@ final class EndToEndTests: XCTestCase {
                 ])
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+    }
+    override func tearDownWithError() throws {
+        try eventLoopGroup.syncShutdownGracefully()
     }
     func makeClientBootstrap(
         createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
@@ -143,7 +146,7 @@ final class EndToEndTests: XCTestCase {
                     SetupWriter(config: config),
                     DemultiplexerHandler(
                         connectionSide: .client,
-                        requester: Requester(sendFrame: sendFrame),
+                        requester: Requester(streamIdGenerator: .client, sendFrame: sendFrame),
                         responder: Responder(createStream: createStream, sendFrame: sendFrame)
                     ),
                     ConnectionStreamHandler(),
@@ -160,7 +163,9 @@ final class EndToEndTests: XCTestCase {
         let clientDidConnect = self.expectation(description: "client did connect to server")
         
         let server = makeServerBootstrap { type, payload, output in
-            TestStreamInput.echo(to: output)
+            let input = TestStreamInput.echo(to: output)
+            output.sendNext(payload, isCompletion: true)
+            return input
         } shouldAcceptClient: { clientInfo in
             XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int(setup.timeBetweenKeepaliveFrames))
             XCTAssertEqual(clientInfo.maxLifetime, Int(setup.maxLifetime))

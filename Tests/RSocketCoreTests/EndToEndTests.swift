@@ -96,13 +96,30 @@ extension TestStreamInput {
     }
 }
 
+
+
 final class EndToEndTests: XCTestCase {
+    private static let defaultClientSetup = ClientSetupConfig(
+        timeBetweenKeepaliveFrames: 500,
+        maxLifetime: 5000,
+        metadataEncodingMimeType: "utf8",
+        dataEncodingMimeType: "utf8"
+    )
     let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    let host = "127.0.0.1"
+    let port = 8080
+    
     func makeServerBootstrap(
-        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
-        shouldAcceptClient: ClientAcceptorCallback? = nil
+        createStream: ((StreamType, Payload, StreamOutput) -> StreamInput)? = nil,
+        shouldAcceptClient: ClientAcceptorCallback? = nil,
+        file: StaticString = #file,
+        line: UInt = #line
     ) -> ServerBootstrap {
-        ServerBootstrap(group: eventLoopGroup)
+        let createStream = createStream ?? { _, _, _ in
+            XCTFail("should not create a stream", file: file, line: line)
+            return TestStreamInput()
+        }
+        return ServerBootstrap(group: eventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -130,10 +147,16 @@ final class EndToEndTests: XCTestCase {
         try eventLoopGroup.syncShutdownGracefully()
     }
     func makeClientBootstrap(
-        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
-        config: ClientSetupConfig
+        createStream: ((StreamType, Payload, StreamOutput) -> StreamInput)? = nil,
+        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        file: StaticString = #file,
+        line: UInt = #line
     ) -> ClientBootstrap {
-        ClientBootstrap(group: eventLoopGroup)
+        let createStream = createStream ?? { _, _, _ in
+            XCTFail("should not create a stream", file: file, line: line)
+            return TestStreamInput()
+        }
+        return ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 let sendFrame: (Frame) -> () = { [weak channel] frame in
                     channel?.writeAndFlush(frame, promise: nil)
@@ -153,7 +176,7 @@ final class EndToEndTests: XCTestCase {
                 ])
             }
     }
-    func test() throws {
+    func testClientServerSetup() throws {
         let setup = ClientSetupConfig(
             timeBetweenKeepaliveFrames: 500,
             maxLifetime: 5000,
@@ -162,37 +185,44 @@ final class EndToEndTests: XCTestCase {
         
         let clientDidConnect = self.expectation(description: "client did connect to server")
         
-        let server = makeServerBootstrap { type, payload, output in
-            let input = TestStreamInput.echo(to: output)
-            output.sendNext(payload, isCompletion: true)
-            return input
-        } shouldAcceptClient: { clientInfo in
+        let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
             XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int(setup.timeBetweenKeepaliveFrames))
             XCTAssertEqual(clientInfo.maxLifetime, Int(setup.maxLifetime))
             XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.metadataEncodingMimeType)
             XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.dataEncodingMimeType)
             clientDidConnect.fulfill()
             return .accept
-        }
-        XCTAssertTrue(try server.bind(host: "127.0.0.1", port: 1234).wait().isActive)
+        })
+        XCTAssertTrue(try server.bind(host: host, port: port).wait().isActive)
         
-        let client = makeClientBootstrap(createStream: { _, _, _ in
-            fatalError("should not be called")
-        }, config: setup)
-        let helloWorld = Payload(data: "Hello World".data(using: .utf8)!)
-        let channel = try client.connect(host: "localhost", port: 1234).wait()
+        let client = makeClientBootstrap(config: setup)
+        
+        let channel = try client.connect(host: host, port: port).wait()
         XCTAssertTrue(channel.isActive)
         self.wait(for: [clientDidConnect], timeout: 1)
+    }
+    func testRequestResponseEcho() throws {
+        let server = makeServerBootstrap { type, payload, output in
+            let input = TestStreamInput.echo(to: output)
+            // just echo back
+            output.sendNext(payload, isCompletion: true)
+            return input
+        }
         
+        XCTAssertTrue(try server.bind(host: "127.0.0.1", port: 1234).wait().isActive)
+        
+        let client = makeClientBootstrap()
+        let channel = try client.connect(host: "localhost", port: 1234).wait()
         let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
         
         let response = self.expectation(description: "receive response")
+        let helloWorld = Payload(data: "Hello World".data(using: .utf8)!)
         let input = TestStreamInput { payload in
             XCTAssertEqual(payload, helloWorld)
             response.fulfill()
         }
         _ = requester.requestStream(for: .response, payload: helloWorld) { _ in
-            return input
+            input
         }
         self.wait(for: [response], timeout: 1)
     }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-public enum StreamType {
+public enum StreamType: Hashable {
     case response
     case fireAndForget
     case stream(initialRequestN: Int32)

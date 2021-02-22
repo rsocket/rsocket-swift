@@ -57,8 +57,8 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
     typealias InboundOut = Frame
     
     private let router: DemultiplexerRouter
-    private let requester: Requester
-    private let responder: Responder
+    var requester: Requester
+    var responder: Responder
     
     internal init(connectionSide: ConnectionRole, requester: Requester, responder: Responder) {
         self.router = .init(connectionSide: connectionSide)

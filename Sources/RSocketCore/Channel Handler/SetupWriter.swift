@@ -108,7 +108,7 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
     }
     
     func channelActive(context: ChannelHandlerContext) {
-        let setup = SetupFrameBody(
+        context.writeAndFlush(self.wrapOutboundOut(SetupFrameBody(
             honorsLease: false,
             version: .current,
             timeBetweenKeepaliveFrames: setup.timeBetweenKeepaliveFrames,
@@ -117,8 +117,8 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             metadataEncodingMimeType: setup.metadataEncodingMimeType,
             dataEncodingMimeType: setup.dataEncodingMimeType,
             payload: setup.payload
-        )
-        context.write(self.wrapOutboundOut(setup.frame()), promise: nil)
+        ).frame()), promise: nil)
+        
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
     }
     

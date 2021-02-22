@@ -107,7 +107,6 @@ final class EndToEndTests: XCTestCase {
     )
     let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     let host = "127.0.0.1"
-    let port = 8080
     
     func makeServerBootstrap(
         createStream: ((StreamType, Payload, StreamOutput) -> StreamInput)? = nil,
@@ -193,7 +192,7 @@ final class EndToEndTests: XCTestCase {
             clientDidConnect.fulfill()
             return .accept
         })
-        XCTAssertTrue(try server.bind(host: host, port: port).wait().isActive)
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
         let client = makeClientBootstrap(config: setup)
         
@@ -208,11 +207,10 @@ final class EndToEndTests: XCTestCase {
             output.sendNext(payload, isCompletion: true)
             return input
         }
-        
-        XCTAssertTrue(try server.bind(host: "127.0.0.1", port: 1234).wait().isActive)
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
         let client = makeClientBootstrap()
-        let channel = try client.connect(host: "localhost", port: 1234).wait()
+        let channel = try client.connect(host: host, port: port).wait()
         let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
         
         let response = self.expectation(description: "receive response")

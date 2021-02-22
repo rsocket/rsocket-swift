@@ -17,6 +17,6 @@
 extension Frame {
     internal func fragments(mtu: Int32) -> [Frame] {
         // TODO
-        []
+        [self]
     }
 }

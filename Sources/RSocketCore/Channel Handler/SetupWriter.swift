@@ -119,7 +119,6 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             payload: setup.payload
         )
         context.write(self.wrapOutboundOut(setup.frame()), promise: nil)
-        context.channel.pipeline.
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
     }
     

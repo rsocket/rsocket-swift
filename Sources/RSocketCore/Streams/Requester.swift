@@ -37,6 +37,7 @@ internal final class Requester: FrameHandler {
 
     internal func receiveInbound(frame: Frame) {
         guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
+            // TODO: do not close connection for late frames
             closeConnection(with: .connectionError(message: "No active stream for given id"))
             return
         }

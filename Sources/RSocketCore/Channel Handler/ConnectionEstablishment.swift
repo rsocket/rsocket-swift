@@ -18,7 +18,7 @@ import NIO
 import Foundation
 
 /// Information about a client which is about to connect or is connected.
-public struct ClientInfo {
+public struct SetupInfo {
     /// If the connection should honor `LEASE`
     public let honorsLease: Bool
     
@@ -73,7 +73,7 @@ public struct ClientInfo {
 internal struct SetupValidator {
     internal var maximumClientVersion = Version.v0_2
     
-    internal func validate(frame: Frame) throws -> ClientInfo {
+    internal func validate(frame: Frame) throws -> SetupInfo {
         try validateSetup(try getSetupBody(frame))
     }
     
@@ -90,7 +90,7 @@ internal struct SetupValidator {
         return setup
     }
     
-    private func validateSetup(_ setup: SetupFrameBody) throws -> ClientInfo {
+    private func validateSetup(_ setup: SetupFrameBody) throws -> SetupInfo {
         guard setup.version <= maximumClientVersion else {
             throw Error.unsupportedSetup(message: "only version \(maximumClientVersion) and lower are supported")
         }
@@ -103,11 +103,11 @@ internal struct SetupValidator {
         guard setup.maxLifetime > 0 else {
             throw Error.unsupportedSetup(message: "max lifetime must be greater than 0")
         }
-        return ClientInfo(setup)
+        return SetupInfo(setup)
     }
 }
 
-extension ClientInfo {
+extension SetupInfo {
     fileprivate init(_ setup: SetupFrameBody) {
         self.honorsLease = setup.honorsLease
         self.version = setup.version
@@ -128,9 +128,9 @@ public enum ClientAcceptorResult {
 
 /// An application can use this callback to accept or reject a given client.
 /// This can be used to check if the requested MIME type and fail early if it is not supported by the Application.
-public typealias ClientAcceptorCallback = (ClientInfo) -> ClientAcceptorResult
+public typealias ClientAcceptorCallback = (SetupInfo) -> ClientAcceptorResult
 
-public typealias InitializeConnection = (ClientInfo, Channel) -> EventLoopFuture<Void>
+public typealias InitializeConnection = (SetupInfo, Channel) -> EventLoopFuture<Void>
 
 
 /// `MessageBufferHandler` buffers all incoming messages until `self` is removed from the `ChannelPipeline`.

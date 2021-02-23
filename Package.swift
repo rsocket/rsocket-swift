@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
-        .package(url: "https://github.com/apple/swift-nio", from: "2.25.1"),
+        .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
     ],
     targets: [

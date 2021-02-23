@@ -31,7 +31,7 @@ public struct ClientInfo {
      - For server-to-server connections, a reasonable time interval between client `KEEPALIVE` frames is 500ms.
      - For mobile-to-server connections, the time interval between client `KEEPALIVE` frames is often > 30,000ms.
      */
-    public let timeBetweenKeepaliveFrames: Int
+    public let timeBetweenKeepaliveFrames: Int32
 
     /**
      Time (in milliseconds) that a client will allow a server to not respond to a `KEEPALIVE`
@@ -39,7 +39,7 @@ public struct ClientInfo {
 
      Value MUST be > `0`.
      */
-    public let maxLifetime: Int
+    public let maxLifetime: Int32
 
     /// Token used for client resume identification
     public let resumeIdentificationToken: Data?
@@ -111,8 +111,8 @@ extension ClientInfo {
     fileprivate init(_ setup: SetupFrameBody) {
         self.honorsLease = setup.honorsLease
         self.version = setup.version
-        self.timeBetweenKeepaliveFrames = Int(setup.timeBetweenKeepaliveFrames)
-        self.maxLifetime = Int(setup.maxLifetime)
+        self.timeBetweenKeepaliveFrames = setup.timeBetweenKeepaliveFrames
+        self.maxLifetime = setup.maxLifetime
         self.resumeIdentificationToken = setup.resumeIdentificationToken
         self.metadataEncodingMimeType = setup.metadataEncodingMimeType
         self.dataEncodingMimeType = setup.dataEncodingMimeType

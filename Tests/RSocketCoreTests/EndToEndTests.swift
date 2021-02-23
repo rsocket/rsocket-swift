@@ -197,8 +197,8 @@ final class EndToEndTests: XCTestCase {
         let clientDidConnect = self.expectation(description: "client did connect to server")
         
         let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
-            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int(setup.timeBetweenKeepaliveFrames))
-            XCTAssertEqual(clientInfo.maxLifetime, Int(setup.maxLifetime))
+            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, setup.timeBetweenKeepaliveFrames)
+            XCTAssertEqual(clientInfo.maxLifetime, setup.maxLifetime)
             XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.metadataEncodingMimeType)
             XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.dataEncodingMimeType)
             clientDidConnect.fulfill()

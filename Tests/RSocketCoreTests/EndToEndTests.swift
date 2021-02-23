@@ -213,10 +213,10 @@ final class EndToEndTests: XCTestCase {
     }
     func testRequestResponseEcho() throws {
         let server = makeServerBootstrap { type, payload, output in
-            let input = TestStreamInput.echo(to: output)
+            XCTAssertEqual(type, .response)
             // just echo back
             output.sendNext(payload, isCompletion: true)
-            return input
+            return TestStreamInput()
         }
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
@@ -238,6 +238,7 @@ final class EndToEndTests: XCTestCase {
     func testChannelEcho() throws {
         var echo: TestStreamInput?
         let server = makeServerBootstrap { type, payload, output in
+            XCTAssertEqual(type, .channel(initialRequestN: .max, isCompleted: false))
             echo = TestStreamInput.echo(to: output)
             // just echo back
             output.sendNext(payload, isCompletion: false)
@@ -266,6 +267,38 @@ final class EndToEndTests: XCTestCase {
         output.sendNext("r", isCompletion: false)
         output.sendNext("l", isCompletion: false)
         output.sendNext("d", isCompletion: true)
+        self.wait(for: [response], timeout: 1)
+    }
+    func testStream() throws {
+        let server = makeServerBootstrap { type, payload, output in
+            XCTAssertEqual(type, .stream(initialRequestN: .max))
+            XCTAssertEqual(payload, "Hello World!")
+            output.sendNext("Hello", isCompletion: false)
+            output.sendNext(" ", isCompletion: false)
+            output.sendNext("W", isCompletion: false)
+            output.sendNext("o", isCompletion: false)
+            output.sendNext("r", isCompletion: false)
+            output.sendNext("l", isCompletion: false)
+            output.sendNext("d", isCompletion: true)
+            return TestStreamInput()
+        }
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
+        
+        let client = makeClientBootstrap()
+        let channel = try client.connect(host: host, port: port).wait()
+        let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
+        
+        let response = self.expectation(description: "receive response")
+        var input: TestStreamInput!
+        weak var weakInput: TestStreamInput?
+        input = TestStreamInput(onComplete: {
+            response.fulfill()
+            XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
+        })
+        weakInput = input
+        _ = requester.requestStream(for: .stream(initialRequestN: .max), payload: "Hello World!") { _ in
+            input!
+        }
         self.wait(for: [response], timeout: 1)
     }
 }

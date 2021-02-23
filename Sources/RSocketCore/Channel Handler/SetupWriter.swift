@@ -123,8 +123,8 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        assertionFailure("should never receive data because we remove this handler right after the channel becomes")
-        /// We need to conform to `ChannelInboundHandler` to get called when the channel gets active and remove ourself immediately after the channel becomes active
+        assertionFailure("should never receive data because we remove this handler right after the channel becomes active")
+        /// We need to conform to `ChannelInboundHandler` to get called when the channel becomes active and we remove ourself immediately after the channel becomes active
         /// If, for whatever reason, this method gets called, we just forward the data in release mode
         context.fireChannelRead(data)
     }

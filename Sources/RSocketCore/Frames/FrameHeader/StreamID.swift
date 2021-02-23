@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-import Foundation
+/// A identifier of a stream.
+internal struct StreamID: RawRepresentable {
+    internal var rawValue: Int32
+}
 
-/**
- Payload on a stream
+extension StreamID: Hashable {}
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+extension StreamID {
+    /// Stream ID for any operation involving the connection
+    internal static let connection = StreamID(rawValue: 0)
 }

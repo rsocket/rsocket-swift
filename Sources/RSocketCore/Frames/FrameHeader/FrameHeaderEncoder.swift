@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIO
 
-/**
- Payload on a stream
+internal protocol FrameHeaderEncoding {
+    func encode(header: FrameHeader, into buffer: inout ByteBuffer) throws
+}
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+internal struct FrameHeaderEncoder: FrameHeaderEncoding {
+    internal func encode(header: FrameHeader, into buffer: inout ByteBuffer) throws {
+        buffer.writeInteger(header.streamId.rawValue)
+        // shift type by amount of flag bits
+        let typeBits = UInt16(header.type.rawValue) << 10
+        // only use trailing 10 bits for flags
+        let flagBits = header.flags.rawValue & 0b0000001111111111
+        buffer.writeInteger(typeBits | flagBits)
     }
 }

@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-import Foundation
-
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+public protocol StreamOutput {
+    func sendNext(_ payload: Payload, isCompletion: Bool)
+    func sendError(_ error: Error)
+    func sendComplete()
+    func sendCancel()
+    func sendRequestN(_ requestN: Int32)
+    func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }

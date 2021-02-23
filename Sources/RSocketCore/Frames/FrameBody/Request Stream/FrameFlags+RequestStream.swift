@@ -14,25 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
-
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+extension FrameFlags {
+    /// (F)ollows: More fragments follow this fragment
+    internal static let requestStreamFollows = FrameFlags(rawValue: 1 << 7)
 }

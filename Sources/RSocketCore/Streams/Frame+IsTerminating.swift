@@ -14,25 +14,20 @@
  * limitations under the License.
  */
 
-import Foundation
+extension Frame {
+    internal var isTerminating: Bool {
+        switch body {
+        case let .payload(body):
+            return body.isCompletion
 
-/**
- Payload on a stream
+        case .cancel, .error:
+            return true
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
+        case let .requestChannel(body):
+            return body.isCompleted
 
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+        default:
+            return false
+        }
     }
 }

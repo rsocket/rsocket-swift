@@ -16,23 +16,15 @@
 
 import Foundation
 
-/**
- Payload on a stream
+/// A Metadata Push frame can be used to send asynchronous metadata notifications from a Requester or Responder to its peer
+internal struct MetadataPushFrameBody: Hashable {
+    /// Metadata of this frame
+    internal let metadata: Data
+}
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+extension MetadataPushFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .metadataPush(self) }
+    func header() -> FrameHeader {
+        FrameHeader(streamId: .connection, type: .metadataPush, flags: .metadata)
     }
 }

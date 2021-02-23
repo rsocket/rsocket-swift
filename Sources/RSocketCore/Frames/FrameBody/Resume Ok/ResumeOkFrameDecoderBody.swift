@@ -14,25 +14,13 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIO
 
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+internal struct ResumeOkFrameBodyDecoder: FrameBodyDecoding {
+    internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> ResumeOkFrameBody {
+        guard let lastReceivedClientPosition: Int64 = buffer.readInteger() else {
+            throw Error.connectionError(message: "Frame is not big enough")
+        }
+        return ResumeOkFrameBody(lastReceivedClientPosition: lastReceivedClientPosition)
     }
 }

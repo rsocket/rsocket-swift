@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-import Foundation
+extension FrameFlags {
+    /// (F)ollows: More fragments follow this fragment
+    internal static let requestChannelFollows = FrameFlags(rawValue: 1 << 7)
 
-/**
- Payload on a stream
+    /**
+     (C)omplete: bit to indicate stream completion
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+     If set, `onComplete()` or equivalent will be invoked on Subscriber/Observer.
+     */
+    internal static let requestChannelComplete = FrameFlags(rawValue: 1 << 6)
 }

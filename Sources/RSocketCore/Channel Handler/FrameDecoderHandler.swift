@@ -14,25 +14,21 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIO
 
-/**
- Payload on a stream
+final class FrameDecoderHandler: ChannelInboundHandler {
+    public typealias InboundIn = ByteBuffer
+    public typealias InboundOut = Frame
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
+    private let frameDecoder = FrameDecoder()
 
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+    public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        var buffer = unwrapInboundIn(data)
+        do {
+            let frame = try frameDecoder.decode(from: &buffer)
+            context.fireChannelRead(wrapInboundOut(frame))
+        } catch {
+            context.fireErrorCaught(error)
+        }
     }
 }

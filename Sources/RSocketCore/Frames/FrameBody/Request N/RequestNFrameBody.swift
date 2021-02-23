@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-import Foundation
+/// Request `N` more items with Reactive Streams semantics
+internal struct RequestNFrameBody: Hashable {
+    /**
+     The number of items to request
 
-/**
- Payload on a stream
+     Value MUST be > `0`.
+     */
+    internal let requestN: Int32
+}
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+extension RequestNFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .requestN(self) }
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .requestN, flags: [])
     }
 }

@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-import Foundation
+internal struct FrameHeader: Hashable {
+    internal static let lengthInBytes = 6
 
-/**
- Payload on a stream
+    /// The id of the corresponding stream
+    internal let streamId: StreamID
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
+    /// The type of the frame
+    internal let type: FrameType
 
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+    /// The flags that are set on the frame
+    internal let flags: FrameFlags
 }

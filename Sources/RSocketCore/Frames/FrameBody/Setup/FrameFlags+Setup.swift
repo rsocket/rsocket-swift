@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-import Foundation
+extension FrameFlags {
+    /**
+     (R)esume Enable: Client requests resume capability if possible
+     
+     Resume Identification Token present.
+     */
+    internal static let setupResume = FrameFlags(rawValue: 1 << 7)
 
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+    /// (L)ease: Will honor `LEASE` (or not)
+    internal static let setupLease = FrameFlags(rawValue: 1 << 6)
 }

@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-import Foundation
-
 /**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
+ Error frames are used for errors on individual requests/streams as well
+ as connection errors and in response to `SETUP` frames.
  */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
+internal struct ErrorFrameBody: Hashable {
+    /// The error that occurred
+    internal let error: Error
+}
 
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+extension ErrorFrameBody: FrameBodyBoundToStream {
+    func body() -> FrameBody { .error(self) }
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .error, flags: [])
     }
 }

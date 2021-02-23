@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-import Foundation
+/// The `RESUME_OK` frame is sent in response to a `RESUME` if resuming operation possible
+internal struct ResumeOkFrameBody: Hashable {
+    /// The last implied position the server received from the client
+    internal let lastReceivedClientPosition: Int64
+}
 
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+extension ResumeOkFrameBody: FrameBodyBoundToConnection {
+    func body() -> FrameBody { .resumeOk(self) }
+    func header() -> FrameHeader {
+        FrameHeader(streamId: .connection, type: .resumeOk, flags: [])
     }
 }

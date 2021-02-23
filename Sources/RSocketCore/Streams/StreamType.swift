@@ -14,25 +14,9 @@
  * limitations under the License.
  */
 
-import Foundation
-
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
-    }
+public enum StreamType: Hashable {
+    case response
+    case fireAndForget
+    case stream(initialRequestN: Int32)
+    case channel(initialRequestN: Int32, isCompleted: Bool)
 }

@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-import Foundation
-
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+internal struct StreamIDGenerator {
+    private var nextStreamId: StreamID.RawValue
+    internal init(initial: StreamID.RawValue) {
+        self.nextStreamId = initial
     }
+    mutating func next() -> StreamID? {
+        guard nextStreamId > 0 else { return nil }
+        defer { nextStreamId &+= 2 }
+        return StreamID(rawValue: nextStreamId)
+    }
+}
+
+extension StreamIDGenerator {
+    static let client = StreamIDGenerator(initial: 1)
+    static let server = StreamIDGenerator(initial: 2)
 }

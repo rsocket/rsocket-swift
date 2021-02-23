@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIO
 
-/**
- Payload on a stream
+internal struct RequestFireAndForgetFrameBodyEncoder: FrameBodyEncoding {
+    private let payloadEncoder: PayloadEncoding
 
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
+    internal init(payloadEncoder: PayloadEncoding = PayloadEncoder()) {
+        self.payloadEncoder = payloadEncoder
+    }
 
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+    internal func encode(frame: RequestFireAndForgetFrameBody, into buffer: inout ByteBuffer) throws {
+        try payloadEncoder.encode(payload: frame.payload, to: &buffer)
     }
 }

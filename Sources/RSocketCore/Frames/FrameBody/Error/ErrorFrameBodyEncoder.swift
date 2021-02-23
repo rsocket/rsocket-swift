@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIO
 
-/**
- Payload on a stream
-
- For example, response to a request, or message on a channel.
- */
-public struct Payload: Hashable {
-    /// Optional metadata of this payload
-    public let metadata: Data?
-
-    /// Payload for Reactive Streams `onNext`
-    public let data: Data
-
-    public init(
-        metadata: Data? = nil,
-        data: Data
-    ) {
-        self.metadata = metadata
-        self.data = data
+internal struct ErrorFrameBodyEncoder: FrameBodyEncoding {
+    internal func encode(frame: ErrorFrameBody, into buffer: inout ByteBuffer) throws {
+        buffer.writeInteger(frame.error.code)
+        if !frame.error.message.isEmpty {
+            let bytesWritten = buffer.writeString(frame.error.message)
+            guard bytesWritten > 0 else {
+                throw Error.connectionError(message: "Error message contains invalid characters")
+            }
+        }
     }
 }

@@ -117,6 +117,10 @@ final class EndToEndTests: XCTestCase {
         dataEncodingMimeType: "utf8"
     )
     let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    override func tearDownWithError() throws {
+        try eventLoopGroup.syncShutdownGracefully()
+    }
+    
     let host = "127.0.0.1"
     
     func makeServerBootstrap(
@@ -152,9 +156,6 @@ final class EndToEndTests: XCTestCase {
                 ])
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-    }
-    override func tearDownWithError() throws {
-        try eventLoopGroup.syncShutdownGracefully()
     }
     func makeClientBootstrap(
         createStream: ((StreamType, Payload, StreamOutput) -> StreamInput)? = nil,

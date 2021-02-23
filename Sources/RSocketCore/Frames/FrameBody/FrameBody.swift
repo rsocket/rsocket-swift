@@ -16,7 +16,7 @@
 
 enum FrameBody: Hashable {
     /// Setup: Sent by client to initiate protocol processing
-    case setup(SetupFrameBody)
+    indirect case setup(SetupFrameBody)
 
     /// Lease: Sent by Responder to grant the ability to send requests
     case lease(LeaseFrameBody)

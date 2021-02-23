@@ -138,8 +138,8 @@ final class EndToEndTests: XCTestCase {
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
-                    RSocketFrameDecoder(),
-                    RSocketFrameEncoder(),
+                    FrameDecoderHandler(),
+                    FrameEncoderHandler(),
                     ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
                         let sendFrame: (Frame) -> () = { [weak channel] frame in
                             channel?.writeAndFlush(frame, promise: nil)
@@ -175,8 +175,8 @@ final class EndToEndTests: XCTestCase {
                 return channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
-                    RSocketFrameDecoder(),
-                    RSocketFrameEncoder(),
+                    FrameDecoderHandler(),
+                    FrameEncoderHandler(),
                     SetupWriter(config: config),
                     DemultiplexerHandler(
                         connectionSide: .client,

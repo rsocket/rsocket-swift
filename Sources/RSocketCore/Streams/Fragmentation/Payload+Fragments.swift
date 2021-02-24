@@ -58,16 +58,16 @@ extension Payload {
                     if isLastMetadataFragment {
                         let remainingMtu = frameWithMetadataMtu - metadataFragment.count
                         if remainingMtu > 0 {
-                            // last fragment has metadata and data
+                            // last metadata fragment has metadata and data
                             let fragmentData = remainingData.prefix(remainingMtu)
                             remainingData = remainingData.dropFirst(remainingMtu)
                             followingFragments.append(Payload(metadata: metadataFragment, data: fragmentData))
                         } else {
-                            // last fragment is metadata only
+                            // last metadata fragment is metadata only
                             followingFragments.append(Payload(metadata: metadataFragment, data: Data()))
                         }
                     } else {
-                        // fragment is metadata only because metadata fragments follow
+                        // fragment is metadata only because more metadata fragments follow
                         followingFragments.append(Payload(metadata: metadataFragment, data: Data()))
                     }
                 }

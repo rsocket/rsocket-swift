@@ -58,15 +58,15 @@ extension FrameBodyBoundToStream {
 extension FrameBodyBoundToConnection {
     /// returns complete frame for `self`.
     /// The stream id will always be `.connection`.
-    func frame() -> Frame {
-        Frame(header: header(), body: body())
+    func frame(additionalFlags: FrameFlags = []) -> Frame {
+        Frame(header: header(additionalFlags: additionalFlags), body: body())
     }
 }
 
 extension FrameBodyBoundToStream {
     /// returns complete frame for `self`.
     /// - Parameter streamId: stream id for the header
-    func frame(withStreamId streamId: StreamID) -> Frame {
-        Frame(header: header(withStreamId: streamId), body: body())
+    func frame(withStreamId streamId: StreamID, additionalFlags: FrameFlags = []) -> Frame {
+        Frame(header: header(withStreamId: streamId, additionalFlags: additionalFlags), body: body())
     }
 }

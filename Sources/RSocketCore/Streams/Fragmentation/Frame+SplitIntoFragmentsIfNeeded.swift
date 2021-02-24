@@ -106,26 +106,19 @@ private extension FrameBodyBoundToStream {
         lastFragmentShouldCompleteStream: Bool
     ) -> [Frame] {
         precondition(!fragments.isEmpty)
-        return [
-            Frame(
-                header: header(withStreamId: streamId, additionalFlags: .fragmentFollows),
-                body: body()
-            )
-        ] + fragments.enumerated().map { index, fragment in
-            let isLastFragment = index == fragments.count - 1
-            let isFragmentCompletion = lastFragmentShouldCompleteStream && isLastFragment
-            let fragmentBody = PayloadFrameBody(
-                isCompletion: isFragmentCompletion,
-                isNext: false,
-                payload: fragment
-            )
-            return Frame(
-                header: fragmentBody.header(
+        return [frame(withStreamId: streamId, additionalFlags: .fragmentFollows)]
+            + fragments.enumerated().map { index, fragment in
+                let isLastFragment = index == fragments.count - 1
+                let isFragmentCompletion = lastFragmentShouldCompleteStream && isLastFragment
+                let fragmentBody = PayloadFrameBody(
+                    isCompletion: isFragmentCompletion,
+                    isNext: false,
+                    payload: fragment
+                )
+                return fragmentBody.frame(
                     withStreamId: streamId,
                     additionalFlags: isLastFragment ? [] : .fragmentFollows
-                ),
-                body: fragmentBody.body()
-            )
-        }
+                )
+            }
     }
 }

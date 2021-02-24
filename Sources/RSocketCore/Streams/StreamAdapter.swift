@@ -29,9 +29,7 @@ internal class StreamAdapter {
 
     private func closeConnection(with error: Error) {
         guard let delegate = delegate else { return }
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         delegate.send(frame: frame)
     }
 }
@@ -79,57 +77,52 @@ extension StreamAdapter: FrameHandler {
 extension StreamAdapter: StreamOutput {
     internal func sendNext(_ payload: Payload, isCompletion: Bool) {
         guard let delegate = delegate else { return }
-        let body = PayloadFrameBody(
+        let frame = PayloadFrameBody(
             isCompletion: isCompletion,
             isNext: true,
             payload: payload
-        )
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .payload(body))
+        ).frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 
     internal func sendError(_ error: Error) {
         guard let delegate = delegate else { return }
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error)
+            .frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 
     internal func sendComplete() {
         guard let delegate = delegate else { return }
-        let body = PayloadFrameBody(
+        let frame = PayloadFrameBody(
             isCompletion: true,
             isNext: false,
             payload: .empty
-        )
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .payload(body))
+        ).frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 
     internal func sendCancel() {
         guard let delegate = delegate else { return }
-        let body = CancelFrameBody()
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .cancel(body))
+        let frame = CancelFrameBody()
+            .frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 
     internal func sendRequestN(_ requestN: Int32) {
         guard let delegate = delegate else { return }
-        let body = RequestNFrameBody(requestN: requestN)
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .requestN(body))
+        let frame = RequestNFrameBody(requestN: requestN)
+            .frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 
     internal func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard let delegate = delegate else { return }
-        let body = ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload)
-        let header = body.header(withStreamId: id)
-        let frame = Frame(header: header, body: .ext(body))
+        let frame = ExtensionFrameBody(
+            canBeIgnored: canBeIgnored,
+            extendedType: extendedType,
+            payload: payload
+        ).frame(withStreamId: id)
         delegate.send(frame: frame)
     }
 }

@@ -48,9 +48,7 @@ internal final class Requester: FrameHandler {
     }
 
     private func closeConnection(with error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         sendFrame(frame)
     }
 }
@@ -85,39 +83,29 @@ extension Requester {
     }
 
     private func sendRequest(id: StreamID, type: StreamType, payload: Payload) {
-        let header: FrameHeader
-        let body: FrameBody
+        let frame: Frame
         switch type {
         case .response:
-            let requestResponseBody = RequestResponseFrameBody(payload: payload)
-            header = requestResponseBody.header(withStreamId: id)
-            body = .requestResponse(requestResponseBody)
+            frame = RequestResponseFrameBody(payload: payload).frame(withStreamId: id)
 
         case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(payload: payload)
-            header = fireAndForgetBody.header(withStreamId: id)
-            body = .requestFnf(fireAndForgetBody)
+            frame = RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: id)
 
         case let .stream(initialRequestN):
-            let streamBody = RequestStreamFrameBody(
+            frame = RequestStreamFrameBody(
                 initialRequestN: initialRequestN,
                 payload: payload
-            )
-            header = streamBody.header(withStreamId: id)
-            body = .requestStream(streamBody)
+            ).frame(withStreamId: id)
 
         case let .channel(initialRequestN, isCompleted):
-            let channelBody = RequestChannelFrameBody(
+            frame = RequestChannelFrameBody(
                 isCompleted: isCompleted,
                 initialRequestN: initialRequestN,
                 payload: payload
-            )
-            header = channelBody.header(withStreamId: id)
-            body = .requestChannel(channelBody)
+            ).frame(withStreamId: id)
         }
-        let frame = Frame(header: header, body: body)
         // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
+        for fragment in frame.splitIntoFragmentsIfNeeded(mtu: 64) {
             send(frame: fragment)
         }
     }

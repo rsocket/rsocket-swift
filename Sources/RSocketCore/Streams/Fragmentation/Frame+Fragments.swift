@@ -15,7 +15,7 @@
  */
 
 extension Frame {
-    internal func fragments(mtu: Int32) -> [Frame] {
+    internal func splitIntoFragmentsIfNeeded(mtu: Int32) -> [Frame] {
         switch body {
         case let .requestResponse(body):
             let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestResponse)
@@ -30,9 +30,7 @@ extension Frame {
         case let .requestFnf(body):
             let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestFnf)
             guard !fragments.followingFragments.isEmpty else { return [self] }
-            let initialBody = RequestFireAndForgetFrameBody(
-                payload: fragments.initialFragment
-            )
+            let initialBody = RequestFireAndForgetFrameBody(payload: fragments.initialFragment)
             return initialBody.createFrames(
                 withFollowingFragments: fragments.followingFragments,
                 streamId: header.streamId,

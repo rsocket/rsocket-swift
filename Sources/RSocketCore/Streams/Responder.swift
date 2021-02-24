@@ -50,9 +50,7 @@ internal final class Responder: FrameHandler {
     }
 
     private func closeConnection(with error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         sendFrame(frame)
     }
 }

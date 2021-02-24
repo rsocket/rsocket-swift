@@ -129,42 +129,37 @@ private struct Fragments {
         // build assembled frame
         switch initialFrame.body {
         case .requestResponse:
-            let newBody = RequestResponseFrameBody(payload: newPayload)
-            let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return .success(Frame(header: newHeader, body: .requestResponse(newBody)))
+            let newFrame = RequestResponseFrameBody(payload: newPayload)
+                .frame(withStreamId: initialFrame.header.streamId)
+            return .success(newFrame)
 
         case .requestFnf:
-            let newBody = RequestFireAndForgetFrameBody(
-                payload: newPayload
-            )
-            let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return .success(Frame(header: newHeader, body: .requestFnf(newBody)))
+            let newFrame = RequestFireAndForgetFrameBody(payload: newPayload)
+                .frame(withStreamId: initialFrame.header.streamId)
+            return .success(newFrame)
 
         case let .requestStream(body):
-            let newBody = RequestStreamFrameBody(
+            let newFrame = RequestStreamFrameBody(
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            )
-            let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return .success(Frame(header: newHeader, body: .requestStream(newBody)))
+            ).frame(withStreamId: initialFrame.header.streamId)
+            return .success(newFrame)
 
         case let .requestChannel(body):
-            let newBody = RequestChannelFrameBody(
+            let newFrame = RequestChannelFrameBody(
                 isCompleted: isCompletion,
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            )
-            let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return .success(Frame(header: newHeader, body: .requestChannel(newBody)))
+            ).frame(withStreamId: initialFrame.header.streamId)
+            return .success(newFrame)
 
         case .payload:
-            let newBody = PayloadFrameBody(
+            let newFrame = PayloadFrameBody(
                 isCompletion: isCompletion,
                 isNext: true,
                 payload: newPayload
-            )
-            let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
-            return .success(Frame(header: newHeader, body: .payload(newBody)))
+            ).frame(withStreamId: initialFrame.header.streamId)
+            return .success(newFrame)
 
         default:
             // Only those frame types above can be fragmented

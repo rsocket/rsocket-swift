@@ -96,16 +96,14 @@ internal class StreamFragmenter: StreamAdapterDelegate {
 
     private func closeConnection(with error: Error) {
         guard let delegate = delegate else { return }
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         delegate.send(frame: frame)
     }
 
     internal func send(frame: Frame) {
         guard let delegate = delegate else { return }
         // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
+        for fragment in frame.splitIntoFragmentsIfNeeded(mtu: 64) {
             delegate.send(frame: fragment)
         }
     }

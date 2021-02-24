@@ -16,6 +16,7 @@
 
 internal class StreamFragmenter: StreamAdapterDelegate {
     private let streamId: StreamID
+    private let maximumFrameSize: Int32
     private enum State {
         case waitingForInitialFragments((StreamType, Payload, StreamOutput) -> StreamInput)
         case active(StreamAdapter)
@@ -25,15 +26,17 @@ internal class StreamFragmenter: StreamAdapterDelegate {
     internal weak var delegate: StreamAdapterDelegate?
 
     /// Called from requester
-    internal init(streamId: StreamID, adapter: StreamAdapter) {
+    internal init(streamId: StreamID, maximumFrameSize: Int32, adapter: StreamAdapter) {
         self.streamId = streamId
+        self.maximumFrameSize = maximumFrameSize
         state = .active(adapter)
         adapter.delegate = self
     }
 
     /// Called from responder
-    internal init(streamId: StreamID, createInput: @escaping (StreamType, Payload, StreamOutput) -> StreamInput) {
+    internal init(streamId: StreamID, maximumFrameSize: Int32, createInput: @escaping (StreamType, Payload, StreamOutput) -> StreamInput) {
         self.streamId = streamId
+        self.maximumFrameSize = maximumFrameSize
         state = .waitingForInitialFragments(createInput)
     }
 
@@ -102,8 +105,7 @@ internal class StreamFragmenter: StreamAdapterDelegate {
 
     internal func send(frame: Frame) {
         guard let delegate = delegate else { return }
-        // TODO: adjust MTU
-        for fragment in frame.splitIntoFragmentsIfNeeded(mtu: 64) {
+        for fragment in frame.splitIntoFragmentsIfNeeded(maximumFrameSize: maximumFrameSize) {
             delegate.send(frame: fragment)
         }
     }

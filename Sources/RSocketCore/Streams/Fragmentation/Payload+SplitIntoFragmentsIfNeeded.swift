@@ -18,11 +18,11 @@ import Foundation
 
 extension Payload {
     internal func splitIntoFragmentsIfNeeded(
-        mtu: Int32,
+        maximumFrameSize: Int32,
         firstFragmentAdditionalOffset: FrameOffset
     ) -> (initialFragment: Payload, followingFragments: [Payload]) {
-        let frameMtu = Int(mtu - Constants.frameHeaderOffset)
-        let frameWithMetadataMtu = Int(mtu - Constants.frameHeaderOffsetWithMetadata)
+        let frameMtu = Int(maximumFrameSize - Constants.frameHeaderOffset)
+        let frameWithMetadataMtu = Int(maximumFrameSize - Constants.frameHeaderOffsetWithMetadata)
 
         let initialFragment: Payload
         var followingFragments: [Payload] = []

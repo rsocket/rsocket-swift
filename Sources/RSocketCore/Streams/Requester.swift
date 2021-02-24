@@ -17,13 +17,16 @@
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
     private var streamIdGenerator: StreamIDGenerator
+    private let maximumFrameSize: Int32
     private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
+        maximumFrameSize: Int32,
         sendFrame: @escaping (Frame) -> Void
     ) {
         self.streamIdGenerator = streamIdGenerator
+        self.maximumFrameSize = maximumFrameSize
         self.sendFrame = sendFrame
     }
 
@@ -74,7 +77,11 @@ extension Requester {
     ) -> StreamOutput {
         let newId = generateNewStreamId()
         let adapter = StreamAdapter(id: newId)
-        let fragmeter = StreamFragmenter(streamId: newId, adapter: adapter)
+        let fragmeter = StreamFragmenter(
+            streamId: newId,
+            maximumFrameSize: maximumFrameSize,
+            adapter: adapter
+        )
         fragmeter.delegate = self
         adapter.input = createInput(adapter)
         activeStreams[newId] = fragmeter
@@ -104,8 +111,7 @@ extension Requester {
                 payload: payload
             ).frame(withStreamId: id)
         }
-        // TODO: adjust MTU
-        for fragment in frame.splitIntoFragmentsIfNeeded(mtu: 64) {
+        for fragment in frame.splitIntoFragmentsIfNeeded(maximumFrameSize: maximumFrameSize) {
             send(frame: fragment)
         }
     }

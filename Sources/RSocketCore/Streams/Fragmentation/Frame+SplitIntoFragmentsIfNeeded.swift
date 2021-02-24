@@ -15,11 +15,11 @@
  */
 
 extension Frame {
-    internal func splitIntoFragmentsIfNeeded(mtu: Int32) -> [Frame] {
+    internal func splitIntoFragmentsIfNeeded(maximumFrameSize: Int32) -> [Frame] {
         switch body {
         case let .requestResponse(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
-                mtu: mtu,
+                maximumFrameSize: maximumFrameSize,
                 firstFragmentAdditionalOffset: .requestResponse
             )
             guard !followingFragments.isEmpty else { return [self] }
@@ -32,7 +32,7 @@ extension Frame {
 
         case let .requestFnf(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
-                mtu: mtu,
+                maximumFrameSize: maximumFrameSize,
                 firstFragmentAdditionalOffset: .requestFnf
             )
             guard !followingFragments.isEmpty else { return [self] }
@@ -45,7 +45,7 @@ extension Frame {
 
         case let .requestStream(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
-                mtu: mtu,
+                maximumFrameSize: maximumFrameSize,
                 firstFragmentAdditionalOffset: .requestStream
             )
             guard !followingFragments.isEmpty else { return [self] }
@@ -61,7 +61,7 @@ extension Frame {
 
         case let .requestChannel(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
-                mtu: mtu,
+                maximumFrameSize: maximumFrameSize,
                 firstFragmentAdditionalOffset: .requestChannel
             )
             guard !followingFragments.isEmpty else { return [self] }
@@ -78,7 +78,7 @@ extension Frame {
 
         case let .payload(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
-                mtu: mtu,
+                maximumFrameSize: maximumFrameSize,
                 firstFragmentAdditionalOffset: .payload
             )
             guard !followingFragments.isEmpty else { return [self] }

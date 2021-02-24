@@ -17,14 +17,17 @@
 import NIO
 
 internal final class Responder: FrameHandler {
+    private let maximumFrameSize: Int32
     private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(
+        maximumFrameSize: Int32,
         createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
         sendFrame: @escaping (Frame) -> Void
     ) {
+        self.maximumFrameSize = maximumFrameSize
         self.createStream = createStream
         self.sendFrame = sendFrame
     }
@@ -39,7 +42,11 @@ internal final class Responder: FrameHandler {
             return
         }
 
-        let fragmenter = StreamFragmenter(streamId: streamId, createInput: createStream)
+        let fragmenter = StreamFragmenter(
+            streamId: streamId,
+            maximumFrameSize: maximumFrameSize,
+            createInput: createStream
+        )
         fragmenter.delegate = self
         activeStreams[streamId] = fragmenter
         fragmenter.receive(frame: frame)

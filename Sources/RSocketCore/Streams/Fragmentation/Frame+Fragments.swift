@@ -18,62 +18,77 @@ extension Frame {
     internal func splitIntoFragmentsIfNeeded(mtu: Int32) -> [Frame] {
         switch body {
         case let .requestResponse(body):
-            let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestResponse)
-            guard !fragments.followingFragments.isEmpty else { return [self] }
-            let initialBody = RequestResponseFrameBody(payload: fragments.initialFragment)
+            let (initialFragment, followingFragments) = body.payload.fragments(
+                mtu: mtu,
+                firstFragmentAdditionalOffset: .requestResponse
+            )
+            guard !followingFragments.isEmpty else { return [self] }
+            let initialBody = RequestResponseFrameBody(payload: initialFragment)
             return initialBody.createFrames(
-                withFollowingFragments: fragments.followingFragments,
+                withFollowingFragments: followingFragments,
                 streamId: header.streamId,
                 lastFragmentShouldCompleteStream: false
             )
 
         case let .requestFnf(body):
-            let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestFnf)
-            guard !fragments.followingFragments.isEmpty else { return [self] }
-            let initialBody = RequestFireAndForgetFrameBody(payload: fragments.initialFragment)
+            let (initialFragment, followingFragments) = body.payload.fragments(
+                mtu: mtu,
+                firstFragmentAdditionalOffset: .requestFnf
+            )
+            guard !followingFragments.isEmpty else { return [self] }
+            let initialBody = RequestFireAndForgetFrameBody(payload: initialFragment)
             return initialBody.createFrames(
-                withFollowingFragments: fragments.followingFragments,
+                withFollowingFragments: followingFragments,
                 streamId: header.streamId,
                 lastFragmentShouldCompleteStream: false
             )
 
         case let .requestStream(body):
-            let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestStream)
-            guard !fragments.followingFragments.isEmpty else { return [self] }
+            let (initialFragment, followingFragments) = body.payload.fragments(
+                mtu: mtu,
+                firstFragmentAdditionalOffset: .requestStream
+            )
+            guard !followingFragments.isEmpty else { return [self] }
             let initialBody = RequestStreamFrameBody(
                 initialRequestN: body.initialRequestN,
-                payload: fragments.initialFragment
+                payload: initialFragment
             )
             return initialBody.createFrames(
-                withFollowingFragments: fragments.followingFragments,
+                withFollowingFragments: followingFragments,
                 streamId: header.streamId,
                 lastFragmentShouldCompleteStream: false
             )
 
         case let .requestChannel(body):
-            let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .requestChannel)
-            guard !fragments.followingFragments.isEmpty else { return [self] }
+            let (initialFragment, followingFragments) = body.payload.fragments(
+                mtu: mtu,
+                firstFragmentAdditionalOffset: .requestChannel
+            )
+            guard !followingFragments.isEmpty else { return [self] }
             let initialBody = RequestChannelFrameBody(
                 isCompleted: false, // if the channel is already completed is sent on the last fragment
                 initialRequestN: body.initialRequestN,
-                payload: fragments.initialFragment
+                payload: initialFragment
             )
             return initialBody.createFrames(
-                withFollowingFragments: fragments.followingFragments,
+                withFollowingFragments: followingFragments,
                 streamId: header.streamId,
                 lastFragmentShouldCompleteStream: body.isCompleted
             )
 
         case let .payload(body):
-            let fragments = body.payload.fragments(mtu: mtu, firstFragmentAdditionalOffset: .payload)
-            guard !fragments.followingFragments.isEmpty else { return [self] }
+            let (initialFragment, followingFragments) = body.payload.fragments(
+                mtu: mtu,
+                firstFragmentAdditionalOffset: .payload
+            )
+            guard !followingFragments.isEmpty else { return [self] }
             let initialBody = PayloadFrameBody(
                 isCompletion: false, // if the payload completes the stream it is sent on the last fragment
                 isNext: true,
-                payload: fragments.initialFragment
+                payload: initialFragment
             )
             return initialBody.createFrames(
-                withFollowingFragments: fragments.followingFragments,
+                withFollowingFragments: followingFragments,
                 streamId: header.streamId,
                 lastFragmentShouldCompleteStream: body.isCompletion
             )

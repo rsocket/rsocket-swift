@@ -18,7 +18,7 @@ extension Frame {
     internal func splitIntoFragmentsIfNeeded(mtu: Int32) -> [Frame] {
         switch body {
         case let .requestResponse(body):
-            let (initialFragment, followingFragments) = body.payload.fragments(
+            let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
                 mtu: mtu,
                 firstFragmentAdditionalOffset: .requestResponse
             )
@@ -31,7 +31,7 @@ extension Frame {
             )
 
         case let .requestFnf(body):
-            let (initialFragment, followingFragments) = body.payload.fragments(
+            let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
                 mtu: mtu,
                 firstFragmentAdditionalOffset: .requestFnf
             )
@@ -44,7 +44,7 @@ extension Frame {
             )
 
         case let .requestStream(body):
-            let (initialFragment, followingFragments) = body.payload.fragments(
+            let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
                 mtu: mtu,
                 firstFragmentAdditionalOffset: .requestStream
             )
@@ -60,7 +60,7 @@ extension Frame {
             )
 
         case let .requestChannel(body):
-            let (initialFragment, followingFragments) = body.payload.fragments(
+            let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
                 mtu: mtu,
                 firstFragmentAdditionalOffset: .requestChannel
             )
@@ -77,7 +77,7 @@ extension Frame {
             )
 
         case let .payload(body):
-            let (initialFragment, followingFragments) = body.payload.fragments(
+            let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(
                 mtu: mtu,
                 firstFragmentAdditionalOffset: .payload
             )

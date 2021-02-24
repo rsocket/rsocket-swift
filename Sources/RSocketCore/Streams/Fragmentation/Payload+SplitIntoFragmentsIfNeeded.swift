@@ -17,7 +17,7 @@
 import Foundation
 
 extension Payload {
-    internal func fragments(
+    internal func splitIntoFragmentsIfNeeded(
         mtu: Int32,
         firstFragmentAdditionalOffset: FrameOffset
     ) -> (initialFragment: Payload, followingFragments: [Payload]) {

@@ -26,7 +26,6 @@ internal struct PayloadFrameBodyDecoder: FrameBodyDecoding {
     internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> PayloadFrameBody {
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return PayloadFrameBody(
-            fragmentsFollow: header.flags.contains(.payloadFollows),
             isCompletion: header.flags.contains(.payloadComplete),
             isNext: header.flags.contains(.payloadNext),
             payload: payload

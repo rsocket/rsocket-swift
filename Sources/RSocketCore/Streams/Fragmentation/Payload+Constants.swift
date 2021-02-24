@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-extension Frame {
-    internal func fragments(mtu: Int32) -> [Frame] {
-        // TODO
-        [self]
+extension Payload {
+    internal enum Constants {
+        static let minMtuSize: Int32 = 64
+        static let metadataLength: Int32 = 3
+        static let frameHeaderOffset: Int32 = Int32(FrameHeader.lengthInBytes)
+        static let frameHeaderOffsetWithMetadata: Int32 = frameHeaderOffset + metadataLength
     }
 }

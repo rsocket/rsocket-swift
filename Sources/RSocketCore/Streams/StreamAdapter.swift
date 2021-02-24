@@ -27,7 +27,17 @@ internal class StreamAdapter {
         self.id = id
     }
 
-    internal func receive(frame: Frame) {
+    private func closeConnection(with error: Error) {
+        guard let delegate = delegate else { return }
+        let body = ErrorFrameBody(error: error)
+        let header = body.header(withStreamId: .connection)
+        let frame = Frame(header: header, body: .error(body))
+        delegate.send(frame: frame)
+    }
+}
+
+extension StreamAdapter: FrameHandler {
+    internal func receiveInbound(frame: Frame) {
         guard let input = input else {
             // input is deallocated so the active stream should be cancelled
             sendCancel()
@@ -64,21 +74,12 @@ internal class StreamAdapter {
             }
         }
     }
-
-    private func closeConnection(with error: Error) {
-        guard let delegate = delegate else { return }
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
-        delegate.send(frame: frame)
-    }
 }
 
 extension StreamAdapter: StreamOutput {
     internal func sendNext(_ payload: Payload, isCompletion: Bool) {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(
-            fragmentsFollow: false,
             isCompletion: isCompletion,
             isNext: true,
             payload: payload
@@ -99,7 +100,6 @@ extension StreamAdapter: StreamOutput {
     internal func sendComplete() {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(
-            fragmentsFollow: false,
             isCompletion: true,
             isNext: false,
             payload: .empty

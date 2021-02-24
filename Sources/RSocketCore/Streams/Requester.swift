@@ -89,24 +89,17 @@ extension Requester {
         let body: FrameBody
         switch type {
         case .response:
-            let requestResponseBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
+            let requestResponseBody = RequestResponseFrameBody(payload: payload)
             header = requestResponseBody.header(withStreamId: id)
             body = .requestResponse(requestResponseBody)
 
         case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
+            let fireAndForgetBody = RequestFireAndForgetFrameBody(payload: payload)
             header = fireAndForgetBody.header(withStreamId: id)
             body = .requestFnf(fireAndForgetBody)
 
         case let .stream(initialRequestN):
             let streamBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
                 initialRequestN: initialRequestN,
                 payload: payload
             )
@@ -115,7 +108,6 @@ extension Requester {
 
         case let .channel(initialRequestN, isCompleted):
             let channelBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
                 isCompleted: isCompleted,
                 initialRequestN: initialRequestN,
                 payload: payload

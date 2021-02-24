@@ -34,8 +34,8 @@ internal struct KeepAliveFrameBody: Hashable {
 
 extension KeepAliveFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .keepalive(self) }
-    func header() -> FrameHeader {
-        var flags = FrameFlags()
+    func header(additionalFlags: FrameFlags) -> FrameHeader {
+        var flags = additionalFlags
         if respondWithKeepalive {
             flags.insert(.keepAliveRespond)
         }

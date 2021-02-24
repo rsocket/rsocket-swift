@@ -22,52 +22,32 @@ internal enum FragmentationResult {
     case error(reason: String)
 }
 
-fileprivate protocol FragmentableFrameBody {
-    var fragmentsFollow: Bool { get }
-}
-
-extension RequestResponseFrameBody: FragmentableFrameBody {}
-extension RequestFireAndForgetFrameBody: FragmentableFrameBody {}
-extension RequestStreamFrameBody: FragmentableFrameBody {}
-extension RequestChannelFrameBody: FragmentableFrameBody {}
-extension PayloadFrameBody: FragmentableFrameBody {}
-
 internal struct FragmentedFrameAssembler {
-    
     private var fragments: Fragments?
 
     internal mutating func process(frame: Frame) -> FragmentationResult {
         switch frame.body {
-        case let .requestResponse(body):
-            return processInitialFragment(body, fullFrame: frame)
-            
-        case let .requestFnf(body):
-            return processInitialFragment(body, fullFrame: frame)
-
-        case let .requestStream(body):
-            return processInitialFragment(body, fullFrame: frame)
-
-        case let .requestChannel(body):
-            return processInitialFragment(body, fullFrame: frame)
+        case .requestResponse, .requestFnf, .requestStream, .requestChannel:
+            return processInitialFragment(frame: frame)
 
         case let .payload(body):
             if body.isNext {
-                return processInitialFragment(body, fullFrame: frame)
-            } else if body.isCompletion {
-                guard fragments == nil else {
-                    return .error(reason: "has not processed fragments but did receive fragment without isNext flag but with isCompletion flag set")
-                }
-                guard body.fragmentsFollow == false else {
-                    return .error(reason: "has fragments flow flag but without isNext flag")
-                }
-                return .complete(frame)
+                return processInitialFragment(frame: frame)
             } else {
                 guard var fragments = fragments else {
+                    // Payload frame is not the next value and there is no set of fragments to extend
+                    // The only valid reason for this can be that its just a completion event without a final payload
+                    if body.isCompletion {
+                        guard !frame.header.flags.contains(.fragmentFollows) else {
+                            return .error(reason: "Has fragmentFollows flag without the isNext flag and there is no current set of fragments")
+                        }
+                        return .complete(frame)
+                    }
                     return .error(reason: "There is no current set of fragments to extend")
                 }
                 fragments.additionalFragments.append(body.payload)
                 fragments.isCompletion = body.isCompletion
-                if body.fragmentsFollow {
+                if frame.header.flags.contains(.fragmentFollows) {
                     self.fragments = fragments
                     return .incomplete
                 } else {
@@ -89,11 +69,11 @@ internal struct FragmentedFrameAssembler {
         }
     }
 
-    private mutating func processInitialFragment<FrameBody>(_ body: FrameBody, fullFrame frame: Frame) -> FragmentationResult where FrameBody: FragmentableFrameBody {
+    private mutating func processInitialFragment(frame: Frame) -> FragmentationResult {
         guard fragments == nil else {
             return .error(reason: "Current set of fragments is not complete")
         }
-        if body.fragmentsFollow {
+        if frame.header.flags.contains(.fragmentFollows) {
             fragments = Fragments(initialFrame: frame)
             return .incomplete
         } else {
@@ -149,16 +129,12 @@ private struct Fragments {
         // build assembled frame
         switch initialFrame.body {
         case .requestResponse:
-            let newBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: newPayload
-            )
+            let newBody = RequestResponseFrameBody(payload: newPayload)
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
             return .success(Frame(header: newHeader, body: .requestResponse(newBody)))
 
         case .requestFnf:
             let newBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
                 payload: newPayload
             )
             let newHeader = newBody.header(withStreamId: initialFrame.header.streamId)
@@ -166,7 +142,6 @@ private struct Fragments {
 
         case let .requestStream(body):
             let newBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
             )
@@ -175,7 +150,6 @@ private struct Fragments {
 
         case let .requestChannel(body):
             let newBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
                 isCompleted: isCompletion,
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
@@ -185,7 +159,6 @@ private struct Fragments {
 
         case .payload:
             let newBody = PayloadFrameBody(
-                fragmentsFollow: false,
                 isCompletion: isCompletion,
                 isNext: true,
                 payload: newPayload

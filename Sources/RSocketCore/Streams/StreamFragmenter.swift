@@ -81,7 +81,7 @@ internal class StreamFragmenter: StreamAdapterDelegate {
                 state = .active(adapter)
 
             case let .active(adapter):
-                adapter.receive(frame: completeFrame)
+                adapter.receiveInbound(frame: completeFrame)
             }
 
         case .incomplete:

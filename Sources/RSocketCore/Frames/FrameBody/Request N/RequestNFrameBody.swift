@@ -26,7 +26,7 @@ internal struct RequestNFrameBody: Hashable {
 
 extension RequestNFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .requestN(self) }
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        FrameHeader(streamId: streamId, type: .requestN, flags: [])
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .requestN, flags: additionalFlags)
     }
 }

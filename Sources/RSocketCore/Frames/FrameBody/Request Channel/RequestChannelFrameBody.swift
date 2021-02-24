@@ -16,9 +16,6 @@
 
 /// Request a completable stream in both directions
 internal struct RequestChannelFrameBody: Hashable {
-    /// If fragments follow this frame
-    internal let fragmentsFollow: Bool
-
     /// If the channel is already completed
     internal let isCompleted: Bool
 
@@ -35,13 +32,10 @@ internal struct RequestChannelFrameBody: Hashable {
 
 extension RequestChannelFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .requestChannel(self) }
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        var flags = FrameFlags()
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
+        var flags = additionalFlags
         if payload.metadata != nil {
             flags.insert(.metadata)
-        }
-        if fragmentsFollow {
-            flags.insert(.requestChannelFollows)
         }
         if isCompleted {
             flags.insert(.requestChannelComplete)

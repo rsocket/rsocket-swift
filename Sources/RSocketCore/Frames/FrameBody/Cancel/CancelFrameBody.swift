@@ -19,7 +19,7 @@ internal struct CancelFrameBody: Hashable { }
 
 extension CancelFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .cancel(self) }
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        FrameHeader(streamId: streamId, type: .cancel, flags: [])
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .cancel, flags: additionalFlags)
     }
 }

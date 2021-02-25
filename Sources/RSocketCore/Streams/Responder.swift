@@ -17,15 +17,15 @@
 import NIO
 
 internal final class Responder: FrameHandler {
-    private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
+    private let responderSocket: RSocket
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(
-        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
+        responderSocket: RSocket,
         sendFrame: @escaping (Frame) -> Void
     ) {
-        self.createStream = createStream
+        self.responderSocket = responderSocket
         self.sendFrame = sendFrame
     }
 
@@ -39,7 +39,7 @@ internal final class Responder: FrameHandler {
             return
         }
 
-        let fragmenter = StreamFragmenter(streamId: streamId, createInput: createStream)
+        let fragmenter = StreamFragmenter(streamId: streamId, responderSocket: responderSocket)
         fragmenter.delegate = self
         activeStreams[streamId] = fragmenter
         fragmenter.receive(frame: frame)

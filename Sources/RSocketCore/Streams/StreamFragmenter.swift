@@ -17,7 +17,7 @@
 internal class StreamFragmenter: StreamAdapterDelegate {
     private let streamId: StreamID
     private enum State {
-        case waitingForInitialFragments((StreamType, Payload, StreamOutput) -> StreamInput)
+        case waitingForInitialFragments(RSocket)
         case active(StreamAdapter)
     }
     private var state: State
@@ -32,45 +32,36 @@ internal class StreamFragmenter: StreamAdapterDelegate {
     }
 
     /// Called from responder
-    internal init(streamId: StreamID, createInput: @escaping (StreamType, Payload, StreamOutput) -> StreamInput) {
+    internal init(streamId: StreamID, responderSocket: RSocket) {
         self.streamId = streamId
-        state = .waitingForInitialFragments(createInput)
+        state = .waitingForInitialFragments(responderSocket)
     }
 
     internal func receive(frame: Frame) {
         switch fragmentedFrameAssembler.process(frame: frame) {
         case let .complete(completeFrame):
             switch state {
-            case let .waitingForInitialFragments(createInput):
+            case let .waitingForInitialFragments(socket):
                 let adapter = StreamAdapter(id: streamId)
                 adapter.delegate = self
                 switch completeFrame.body {
                 case let .requestResponse(body):
-                    adapter.input = createInput(
-                        .response,
-                        body.payload,
-                        adapter
-                    )
+                    adapter.input = socket.requestResponse(payload: body.payload, input: adapter)
 
                 case let .requestFnf(body):
-                    adapter.input = createInput(
-                        .fireAndForget,
-                        body.payload,
-                        adapter
-                    )
+                    adapter.input = socket.fireAndForget(payload: body.payload, input: adapter)
 
                 case let .requestStream(body):
-                    adapter.input = createInput(
-                        .stream(initialRequestN: body.initialRequestN),
-                        body.payload,
-                        adapter
-                    )
-
+                    adapter.input = socket.stream(
+                        payload: body.payload,
+                        initialRequestN: body.initialRequestN,
+                        input: adapter)
                 case let .requestChannel(body):
-                    adapter.input = createInput(
-                        .channel(initialRequestN: body.initialRequestN, isCompleted: body.isCompleted),
-                        body.payload,
-                        adapter
+                    adapter.input = socket.channel(
+                        payload: body.payload,
+                        initialRequestN: body.initialRequestN,
+                        isCompleted: body.isCompleted,
+                        input: adapter
                     )
                 default:
                     if !frame.header.flags.contains(.ignore) {

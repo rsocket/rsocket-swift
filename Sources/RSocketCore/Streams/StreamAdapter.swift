@@ -30,7 +30,7 @@ internal class StreamAdapter {
     internal func receive(frame: Frame) {
         guard let input = input else {
             // input is deallocated so the active stream should be cancelled
-            sendCancel()
+            onCancel()
             return
         }
         switch frame.body {
@@ -42,9 +42,8 @@ internal class StreamAdapter {
 
         case let .payload(body):
             if body.isNext {
-                input.onNext(body.payload)
-            }
-            if body.isCompletion {
+                input.onNext(body.payload, isCompletion: body.isCompletion)
+            } else if body.isCompletion {
                 input.onComplete()
             }
 
@@ -75,7 +74,7 @@ internal class StreamAdapter {
 }
 
 extension StreamAdapter: StreamOutput {
-    internal func sendNext(_ payload: Payload, isCompletion: Bool) {
+    internal func onNext(_ payload: Payload, isCompletion: Bool) {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(
             fragmentsFollow: false,
@@ -88,7 +87,7 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 
-    internal func sendError(_ error: Error) {
+    internal func onError(_ error: Error) {
         guard let delegate = delegate else { return }
         let body = ErrorFrameBody(error: error)
         let header = body.header(withStreamId: id)
@@ -96,7 +95,7 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 
-    internal func sendComplete() {
+    internal func onComplete() {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(
             fragmentsFollow: false,
@@ -109,7 +108,7 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 
-    internal func sendCancel() {
+    internal func onCancel() {
         guard let delegate = delegate else { return }
         let body = CancelFrameBody()
         let header = body.header(withStreamId: id)
@@ -117,7 +116,7 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 
-    internal func sendRequestN(_ requestN: Int32) {
+    internal func onRequestN(_ requestN: Int32) {
         guard let delegate = delegate else { return }
         let body = RequestNFrameBody(requestN: requestN)
         let header = body.header(withStreamId: id)
@@ -125,7 +124,7 @@ extension StreamAdapter: StreamOutput {
         delegate.send(frame: frame)
     }
 
-    internal func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+    internal func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard let delegate = delegate else { return }
         let body = ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload)
         let header = body.header(withStreamId: id)

@@ -78,3 +78,28 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
         }
     }
 }
+
+extension DemultiplexerHandler: RSocket {
+    func metadataPush(payload: Payload) {
+        fatalError("not implemented")
+    }
+    
+    func fireAndForget(payload: Payload, input: StreamInput) -> StreamOutput {
+        requester.requestStream(for: .fireAndForget, payload: payload) { _ in input }
+    }
+    
+    func requestResponse(payload: Payload, input: StreamInput) -> StreamOutput {
+        requester.requestStream(for: .response, payload: payload) { _ in input }
+    }
+    
+    func stream(payload: Payload, initialRequestN: Int32, input: StreamInput) -> StreamOutput {
+        requester.requestStream(for: .stream(initialRequestN: initialRequestN), payload: payload) { _ in input }
+    }
+    
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: StreamInput) -> StreamOutput {
+        requester.requestStream(
+            for: .channel(initialRequestN: initialRequestN, isCompleted: isCompleted),
+            payload: payload
+        ) { _ in input }
+    }
+}

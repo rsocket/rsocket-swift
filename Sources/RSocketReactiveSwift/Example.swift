@@ -32,6 +32,6 @@ private func createStream() {
     let requester = Requester(streamIdGenerator: .client, sendFrame: { _ in })
     let _ = SignalProducer<Payload, Error> { observer, lifetime in
         let output = requester.requestStream(for: .response, payload: .empty, createInput: { _ in observer })
-        lifetime.observeEnded(output.sendCancel)
+        lifetime.observeEnded(output.onCancel)
     }
 }

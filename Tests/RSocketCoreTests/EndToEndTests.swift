@@ -187,7 +187,6 @@ extension TestStreamInput.Event: ExpressibleByStringLiteral {
     }
 }
 
-
 final class EndToEndTests: XCTestCase {
     private static let defaultClientSetup = ClientSetupConfig(
         timeBetweenKeepaliveFrames: 500,
@@ -293,7 +292,7 @@ final class EndToEndTests: XCTestCase {
         
         let client = makeClientBootstrap()
         let channel = try client.connect(host: host, port: port).wait()
-        let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
+        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
         
         let response = self.expectation(description: "receive response")
         let helloWorld: Payload = "Hello World"
@@ -302,9 +301,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertTrue(isCompletion)
             response.fulfill()
         }
-        _ = requester.requestStream(for: .response, payload: helloWorld) { _ in
-            input
-        }
+        _ = rsocket.requestResponse(payload: helloWorld, input: input)
         self.wait(for: [response], timeout: 1)
     }
     func testChannelEcho() throws {
@@ -321,7 +318,7 @@ final class EndToEndTests: XCTestCase {
         
         let client = makeClientBootstrap()
         let channel = try client.connect(host: host, port: port).wait()
-        let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
+        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
         
         let response = self.expectation(description: "receive response")
         var input: TestStreamInput!
@@ -331,9 +328,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
         weakInput = input
-        let output = requester.requestStream(for: .channel(initialRequestN: .max, isCompleted: false), payload: "Hello") { _ in
-            input!
-        }
+        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, input: input!)
         output.onNext(" ", isCompletion: false)
         output.onNext("W", isCompletion: false)
         output.onNext("o", isCompletion: false)
@@ -360,7 +355,7 @@ final class EndToEndTests: XCTestCase {
         
         let client = makeClientBootstrap()
         let channel = try client.connect(host: host, port: port).wait()
-        let requester = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait().requester
+        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
         
         let response = self.expectation(description: "receive response")
         var input: TestStreamInput!
@@ -371,9 +366,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)
         })
         weakInput = input
-        _ = requester.requestStream(for: .stream(initialRequestN: .max), payload: "Hello World!") { _ in
-            input!
-        }
+        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, input: input)
         self.wait(for: [response], timeout: 1)
     }
 }

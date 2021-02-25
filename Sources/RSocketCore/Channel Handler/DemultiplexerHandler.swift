@@ -85,21 +85,21 @@ extension DemultiplexerHandler: RSocket {
     }
     
     func fireAndForget(payload: Payload, input: RStream) -> RStream {
-        requester.requestStream(for: .fireAndForget, payload: payload) { _ in input }
+        requester.requestStream(for: .fireAndForget, payload: payload, input: input)
     }
     
     func requestResponse(payload: Payload, input: RStream) -> RStream {
-        requester.requestStream(for: .response, payload: payload) { _ in input }
+        requester.requestStream(for: .response, payload: payload, input: input)
     }
     
     func stream(payload: Payload, initialRequestN: Int32, input: RStream) -> RStream {
-        requester.requestStream(for: .stream(initialRequestN: initialRequestN), payload: payload) { _ in input }
+        requester.requestStream(for: .stream(initialRequestN: initialRequestN), payload: payload, input: input)
     }
     
     func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: RStream) -> RStream {
         requester.requestStream(
             for: .channel(initialRequestN: initialRequestN, isCompleted: isCompleted),
-            payload: payload
-        ) { _ in input }
+            payload: payload,
+            input: input)
     }
 }

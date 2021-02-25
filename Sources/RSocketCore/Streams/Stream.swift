@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-public protocol Stream: AnyObject {
+public protocol RStream: AnyObject {
     func onNext(_ payload: Payload, isCompletion: Bool)
     func onError(_ error: Error)
     func onComplete()
@@ -22,6 +22,3 @@ public protocol Stream: AnyObject {
     func onRequestN(_ requestN: Int32)
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }
-
-public typealias StreamInput = Stream
-public typealias StreamOutput = Stream

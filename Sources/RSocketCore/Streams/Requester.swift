@@ -72,8 +72,8 @@ extension Requester {
     public func requestStream(
         for type: StreamType,
         payload: Payload,
-        createInput: (StreamOutput) -> StreamInput
-    ) -> StreamOutput {
+        createInput: (RStream) -> RStream
+    ) -> RStream {
         let newId = generateNewStreamId()
         let adapter = StreamAdapter(id: newId)
         let fragmeter = StreamFragmenter(streamId: newId, adapter: adapter)

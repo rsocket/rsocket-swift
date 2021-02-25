@@ -19,11 +19,11 @@ import Foundation
 public protocol RSocket {
     func metadataPush(payload: Payload)
     
-    func fireAndForget(payload: Payload, input: StreamInput) -> StreamOutput
+    func fireAndForget(payload: Payload, input: RStream) -> RStream
     
-    func requestResponse(payload: Payload, input: StreamInput) -> StreamOutput
+    func requestResponse(payload: Payload, input: RStream) -> RStream
     
-    func stream(payload: Payload, initialRequestN: Int32, input: StreamInput) -> StreamOutput
+    func stream(payload: Payload, initialRequestN: Int32, input: RStream) -> RStream
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: StreamInput) -> StreamOutput
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: RStream) -> RStream
 }

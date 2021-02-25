@@ -21,20 +21,20 @@ import NIOExtras
 
 final class TestRSocket: RSocket {
     var metadataPush: ((Payload) -> ())?
-    var fireAndForget: ((_ payload: Payload, _ input: StreamInput) -> StreamOutput)?
-    var requestResponse: ((_ payload: Payload, _ input: StreamInput) -> StreamOutput)?
-    var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ input: StreamInput) -> StreamOutput)?
-    var channel: ((_ payload: Payload, _ initialRequestN: Int32, _ isCompleted: Bool, _ input: StreamInput) -> StreamOutput)?
+    var fireAndForget: ((_ payload: Payload, _ input: RStream) -> RStream)?
+    var requestResponse: ((_ payload: Payload, _ input: RStream) -> RStream)?
+    var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ input: RStream) -> RStream)?
+    var channel: ((_ payload: Payload, _ initialRequestN: Int32, _ isCompleted: Bool, _ input: RStream) -> RStream)?
     
     private let file: StaticString
     private let line: UInt
     
     internal init(
         metadataPush: ((Payload) -> ())? = nil,
-        fireAndForget: ((Payload, StreamInput) -> StreamOutput)? = nil,
-        requestResponse: ((Payload, StreamInput) -> StreamOutput)? = nil,
-        stream: ((Payload, Int32, StreamInput) -> StreamOutput)? = nil,
-        channel: ((Payload, Int32, Bool, StreamInput) -> StreamOutput)? = nil,
+        fireAndForget: ((Payload, RStream) -> RStream)? = nil,
+        requestResponse: ((Payload, RStream) -> RStream)? = nil,
+        stream: ((Payload, Int32, RStream) -> RStream)? = nil,
+        channel: ((Payload, Int32, Bool, RStream) -> RStream)? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) {
@@ -56,7 +56,7 @@ final class TestRSocket: RSocket {
         metadataPush(payload)
     }
     
-    func fireAndForget(payload: Payload, input: StreamInput) -> StreamOutput {
+    func fireAndForget(payload: Payload, input: RStream) -> RStream {
         guard let fireAndForget = fireAndForget else {
             XCTFail("fireAndForget not expected to be called ", file: file, line: line)
             return TestStreamInput()
@@ -64,7 +64,7 @@ final class TestRSocket: RSocket {
         return fireAndForget(payload, input)
     }
     
-    func requestResponse(payload: Payload, input: StreamInput) -> StreamOutput {
+    func requestResponse(payload: Payload, input: RStream) -> RStream {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
             return TestStreamInput()
@@ -72,7 +72,7 @@ final class TestRSocket: RSocket {
         return requestResponse(payload, input)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, input: StreamInput) -> StreamOutput {
+    func stream(payload: Payload, initialRequestN: Int32, input: RStream) -> RStream {
         guard let stream = stream else {
             XCTFail("stream not expected to be called ", file: file, line: line)
             return TestStreamInput()
@@ -80,7 +80,7 @@ final class TestRSocket: RSocket {
         return stream(payload, initialRequestN, input)
     }
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: StreamInput) -> StreamOutput {
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: RStream) -> RStream {
         guard let channel = channel else {
             XCTFail("channel not expected to be called ", file: file, line: line)
             return TestStreamInput()
@@ -91,7 +91,7 @@ final class TestRSocket: RSocket {
     
 }
 
-final class TestStreamInput: RSocketCore.StreamInput {
+final class TestStreamInput: RSocketCore.RStream {
     enum Event: Hashable {
         case next(Payload, isCompletion: Bool)
         case error(Error)
@@ -158,7 +158,7 @@ final class TestStreamInput: RSocketCore.StreamInput {
 }
 
 extension TestStreamInput {
-    static func echo(to output: StreamOutput) -> TestStreamInput {
+    static func echo(to output: RStream) -> TestStreamInput {
         return TestStreamInput {
             output.onNext($0, isCompletion: $1)
         } onError: {

@@ -21,7 +21,7 @@ internal protocol StreamAdapterDelegate: AnyObject {
 internal class StreamAdapter {
     private let id: StreamID
     internal weak var delegate: StreamAdapterDelegate?
-    internal weak var input: StreamInput?
+    internal weak var input: RStream?
 
     internal init(id: StreamID) {
         self.id = id
@@ -73,7 +73,7 @@ internal class StreamAdapter {
     }
 }
 
-extension StreamAdapter: StreamOutput {
+extension StreamAdapter: RStream {
     internal func onNext(_ payload: Payload, isCompletion: Bool) {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(

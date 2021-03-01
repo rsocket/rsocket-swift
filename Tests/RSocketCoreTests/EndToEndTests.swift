@@ -284,7 +284,22 @@ final class EndToEndTests: XCTestCase {
         
         let channel = try client.connect(host: host, port: port).wait()
         XCTAssertTrue(channel.isActive)
-        self.wait(for: [clientDidConnect], timeout: 0.1)
+        self.wait(for: [clientDidConnect], timeout: 1)
+    }
+    func testFireAndForget() throws {
+        let request = self.expectation(description: "receive request")
+        let server = makeServerBootstrap(responderSocket: TestRSocket(fireAndForget: { payload in
+            request.fulfill()
+            XCTAssertEqual(payload, "Hello World")
+        }))
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
+        
+        let client = makeClientBootstrap()
+        let channel = try client.connect(host: host, port: port).wait()
+        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
+        
+        rsocket.fireAndForget(payload: "Hello World")
+        self.wait(for: [request], timeout: 1)
     }
     func testRequestResponseEcho() throws {
         let request = self.expectation(description: "receive request")
@@ -308,7 +323,7 @@ final class EndToEndTests: XCTestCase {
             response.fulfill()
         }
         _ = rsocket.requestResponse(payload: helloWorld, responderOutput: input)
-        self.wait(for: [request, response], timeout: 0.1)
+        self.wait(for: [request, response], timeout: 1)
     }
     func testChannelEcho() throws {
         let request = self.expectation(description: "receive request")
@@ -344,7 +359,7 @@ final class EndToEndTests: XCTestCase {
         output.onNext("l", isCompletion: false)
         output.onNext("d", isCompletion: false)
         output.onComplete()
-        self.wait(for: [request, response], timeout: 0.1)
+        self.wait(for: [request, response], timeout: 1)
     }
     func testStream() throws {
         let request = self.expectation(description: "receive request")
@@ -377,6 +392,6 @@ final class EndToEndTests: XCTestCase {
         })
         weakInput = input
         _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, responderOutput: input)
-        self.wait(for: [request, response], timeout: 0.1)
+        self.wait(for: [request, response], timeout: 1)
     }
 }

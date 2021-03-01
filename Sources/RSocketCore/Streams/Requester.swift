@@ -17,7 +17,7 @@
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
     private var streamIdGenerator: StreamIDGenerator
-    private var activeStreams: [StreamID: StreamFragmenter] = [:]
+    private var activeStreams: [StreamID: StreamAdapter] = [:]
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
@@ -57,7 +57,10 @@ internal final class Requester: FrameHandler {
 
 extension Requester: StreamAdapterDelegate {
     internal func send(frame: Frame) {
-        sendFrame(frame)
+        // TODO: adjust MTU
+        for fragment in frame.fragments(mtu: 64) {
+            sendFrame(fragment)
+        }
         /// TODO: we can not just terminate the connection if it is a terminating frame, because it may be a stream of type channel.
         /// In that case, we would terminate too early. We need to wait until both sides have been terminated.
 //        if frame.isTerminating && frame.header.streamId != .connection {
@@ -67,66 +70,61 @@ extension Requester: StreamAdapterDelegate {
 }
 
 extension Requester {
-    /// Creates a stream that is already active
-    @discardableResult
-    public func requestStream(
-        for type: StreamType,
-        payload: Payload,
-        input: RStream
-    ) -> RStream {
+    func fireAndForget(payload: Payload) {
+        let newId = generateNewStreamId()
+        send(frame: RequestFireAndForgetFrameBody(
+            fragmentsFollow: false,
+            payload: payload
+        ).frame(withStreamId: newId))
+    }
+    
+    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
         let newId = generateNewStreamId()
         let adapter = StreamAdapter(id: newId)
-        adapter.input = input
-        let fragmeter = StreamFragmenter(streamId: newId, adapter: adapter)
-        fragmeter.delegate = self
-        activeStreams[newId] = fragmeter
-        sendRequest(id: newId, type: type, payload: payload)
+        adapter.delegate = self
+        adapter.input = responderOutput
+        activeStreams[newId] = adapter
+        send(frame: RequestResponseFrameBody(
+            fragmentsFollow: false,
+            payload: payload
+        ).frame(withStreamId: newId))
+        
         return adapter
     }
-
-    private func sendRequest(id: StreamID, type: StreamType, payload: Payload) {
-        let header: FrameHeader
-        let body: FrameBody
-        switch type {
-        case .response:
-            let requestResponseBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = requestResponseBody.header(withStreamId: id)
-            body = .requestResponse(requestResponseBody)
-
-        case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = fireAndForgetBody.header(withStreamId: id)
-            body = .requestFnf(fireAndForgetBody)
-
-        case let .stream(initialRequestN):
-            let streamBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = streamBody.header(withStreamId: id)
-            body = .requestStream(streamBody)
-
-        case let .channel(initialRequestN, isCompleted):
-            let channelBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
-                isCompleted: isCompleted,
-                initialRequestN: initialRequestN,
-                payload: payload
-            )
-            header = channelBody.header(withStreamId: id)
-            body = .requestChannel(channelBody)
-        }
-        let frame = Frame(header: header, body: body)
-        // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
-            send(frame: fragment)
-        }
+    
+    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
+        let newId = generateNewStreamId()
+        let adapter = StreamAdapter(id: newId)
+        adapter.delegate = self
+        adapter.input = responderOutput
+        activeStreams[newId] = adapter
+        send(frame: RequestStreamFrameBody(
+            fragmentsFollow: false,
+            initialRequestN: initialRequestN,
+            payload: payload
+        ).frame(withStreamId: newId))
+        
+        return adapter
+    }
+    
+    func channel(
+        payload: Payload,
+        initialRequestN: Int32,
+        isCompleted: Bool,
+        responderOutput: UnidirectionalStream
+    ) -> UnidirectionalStream {
+        let newId = generateNewStreamId()
+        let adapter = StreamAdapter(id: newId)
+        adapter.delegate = self
+        adapter.input = responderOutput
+        activeStreams[newId] = adapter
+        send(frame: RequestChannelFrameBody(
+            fragmentsFollow: false,
+            isCompleted: isCompleted,
+            initialRequestN: initialRequestN,
+            payload: payload
+        ).frame(withStreamId: newId))
+        
+        return adapter
     }
 }

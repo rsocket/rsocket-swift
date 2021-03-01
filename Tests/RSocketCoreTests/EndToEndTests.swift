@@ -20,21 +20,21 @@ import NIOExtras
 @testable import RSocketCore
 
 final class TestRSocket: RSocket {
-    var metadataPush: ((Payload) -> ())?
-    var fireAndForget: ((_ payload: Payload, _ input: RStream) -> RStream)?
-    var requestResponse: ((_ payload: Payload, _ input: RStream) -> RStream)?
-    var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ input: RStream) -> RStream)?
-    var channel: ((_ payload: Payload, _ initialRequestN: Int32, _ isCompleted: Bool, _ input: RStream) -> RStream)?
+    var metadataPush: ((Payload) -> ())? = nil
+    var fireAndForget: ((_ payload: Payload) -> ())? = nil
+    var requestResponse: ((_ payload: Payload, _ responderOutput: UnidirectionalStream) -> Cancellable)? = nil
+    var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ responderOutput: UnidirectionalStream) -> Subscription)? = nil
+    var channel: ((_ payload: Payload, _ initialRequestN: Int32, _ isCompleted: Bool, _ responderOutput: UnidirectionalStream) -> UnidirectionalStream)? = nil
     
     private let file: StaticString
     private let line: UInt
     
     internal init(
         metadataPush: ((Payload) -> ())? = nil,
-        fireAndForget: ((Payload, RStream) -> RStream)? = nil,
-        requestResponse: ((Payload, RStream) -> RStream)? = nil,
-        stream: ((Payload, Int32, RStream) -> RStream)? = nil,
-        channel: ((Payload, Int32, Bool, RStream) -> RStream)? = nil,
+        fireAndForget: ((Payload) -> ())? = nil,
+        requestResponse: ((Payload, UnidirectionalStream) -> Cancellable)? = nil,
+        stream: ((Payload, Int32, UnidirectionalStream) -> Subscription)? = nil,
+        channel: ((Payload, Int32, Bool, UnidirectionalStream) -> UnidirectionalStream)? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) {
@@ -56,42 +56,42 @@ final class TestRSocket: RSocket {
         metadataPush(payload)
     }
     
-    func fireAndForget(payload: Payload, input: RStream) -> RStream {
+    func fireAndForget(payload: Payload) {
         guard let fireAndForget = fireAndForget else {
             XCTFail("fireAndForget not expected to be called ", file: file, line: line)
-            return TestStreamInput()
+            return
         }
-        return fireAndForget(payload, input)
+        fireAndForget(payload)
     }
     
-    func requestResponse(payload: Payload, input: RStream) -> RStream {
+    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return requestResponse(payload, input)
+        return requestResponse(payload, responderOutput)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, input: RStream) -> RStream {
+    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
         guard let stream = stream else {
             XCTFail("stream not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return stream(payload, initialRequestN, input)
+        return stream(payload, initialRequestN, responderOutput)
     }
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: RStream) -> RStream {
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderOutput: UnidirectionalStream) -> UnidirectionalStream {
         guard let channel = channel else {
             XCTFail("channel not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return channel(payload, initialRequestN, isCompleted, input)
+        return channel(payload, initialRequestN, isCompleted, responderOutput)
     }
     
     
 }
 
-final class TestStreamInput: RSocketCore.RStream {
+final class TestStreamInput: RSocketCore.UnidirectionalStream {
     enum Event: Hashable {
         case next(Payload, isCompletion: Bool)
         case error(Error)
@@ -158,7 +158,7 @@ final class TestStreamInput: RSocketCore.RStream {
 }
 
 extension TestStreamInput {
-    static func echo(to output: RStream) -> TestStreamInput {
+    static func echo(to output: UnidirectionalStream) -> TestStreamInput {
         return TestStreamInput {
             output.onNext($0, isCompletion: $1)
         } onError: {
@@ -214,6 +214,8 @@ final class EndToEndTests: XCTestCase {
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
                     FrameEncoderHandler(),
+                    DebugInboundEventsHandler(),
+                    DebugOutboundEventsHandler(),
                     ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
                         let sendFrame: (Frame) -> () = { [weak channel] frame in
                             channel?.writeAndFlush(frame, promise: nil)
@@ -247,6 +249,8 @@ final class EndToEndTests: XCTestCase {
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
                     FrameEncoderHandler(),
+                    DebugInboundEventsHandler(),
+                    DebugOutboundEventsHandler(),
                     SetupWriter(config: config),
                     DemultiplexerHandler(
                         connectionSide: .client,
@@ -280,10 +284,12 @@ final class EndToEndTests: XCTestCase {
         
         let channel = try client.connect(host: host, port: port).wait()
         XCTAssertTrue(channel.isActive)
-        self.wait(for: [clientDidConnect], timeout: 1)
+        self.wait(for: [clientDidConnect], timeout: 0.1)
     }
     func testRequestResponseEcho() throws {
+        let request = self.expectation(description: "receive request")
         let server = makeServerBootstrap(responderSocket: TestRSocket(requestResponse: { payload, output in
+            request.fulfill()
             // just echo back
             output.onNext(payload, isCompletion: true)
             return TestStreamInput()
@@ -301,12 +307,14 @@ final class EndToEndTests: XCTestCase {
             XCTAssertTrue(isCompletion)
             response.fulfill()
         }
-        _ = rsocket.requestResponse(payload: helloWorld, input: input)
-        self.wait(for: [response], timeout: 1)
+        _ = rsocket.requestResponse(payload: helloWorld, responderOutput: input)
+        self.wait(for: [request, response], timeout: 0.1)
     }
     func testChannelEcho() throws {
+        let request = self.expectation(description: "receive request")
         var echo: TestStreamInput?
         let server = makeServerBootstrap(responderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+            request.fulfill()
             XCTAssertEqual(initialRequestN, .max)
             XCTAssertFalse(isCompletion)
             echo = TestStreamInput.echo(to: output)
@@ -328,7 +336,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
         weakInput = input
-        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, input: input!)
+        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderOutput: input!)
         output.onNext(" ", isCompletion: false)
         output.onNext("W", isCompletion: false)
         output.onNext("o", isCompletion: false)
@@ -336,10 +344,12 @@ final class EndToEndTests: XCTestCase {
         output.onNext("l", isCompletion: false)
         output.onNext("d", isCompletion: false)
         output.onComplete()
-        self.wait(for: [response], timeout: 1)
+        self.wait(for: [request, response], timeout: 0.1)
     }
     func testStream() throws {
+        let request = self.expectation(description: "receive request")
         let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
+            request.fulfill()
             XCTAssertEqual(initialRequestN, .max)
             XCTAssertEqual(payload, "Hello World!")
             output.onNext("Hello", isCompletion: false)
@@ -366,7 +376,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)
         })
         weakInput = input
-        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, input: input)
-        self.wait(for: [response], timeout: 1)
+        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, responderOutput: input)
+        self.wait(for: [request, response], timeout: 0.1)
     }
 }

@@ -246,7 +246,18 @@ extension Error {
             return message
         }
     }
-
+    public var isConnectionError: Bool {
+        switch self {
+        case .invalidSetup,
+             .unsupportedSetup,
+             .rejectedSetup,
+             .rejectedResume,
+             .connectionError,
+             .connectionClose:
+            return true
+        default: return false
+        }
+    }
     public var isProtocolError: Bool {
         0x0001 <= code && code <= 0x00300
     }
@@ -296,5 +307,20 @@ extension Error {
         default:
             self = .other(code: code, message: message)
         }
+    }
+}
+
+extension Error {
+    /// Creates an error frame. Depending on the error type, it uses the given `streamId` or the connection stream id (stream 0).
+    /// - Parameter streamId: used if it is *not* a connection error
+    /// - Returns: Error Frame
+    internal func asFrame(withStreamId streamId: StreamID) -> Frame {
+        let body = ErrorFrameBody(error: self)
+        if isConnectionError {
+            return body.frame(withStreamId: .connection)
+        } else {
+            return body.frame(withStreamId: streamId)
+        }
+        
     }
 }

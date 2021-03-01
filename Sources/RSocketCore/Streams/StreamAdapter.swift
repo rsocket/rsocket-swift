@@ -18,10 +18,69 @@ internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)
 }
 
-internal class StreamAdapter {
+extension Frame {
+    internal func forward(to stream: Cancellable) -> Error? {
+        switch body {
+        case .cancel:
+            stream.onCancel()
+        default:
+            if !header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(self.body.type) for an active cancelable")
+            }
+        }
+        return nil
+    }
+    func forward(to stream: Subscription) -> Error? {
+        switch body {
+        case let .requestN(body):
+            stream.onRequestN(body.requestN)
+        case .cancel:
+            stream.onCancel()
+        default:
+            if !header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(self.body.type) for an active subscription")
+            }
+        }
+        return nil
+    }
+    func forward(to stream: UnidirectionalStream) -> Error? {
+        switch body {
+        case let .requestN(body):
+            stream.onRequestN(body.requestN)
+
+        case .cancel:
+            stream.onCancel()
+
+        case let .payload(body):
+            if body.isNext {
+                stream.onNext(body.payload, isCompletion: body.isCompletion)
+            } else if body.isCompletion {
+                stream.onComplete()
+            }
+
+        case let .error(body):
+            stream.onError(body.error)
+
+        case let .ext(body):
+            stream.onExtension(
+                extendedType: body.extendedType,
+                payload: body.payload,
+                canBeIgnored: body.canBeIgnored
+            )
+        default:
+            if !header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(self.body.type) for an active unidirectional stream")
+            }
+        }
+        return nil
+    }
+}
+
+final internal class StreamAdapter {
     private let id: StreamID
+    private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     internal weak var delegate: StreamAdapterDelegate?
-    internal weak var input: RStream?
+    internal weak var input: UnidirectionalStream?
 
     internal init(id: StreamID) {
         self.id = id
@@ -33,47 +92,22 @@ internal class StreamAdapter {
             onCancel()
             return
         }
-        switch frame.body {
-        case let .requestN(body):
-            input.onRequestN(body.requestN)
-
-        case .cancel:
-            input.onCancel()
-
-        case let .payload(body):
-            if body.isNext {
-                input.onNext(body.payload, isCompletion: body.isCompletion)
-            } else if body.isCompletion {
-                input.onComplete()
+        switch fragmentedFrameAssembler.process(frame: frame) {
+        case .incomplete:
+            break
+        case let .complete(completeFrame):
+            if let error = completeFrame.forward(to: input) {
+                delegate?.send(frame: error.asFrame(withStreamId: id))
             }
-
-        case let .error(body):
-            input.onError(body.error)
-
-        case let .ext(body):
-            input.onExtension(
-                extendedType: body.extendedType,
-                payload: body.payload,
-                canBeIgnored: body.canBeIgnored
-            )
-
-        default:
+        case let .error(reason):
             if !frame.header.flags.contains(.ignore) {
-                closeConnection(with: .connectionError(message: "Invalid frame type for an active stream"))
+                delegate?.send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
             }
         }
     }
-
-    private func closeConnection(with error: Error) {
-        guard let delegate = delegate else { return }
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
-        delegate.send(frame: frame)
-    }
 }
 
-extension StreamAdapter: RStream {
+extension StreamAdapter: UnidirectionalStream {
     internal func onNext(_ payload: Payload, isCompletion: Bool) {
         guard let delegate = delegate else { return }
         let body = PayloadFrameBody(

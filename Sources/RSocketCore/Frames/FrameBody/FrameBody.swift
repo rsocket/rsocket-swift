@@ -64,3 +64,25 @@ enum FrameBody: Hashable {
     /// Extension Header: Used To Extend more frame types as well as extensions
     case ext(ExtensionFrameBody)
 }
+
+extension FrameBody {
+    var type: FrameType {
+        switch self {
+        case .setup: return .setup
+        case .lease: return .lease
+        case .keepalive: return .keepalive
+        case .requestResponse: return .requestResponse
+        case .requestFnf: return .requestFnf
+        case .requestStream: return .requestStream
+        case .requestChannel: return .requestChannel
+        case .requestN: return .requestN
+        case .cancel: return .cancel
+        case .payload: return .payload
+        case .error: return .error
+        case .metadataPush: return .metadataPush
+        case .resume: return .resume
+        case .resumeOk: return .resumeOk
+        case .ext: return .ext
+        }
+    }
+}

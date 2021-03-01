@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
-public protocol SinglePublisher: Publisher {
-    
+public protocol Cancellable: AnyObject {
+    func onCancel()
+}
+
+public protocol Subscription: Cancellable {
+    func onRequestN(_ requestN: Int32)
+}
+
+public protocol UnidirectionalStream: Subscription {
+    func onNext(_ payload: Payload, isCompletion: Bool)
+    func onError(_ error: Error)
+    func onComplete()
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }

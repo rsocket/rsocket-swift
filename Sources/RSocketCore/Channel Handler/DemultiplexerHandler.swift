@@ -84,22 +84,19 @@ extension DemultiplexerHandler: RSocket {
         fatalError("not implemented")
     }
     
-    func fireAndForget(payload: Payload, input: RStream) -> RStream {
-        requester.requestStream(for: .fireAndForget, payload: payload, input: input)
+    func fireAndForget(payload: Payload) {
+        requester.fireAndForget(payload: payload)
     }
     
-    func requestResponse(payload: Payload, input: RStream) -> RStream {
-        requester.requestStream(for: .response, payload: payload, input: input)
+    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
+        requester.requestResponse(payload: payload, responderOutput: responderOutput)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, input: RStream) -> RStream {
-        requester.requestStream(for: .stream(initialRequestN: initialRequestN), payload: payload, input: input)
+    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
+        requester.stream(payload: payload, initialRequestN: initialRequestN, responderOutput: responderOutput)
     }
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, input: RStream) -> RStream {
-        requester.requestStream(
-            for: .channel(initialRequestN: initialRequestN, isCompleted: isCompleted),
-            payload: payload,
-            input: input)
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderOutput: UnidirectionalStream) -> UnidirectionalStream {
+        requester.channel(payload: payload, initialRequestN: initialRequestN, isCompleted: isCompleted, responderOutput: responderOutput)
     }
 }

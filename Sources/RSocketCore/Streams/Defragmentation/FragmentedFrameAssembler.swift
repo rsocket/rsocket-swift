@@ -38,26 +38,22 @@ internal struct FragmentedFrameAssembler {
                     // Payload frame is not the next value and there is no set of fragments to extend
                     // The only valid reason for this can be that its just a completion event without a final payload
                     if body.isCompletion {
-                        guard !frame.header.flags.contains(.fragmentFollows) else {
-                            return .error(reason: "Has fragmentFollows flag without the isNext flag and there is no current set of fragments")
-                        }
                         return .complete(frame)
                     }
                     return .error(reason: "There is no current set of fragments to extend")
                 }
                 fragments.additionalFragments.append(body.payload)
                 fragments.isCompletion = body.isCompletion
-                if frame.header.flags.contains(.fragmentFollows) {
+                guard body.isCompletion || !frame.header.flags.contains(.fragmentFollows) else {
                     self.fragments = fragments
                     return .incomplete
-                } else {
-                    switch fragments.buildFrame() {
-                    case let .success(completedFrame):
-                        self.fragments = nil
-                        return .complete(completedFrame)
-                    case let .error(reason: reason):
-                        return .error(reason: reason)
-                    }
+                }
+                switch fragments.buildFrame() {
+                case let .success(completedFrame):
+                    self.fragments = nil
+                    return .complete(completedFrame)
+                case let .error(reason: reason):
+                    return .error(reason: reason)
                 }
             }
 

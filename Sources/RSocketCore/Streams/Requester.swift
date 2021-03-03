@@ -15,7 +15,7 @@
  */
 import NIO
 
-internal final class Requester: FrameHandler {
+internal final class Requester {
     private let sendFrame: (Frame) -> Void
     private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator

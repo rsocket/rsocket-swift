@@ -16,7 +16,7 @@
 
 import NIO
 
-internal final class Responder: FrameHandler {
+internal final class Responder {
     private let responderSocket: RSocket
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: ResponderStream] = [:]

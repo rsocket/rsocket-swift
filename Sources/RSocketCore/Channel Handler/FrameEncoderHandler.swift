@@ -27,9 +27,13 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
         do {
             // Todo: performance optimization, we could calculate the actual capacity of the current frame
             // but for now the buffer will grow automatically
-            var buffer = context.channel.allocator.buffer(capacity: FrameHeader.lengthInBytes)
-            try frameEncoder.encode(frame: frame, into: &buffer)
-            context.write(wrapOutboundOut(buffer), promise: promise)
+            // TODO: make MTU configurable
+            for fragment in frame.fragments(mtu: 64) {
+                var buffer = context.channel.allocator.buffer(capacity: FrameHeader.lengthInBytes)
+                try frameEncoder.encode(frame: fragment, into: &buffer)
+                context.write(wrapOutboundOut(buffer), promise: promise)
+            }
+            context.flush()
         } catch {
             if frame.header.flags.contains(.ignore) {
                 return

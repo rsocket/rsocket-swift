@@ -13,17 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import NIO
 
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
+    private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator
-    private var activeStreams: [StreamID: StreamAdapter] = [:]
+    private var activeStreams: [StreamID: RequesterStream] = [:]
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
+        eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void
     ) {
         self.streamIdGenerator = streamIdGenerator
+        self.eventLoop = eventLoop
         self.sendFrame = sendFrame
     }
 
@@ -42,9 +46,6 @@ internal final class Requester: FrameHandler {
             return
         }
         existingStreamAdapter.receive(frame: frame)
-        if frame.isTerminating {
-            activeStreams.removeValue(forKey: frame.header.streamId)
-        }
     }
 
     private func closeConnection(with error: Error) {
@@ -57,15 +58,8 @@ internal final class Requester: FrameHandler {
 
 extension Requester: StreamAdapterDelegate {
     internal func send(frame: Frame) {
-        // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
-            sendFrame(fragment)
-        }
-        /// TODO: we can not just terminate the connection if it is a terminating frame, because it may be a stream of type channel.
-        /// In that case, we would terminate too early. We need to wait until both sides have been terminated.
-//        if frame.isTerminating && frame.header.streamId != .connection {
-//            activeStreams.removeValue(forKey: frame.header.streamId)
-//        }
+        // TODO: termination
+        sendFrame(frame)
     }
 }
 
@@ -80,31 +74,25 @@ extension Requester {
     
     func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
         let newId = generateNewStreamId()
-        let adapter = StreamAdapter(id: newId)
-        adapter.delegate = self
-        adapter.input = responderOutput
-        activeStreams[newId] = adapter
+        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        
         send(frame: RequestResponseFrameBody(
             fragmentsFollow: false,
             payload: payload
         ).frame(withStreamId: newId))
-        
-        return adapter
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
         let newId = generateNewStreamId()
-        let adapter = StreamAdapter(id: newId)
-        adapter.delegate = self
-        adapter.input = responderOutput
-        activeStreams[newId] = adapter
+        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        
         send(frame: RequestStreamFrameBody(
             fragmentsFollow: false,
             initialRequestN: initialRequestN,
             payload: payload
         ).frame(withStreamId: newId))
-        
-        return adapter
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
     }
     
     func channel(
@@ -114,17 +102,14 @@ extension Requester {
         responderOutput: UnidirectionalStream
     ) -> UnidirectionalStream {
         let newId = generateNewStreamId()
-        let adapter = StreamAdapter(id: newId)
-        adapter.delegate = self
-        adapter.input = responderOutput
-        activeStreams[newId] = adapter
+        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        
         send(frame: RequestChannelFrameBody(
             fragmentsFollow: false,
             isCompleted: isCompleted,
             initialRequestN: initialRequestN,
             payload: payload
         ).frame(withStreamId: newId))
-        
-        return adapter
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
     }
 }

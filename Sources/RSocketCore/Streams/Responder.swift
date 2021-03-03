@@ -19,49 +19,38 @@ import NIO
 internal final class Responder: FrameHandler {
     private let responderSocket: RSocket
     private let sendFrame: (Frame) -> Void
-    private var activeStreams: [StreamID: StreamFragmenter] = [:]
-
+    private var activeStreams: [StreamID: ResponderStream] = [:]
+    private let eventLoop: EventLoop
     internal init(
         responderSocket: RSocket,
+        eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void
     ) {
         self.responderSocket = responderSocket
         self.sendFrame = sendFrame
+        self.eventLoop = eventLoop
     }
 
     internal func receiveInbound(frame: Frame) {
         let streamId = frame.header.streamId
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
-            if frame.isTerminating {
-                activeStreams.removeValue(forKey: streamId)
-            }
             return
         }
 
-        let fragmenter = StreamFragmenter(streamId: streamId, responderSocket: responderSocket)
-        fragmenter.delegate = self
+        let fragmenter = ResponderStream(
+            streamId: streamId,
+            responderSocket: responderSocket,
+            eventLoop: eventLoop,
+            delegate: self
+        )
         activeStreams[streamId] = fragmenter
         fragmenter.receive(frame: frame)
-
-        if frame.isTerminating {
-            activeStreams.removeValue(forKey: streamId)
-        }
-    }
-
-    private func closeConnection(with error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
-        sendFrame(frame)
     }
 }
 
 extension Responder: StreamAdapterDelegate {
     internal func send(frame: Frame) {
         sendFrame(frame)
-        if frame.isTerminating && frame.header.streamId != .connection {
-            activeStreams.removeValue(forKey: frame.header.streamId)
-        }
     }
 }

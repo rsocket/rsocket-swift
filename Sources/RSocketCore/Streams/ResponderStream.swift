@@ -31,13 +31,13 @@ final internal class ResponderStream {
     private var state: State
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     private let eventLoop: EventLoop
-    private weak var delegate: StreamAdapterDelegate?
+    internal weak var delegate: StreamDelegate?
     
     internal init(
         streamId: StreamID,
         responderSocket: RSocket,
         eventLoop: EventLoop,
-        delegate: StreamAdapterDelegate? = nil
+        delegate: StreamDelegate? = nil
     ) {
         self.streamId = streamId
         self.eventLoop = eventLoop
@@ -50,7 +50,7 @@ final internal class ResponderStream {
         case let .complete(completeFrame):
             switch state {
             case let .waitingForInitialFragments(socket):
-                let adapter = ThreadSafeStreamAdapter(id: streamId, eventLoop: eventLoop, delegate: delegate)
+                let adapter = ThreadSafeStreamAdapter(id: streamId, eventLoop: eventLoop, delegate: self)
                 let streamKind: StreamKind?
                 switch completeFrame.body {
                 case let .requestFnf(body):
@@ -100,6 +100,12 @@ final internal class ResponderStream {
                 delegate?.send(frame: Error.connectionError(message: reason).asFrame(withStreamId: streamId))
             }
         }
+    }
+}
+
+extension ResponderStream: StreamAdapterDelegate {
+    func send(frame: Frame) {
+        delegate?.send(frame: frame)
     }
 }
 

@@ -16,6 +16,10 @@
 
 import NIO
 
+internal protocol StreamAdapterDelegate: AnyObject {
+    func send(frame: Frame)
+}
+
 internal class ThreadSafeStreamAdapter {
     private let id: StreamID
     private let eventLoop: EventLoop

@@ -49,8 +49,11 @@ internal final class Responder: FrameHandler {
     }
 }
 
-extension Responder: StreamAdapterDelegate {
+extension Responder: StreamDelegate {
     internal func send(frame: Frame) {
         sendFrame(frame)
+    }
+    func terminate(streamId: StreamID) {
+        activeStreams.removeValue(forKey: streamId)
     }
 }

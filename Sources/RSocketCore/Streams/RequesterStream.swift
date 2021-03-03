@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-internal protocol StreamAdapterDelegate: AnyObject {
+protocol StreamDelegate: AnyObject {
     func send(frame: Frame)
+    func terminate(streamId: StreamID)
 }
 
 final internal class RequesterStream {
     private let id: StreamID
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     internal let input: UnidirectionalStream
-    internal weak var delegate: StreamAdapterDelegate?
+    internal weak var delegate: StreamDelegate?
 
-    internal init(id: StreamID, input: UnidirectionalStream, delegate: StreamAdapterDelegate? = nil) {
+    internal init(id: StreamID, input: UnidirectionalStream, delegate: StreamDelegate? = nil) {
         self.id = id
         self.input = input
         self.delegate = delegate
@@ -43,5 +44,11 @@ final internal class RequesterStream {
                 delegate?.send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
             }
         }
+    }
+}
+
+extension RequesterStream: StreamAdapterDelegate {
+    internal func send(frame: Frame) {
+        delegate?.send(frame: frame)
     }
 }

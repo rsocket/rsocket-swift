@@ -56,10 +56,13 @@ internal final class Requester: FrameHandler {
     }
 }
 
-extension Requester: StreamAdapterDelegate {
+extension Requester: StreamDelegate {
     internal func send(frame: Frame) {
-        // TODO: termination
         sendFrame(frame)
+    }
+    func terminate(streamId: StreamID) {
+        activeStreams[streamId] = nil
+        activeStreams.removeValue(forKey: streamId)
     }
 }
 
@@ -74,25 +77,27 @@ extension Requester {
     
     func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
         let newId = generateNewStreamId()
-        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        activeStreams[newId] = stream
         
         send(frame: RequestResponseFrameBody(
             fragmentsFollow: false,
             payload: payload
         ).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
         let newId = generateNewStreamId()
-        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        activeStreams[newId] = stream
         
         send(frame: RequestStreamFrameBody(
             fragmentsFollow: false,
             initialRequestN: initialRequestN,
             payload: payload
         ).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
     func channel(
@@ -102,7 +107,8 @@ extension Requester {
         responderOutput: UnidirectionalStream
     ) -> UnidirectionalStream {
         let newId = generateNewStreamId()
-        activeStreams[newId] = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        activeStreams[newId] = stream
         
         send(frame: RequestChannelFrameBody(
             fragmentsFollow: false,
@@ -110,6 +116,6 @@ extension Requester {
             initialRequestN: initialRequestN,
             payload: payload
         ).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: self)
+        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
 }

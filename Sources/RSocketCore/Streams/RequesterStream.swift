@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-protocol StreamDelegate: AnyObject {
-    func send(frame: Frame)
-    func terminate(streamId: StreamID)
-}
-
 final internal class RequesterStream {
     private let id: StreamID
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
+    private var terminationBehaviour: TerminationBehaviour
     internal let input: UnidirectionalStream
     internal weak var delegate: StreamDelegate?
 
-    internal init(id: StreamID, input: UnidirectionalStream, delegate: StreamDelegate? = nil) {
+    internal init(
+        id: StreamID,
+        terminationBehaviour: TerminationBehaviour,
+        input: UnidirectionalStream,
+        delegate: StreamDelegate? = nil
+    ) {
         self.id = id
+        self.terminationBehaviour = terminationBehaviour
         self.input = input
         self.delegate = delegate
     }
@@ -37,11 +39,15 @@ final internal class RequesterStream {
             break
         case let .complete(completeFrame):
             if let error = completeFrame.forward(to: input) {
-                delegate?.send(frame: error.asFrame(withStreamId: id))
+                send(frame: error.asFrame(withStreamId: id))
+            } else {
+                if terminationBehaviour.responderSend(frame: frame) {
+                    delegate?.terminate(streamId: id)
+                }
             }
         case let .error(reason):
             if !frame.header.flags.contains(.ignore) {
-                delegate?.send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
+                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
             }
         }
     }
@@ -50,5 +56,8 @@ final internal class RequesterStream {
 extension RequesterStream: StreamAdapterDelegate {
     internal func send(frame: Frame) {
         delegate?.send(frame: frame)
+        if terminationBehaviour.requesterSend(frame: frame) {
+            delegate?.terminate(streamId: id)
+        }
     }
 }

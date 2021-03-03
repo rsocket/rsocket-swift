@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-public enum StreamType: Hashable {
-    case response
-    case fireAndForget
-    case stream(initialRequestN: Int32)
-    case channel(initialRequestN: Int32, isCompleted: Bool)
+protocol StreamDelegate: AnyObject {
+    func send(frame: Frame)
+    func terminate(streamId: StreamID)
 }

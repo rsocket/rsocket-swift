@@ -30,6 +30,7 @@ final internal class ResponderStream {
     }
     private var state: State
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
+    private var terminationBehaviour: TerminationBehaviour?
     private let eventLoop: EventLoop
     internal weak var delegate: StreamDelegate?
     
@@ -57,17 +58,20 @@ final internal class ResponderStream {
                     streamKind = nil
                     socket.fireAndForget(payload: body.payload)
                 case let .requestResponse(body):
+                    terminationBehaviour = RequestResponseTerminationBehaviour()
                     streamKind = .requestResponse(socket.requestResponse(
                         payload: body.payload,
                         responderOutput: adapter
                     ))
                 case let .requestStream(body):
+                    terminationBehaviour = StreamTerminationBehaviour()
                     streamKind = .stream(socket.stream(
                         payload: body.payload,
                         initialRequestN: body.initialRequestN,
                         responderOutput: adapter
                     ))
                 case let .requestChannel(body):
+                    terminationBehaviour = ChannelTerminationBehaviour()
                     streamKind = .channel(socket.channel(
                         payload: body.payload,
                         initialRequestN: body.initialRequestN,
@@ -76,20 +80,23 @@ final internal class ResponderStream {
                     ))
                 default:
                     if !frame.header.flags.contains(.ignore) {
-                        delegate?.send(frame: Error.connectionError(message: "Frame is not requesting new stream").asFrame(withStreamId: streamId))
+                        send(frame: Error.connectionError(message: "Frame is not requesting new stream").asFrame(withStreamId: streamId))
                     }
                     return
                 }
                 if let streamKind = streamKind {
                     state = .active(streamKind)
                 } else {
-                    /// TODO: fire & forget implicitly closes the stream after the first message without any frames send back.
-                    /// We need a way to tell the responder to remove `self` from its dictionary without sending a frame.
+                    /// Fire & Forget does not need an active stream after receiving a request and needs to be terminated immediately
+                    delegate?.terminate(streamId: streamId)
                 }
             case let .active(adapter):
                 if let error = adapter.forward(frame: frame) {
-                    delegate?.send(frame: error.asFrame(withStreamId: streamId))
+                    send(frame: error.asFrame(withStreamId: streamId))
                 }
+            }
+            if terminationBehaviour?.requesterSend(frame: frame) == true {
+                delegate?.terminate(streamId: streamId)
             }
 
         case .incomplete:
@@ -97,7 +104,7 @@ final internal class ResponderStream {
 
         case let .error(reason):
             if !frame.header.flags.contains(.ignore) {
-                delegate?.send(frame: Error.connectionError(message: reason).asFrame(withStreamId: streamId))
+                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: streamId))
             }
         }
     }
@@ -106,6 +113,9 @@ final internal class ResponderStream {
 extension ResponderStream: StreamAdapterDelegate {
     func send(frame: Frame) {
         delegate?.send(frame: frame)
+        if terminationBehaviour?.responderSend(frame: frame) == true {
+            delegate?.terminate(streamId: streamId)
+        }
     }
 }
 

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 extension Frame {
     internal func forward(to stream: Cancellable) -> Error? {
         switch body {

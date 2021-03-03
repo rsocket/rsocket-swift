@@ -77,7 +77,12 @@ extension Requester {
     
     func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
         let newId = generateNewStreamId()
-        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(
+            id: newId,
+            terminationBehaviour: RequestResponseTerminationBehaviour(),
+            input: responderOutput,
+            delegate: self
+        )
         activeStreams[newId] = stream
         
         send(frame: RequestResponseFrameBody(
@@ -89,7 +94,12 @@ extension Requester {
     
     func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
         let newId = generateNewStreamId()
-        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(
+            id: newId,
+            terminationBehaviour: StreamTerminationBehaviour(),
+            input: responderOutput,
+            delegate: self
+        )
         activeStreams[newId] = stream
         
         send(frame: RequestStreamFrameBody(
@@ -107,7 +117,12 @@ extension Requester {
         responderOutput: UnidirectionalStream
     ) -> UnidirectionalStream {
         let newId = generateNewStreamId()
-        let stream = RequesterStream(id: newId, input: responderOutput, delegate: self)
+        let stream = RequesterStream(
+            id: newId,
+            terminationBehaviour: ChannelTerminationBehaviour(),
+            input: responderOutput,
+            delegate: self
+        )
         activeStreams[newId] = stream
         
         send(frame: RequestChannelFrameBody(

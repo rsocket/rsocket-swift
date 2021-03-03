@@ -26,7 +26,11 @@ internal protocol TerminationBehaviour {
     /// - Parameter event: true if the stream should be terminated
     mutating func responderSend(_ event: TerminationEvent) -> Bool
 }
-
+/// Implements the termination behaviour of a request response.
+/// - Note:
+///     returns true if one of the following conditions is met:
+///     - Requester sends cancel frame or
+///     - Responder sends cancel frame, error frame or payload with complete flag set
 internal struct RequestResponseTerminationBehaviour: TerminationBehaviour  {
     mutating func requesterSend(_ event: TerminationEvent) -> Bool {
         switch event {
@@ -40,7 +44,11 @@ internal struct RequestResponseTerminationBehaviour: TerminationBehaviour  {
         }
     }
 }
-
+/// Implements the termination behaviour of a stream.
+/// - Note:
+///     returns true if one of the following conditions is met:
+///     - Requester sends cancel frame or
+///     - Responder sends cancel frame, error frame or payload with complete flag set
 internal struct StreamTerminationBehaviour: TerminationBehaviour {
     mutating func requesterSend(_ event: TerminationEvent) -> Bool {
         switch event {
@@ -55,6 +63,13 @@ internal struct StreamTerminationBehaviour: TerminationBehaviour {
     }
 }
 
+
+/// Implements the termination behaviour of a channel.
+/// - Note:
+///     returns true if one of the following conditions is met:
+///     - Requester sends cancel frame or error frame or
+///     - Responder sends error frame  or
+///     - Requester sends payload with complete flag set AND Responder sends cancel frame or payload with complete flag set
 internal struct ChannelTerminationBehaviour: TerminationBehaviour  {
     private enum State {
         case active
@@ -76,7 +91,7 @@ internal struct ChannelTerminationBehaviour: TerminationBehaviour  {
         case .error: return true
         case .cancel, .complete:
             guard state != .requesterTerminated else { return true }
-            state = .requesterTerminated
+            state = .responderTerminated
             return false
         }
     }

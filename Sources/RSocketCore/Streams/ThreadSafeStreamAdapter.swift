@@ -46,13 +46,13 @@ extension ThreadSafeStreamAdapter: UnidirectionalStream {
     }
     
     internal func onNext(_ payload: Payload, isCompletion: Bool) {
-        send(PayloadFrameBody(fragmentsFollow: false, isCompletion: isCompletion, isNext: true, payload: payload))
+        send(PayloadFrameBody(isCompletion: isCompletion, isNext: true, payload: payload))
     }
     internal func onError(_ error: Error) {
         send(ErrorFrameBody(error: error))
     }
     internal func onComplete() {
-        send(PayloadFrameBody(fragmentsFollow: false, isCompletion: true, isNext: false, payload: .empty))
+        send(PayloadFrameBody(isCompletion: true, isNext: false, payload: .empty))
     }
     internal func onCancel() {
         send(CancelFrameBody())

@@ -15,9 +15,6 @@
  */
 
 extension FrameFlags {
-    /// (F)ollows: More fragments follow this fragment
-    internal static let requestChannelFollows = FrameFlags(rawValue: 1 << 7)
-
     /**
      (C)omplete: bit to indicate stream completion
 

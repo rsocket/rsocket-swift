@@ -75,8 +75,8 @@ internal struct SetupFrameBody: Hashable {
 
 extension SetupFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .setup(self) }
-    func header() -> FrameHeader {
-        var flags = FrameFlags()
+    func header(additionalFlags: FrameFlags) -> FrameHeader {
+        var flags = additionalFlags
         if payload.metadata != nil {
             flags.insert(.metadata)
         }

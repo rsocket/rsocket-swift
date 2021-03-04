@@ -16,22 +16,16 @@
 
 /// A single one-way message
 internal struct RequestFireAndForgetFrameBody: Hashable {
-    /// If fragments follow this frame
-    internal let fragmentsFollow: Bool
-
     /// Identification of the service being requested along with parameters for the request
     internal let payload: Payload
 }
 
 extension RequestFireAndForgetFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .requestFnf(self) }
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        var flags = FrameFlags()
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
+        var flags = additionalFlags
         if payload.metadata != nil {
             flags.insert(.metadata)
-        }
-        if fragmentsFollow {
-            flags.insert(.requestFireAndForgetFollows)
         }
         return FrameHeader(streamId: streamId, type: .requestFnf, flags: flags)
     }

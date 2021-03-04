@@ -62,10 +62,7 @@ extension Requester: StreamDelegate {
 extension Requester {
     func fireAndForget(payload: Payload) {
         let newId = generateNewStreamId()
-        send(frame: RequestFireAndForgetFrameBody(
-            fragmentsFollow: false,
-            payload: payload
-        ).frame(withStreamId: newId))
+        send(frame: RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: newId))
     }
     
     func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
@@ -78,10 +75,7 @@ extension Requester {
         )
         activeStreams[newId] = stream
         
-        send(frame: RequestResponseFrameBody(
-            fragmentsFollow: false,
-            payload: payload
-        ).frame(withStreamId: newId))
+        send(frame: RequestResponseFrameBody(payload: payload).frame(withStreamId: newId))
         return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
@@ -96,7 +90,6 @@ extension Requester {
         activeStreams[newId] = stream
         
         send(frame: RequestStreamFrameBody(
-            fragmentsFollow: false,
             initialRequestN: initialRequestN,
             payload: payload
         ).frame(withStreamId: newId))
@@ -119,7 +112,6 @@ extension Requester {
         activeStreams[newId] = stream
         
         send(frame: RequestChannelFrameBody(
-            fragmentsFollow: false,
             isCompleted: isCompleted,
             initialRequestN: initialRequestN,
             payload: payload

@@ -82,7 +82,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
             payload: .empty
         ).frame())
         
-        let frame = RequestResponseFrameBody(fragmentsFollow: false, payload: .empty)
+        let frame = RequestResponseFrameBody(payload: .empty)
             .frame(withStreamId: 3)
         try channel.writeInbound(frame)
         

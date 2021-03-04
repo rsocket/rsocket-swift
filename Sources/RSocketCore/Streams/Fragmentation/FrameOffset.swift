@@ -14,7 +14,19 @@
  * limitations under the License.
  */
 
-extension FrameFlags {
-    /// (F)ollows: More fragments follow this fragment
-    internal static let requestStreamFollows = FrameFlags(rawValue: 1 << 7)
+internal enum FrameOffset {
+    case requestResponse
+    case requestFnf
+    case requestStream
+    case requestChannel
+    case payload
+
+    internal var numberOfBytes: Int {
+        switch self {
+        case .payload, .requestResponse, .requestFnf:
+            return 0
+        case .requestStream, .requestChannel:
+            return 4
+        }
+    }
 }

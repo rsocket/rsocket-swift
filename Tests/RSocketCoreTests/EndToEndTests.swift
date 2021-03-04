@@ -213,7 +213,7 @@ final class EndToEndTests: XCTestCase {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
-                    FrameEncoderHandler(),
+                    FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
                     DebugInboundEventsHandler(),
                     DebugOutboundEventsHandler(),
                     ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
@@ -248,7 +248,7 @@ final class EndToEndTests: XCTestCase {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
-                    FrameEncoderHandler(),
+                    FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
                     DebugInboundEventsHandler(),
                     DebugOutboundEventsHandler(),
                     SetupWriter(config: config),

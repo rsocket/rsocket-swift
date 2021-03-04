@@ -29,4 +29,7 @@ internal struct FrameFlags: OptionSet, Hashable {
 
     /// (M)etadata: Indicates that the frame contains metadata
     internal static let metadata = FrameFlags(rawValue: 1 << 8)
+
+    /// (F)ollows: More fragments follow this fragment
+    internal static let fragmentFollows = FrameFlags(rawValue: 1 << 7)
 }

@@ -20,7 +20,8 @@ internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)
 }
 
-internal class ThreadSafeStreamAdapter {
+/// `ThreadSafeStreamAdapter` converts all stream events (eg. onNext, onCancel, etc,) into frames with the given `id` and forwards them to `delegate` on `eventLoop`
+internal final class ThreadSafeStreamAdapter {
     private let id: StreamID
     private let eventLoop: EventLoop
     private weak var delegate: StreamAdapterDelegate?

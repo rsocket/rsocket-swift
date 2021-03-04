@@ -22,9 +22,9 @@ internal enum TerminationEvent {
 
 internal protocol TerminationBehaviour {
     /// - Parameter event: true if the stream should be terminated
-    mutating func requesterSend(_ event: TerminationEvent) -> Bool
+    mutating func shouldTerminateAfterRequesterSent(_ event: TerminationEvent) -> Bool
     /// - Parameter event: true if the stream should be terminated
-    mutating func responderSend(_ event: TerminationEvent) -> Bool
+    mutating func shouldTerminateAfterResponderSent(_ event: TerminationEvent) -> Bool
 }
 /// Implements the termination behaviour of a request response.
 /// - Note:
@@ -32,13 +32,13 @@ internal protocol TerminationBehaviour {
 ///     - Requester sends cancel frame or
 ///     - Responder sends cancel frame, error frame or payload with complete flag set
 internal struct RequestResponseTerminationBehaviour: TerminationBehaviour  {
-    mutating func requesterSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterRequesterSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .cancel: return true
         case .complete, .error: return false
         }
     }
-    mutating func responderSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterResponderSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .cancel, .complete, .error: return true
         }
@@ -50,13 +50,13 @@ internal struct RequestResponseTerminationBehaviour: TerminationBehaviour  {
 ///     - Requester sends cancel frame or
 ///     - Responder sends cancel frame, error frame or payload with complete flag set
 internal struct StreamTerminationBehaviour: TerminationBehaviour {
-    mutating func requesterSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterRequesterSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .cancel: return true
         case .complete, .error: return false
         }
     }
-    mutating func responderSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterResponderSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .cancel, .complete, .error: return true
         }
@@ -77,7 +77,7 @@ internal struct ChannelTerminationBehaviour: TerminationBehaviour  {
         case responderTerminated
     }
     private var state = State.active
-    mutating func requesterSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterRequesterSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .cancel, .error: return true
         case .complete:
@@ -86,7 +86,7 @@ internal struct ChannelTerminationBehaviour: TerminationBehaviour  {
             return false
         }
     }
-    mutating func responderSend(_ event: TerminationEvent) -> Bool {
+    mutating func shouldTerminateAfterResponderSent(_ event: TerminationEvent) -> Bool {
         switch event {
         case .error: return true
         case .cancel, .complete:
@@ -114,10 +114,10 @@ extension Frame {
 }
 
 extension TerminationBehaviour {
-    internal mutating func requesterSend(frame: Frame) -> Bool {
-        frame.terminationEvent.map { requesterSend($0) } ?? false
+    internal mutating func shouldTerminateAfterRequesterSent(_ frame: Frame) -> Bool {
+        frame.terminationEvent.map { shouldTerminateAfterRequesterSent($0) } ?? false
     }
-    internal mutating func responderSend(frame: Frame) -> Bool {
-        frame.terminationEvent.map { responderSend($0) } ?? false
+    internal mutating func shouldTerminateAfterResponderSent(_ frame: Frame) -> Bool {
+        frame.terminationEvent.map { shouldTerminateAfterResponderSent($0) } ?? false
     }
 }

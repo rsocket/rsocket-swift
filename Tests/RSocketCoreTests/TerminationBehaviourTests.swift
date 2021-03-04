@@ -21,22 +21,22 @@ final class RequestResponseTerminationBehaviourTests: XCTestCase {
     private var tb = RequestResponseTerminationBehaviour()
     // MARK: single termination events
     func testRequesterSendsComplete() {
-        XCTAssertFalse(tb.requesterSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.complete))
     }
     func testRequesterSendsCancel() {
-        XCTAssertTrue(tb.requesterSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.cancel))
     }
     func testRequesterSendsError() {
-        XCTAssertFalse(tb.requesterSend(.error))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.error))
     }
     func testResponderSendsComplete() {
-        XCTAssertTrue(tb.responderSend(.complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.complete))
     }
     func testResponderSendsCancel() {
-        XCTAssertTrue(tb.responderSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.cancel))
     }
     func testResponderSendsError() {
-        XCTAssertTrue(tb.responderSend(.error))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.error))
     }
 }
 
@@ -44,22 +44,22 @@ final class StreamTerminationBehaviourTests: XCTestCase {
     private var tb = StreamTerminationBehaviour()
     // MARK: single termination events
     func testRequesterSendsComplete() {
-        XCTAssertFalse(tb.requesterSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.complete))
     }
     func testRequesterSendsCancel() {
-        XCTAssertTrue(tb.requesterSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.cancel))
     }
     func testRequesterSendsError() {
-        XCTAssertFalse(tb.requesterSend(.error))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.error))
     }
     func testResponderSendsComplete() {
-        XCTAssertTrue(tb.responderSend(.complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.complete))
     }
     func testResponderSendsCancel() {
-        XCTAssertTrue(tb.responderSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.cancel))
     }
     func testResponderSendsError() {
-        XCTAssertTrue(tb.responderSend(.error))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.error))
     }
 }
 
@@ -68,42 +68,42 @@ final class ChannelTerminationBehaviourTests: XCTestCase {
     private var tb = ChannelTerminationBehaviour()
     // MARK: single termination events
     func testRequesterSendsComplete() {
-        XCTAssertFalse(tb.requesterSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.complete))
     }
     func testRequesterSendsCancel() {
-        XCTAssertTrue(tb.requesterSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.cancel))
     }
     func testRequesterSendsError() {
-        XCTAssertTrue(tb.requesterSend(.error))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.error))
     }
     func testResponderSendsComplete() {
-        XCTAssertFalse(tb.responderSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSend(.complete))
     }
     func testResponderSendsCancel() {
-        XCTAssertFalse(tb.responderSend(.cancel))
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSend(.cancel))
     }
     func testResponderSendsError() {
-        XCTAssertTrue(tb.responderSend(.error))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.error))
     }
     
     // MARK: double termination events
     func testRequesterCompletesBeforeResponderCancels() {
-        XCTAssertFalse(tb.requesterSend(.complete))
-        XCTAssertTrue(tb.responderSend(.cancel))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.cancel))
     }
     func testRequesterCompletesAfterResponderCancels() {
-        XCTAssertFalse(tb.responderSend(.cancel))
-        XCTAssertTrue(tb.requesterSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSend(.cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.complete))
     }
     
     func testRequesterCompletesBeforeResponderCompletes() {
-        XCTAssertFalse(tb.requesterSend(.complete))
-        XCTAssertTrue(tb.responderSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSend(.complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSend(.complete))
     }
     
     func testRequesterCompletesAfterResponderCompletes() {
-        XCTAssertFalse(tb.responderSend(.complete))
-        XCTAssertTrue(tb.requesterSend(.complete))
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSend(.complete))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSend(.complete))
     }
 }
 

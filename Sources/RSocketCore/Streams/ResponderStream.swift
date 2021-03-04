@@ -95,7 +95,7 @@ final internal class ResponderStream {
                     send(frame: error.asFrame(withStreamId: streamId))
                 }
             }
-            if terminationBehaviour?.requesterSend(frame: frame) == true {
+            if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
                 delegate?.terminate(streamId: streamId)
             }
 
@@ -113,7 +113,7 @@ final internal class ResponderStream {
 extension ResponderStream: StreamAdapterDelegate {
     func send(frame: Frame) {
         delegate?.send(frame: frame)
-        if terminationBehaviour?.responderSend(frame: frame) == true {
+        if terminationBehaviour?.shouldTerminateAfterResponderSent(frame) == true {
             delegate?.terminate(streamId: streamId)
         }
     }

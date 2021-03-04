@@ -41,7 +41,7 @@ final internal class RequesterStream {
             if let error = completeFrame.forward(to: input) {
                 send(frame: error.asFrame(withStreamId: id))
             } else {
-                if terminationBehaviour.responderSend(frame: frame) {
+                if terminationBehaviour.shouldTerminateAfterResponderSent(frame) {
                     delegate?.terminate(streamId: id)
                 }
             }
@@ -56,7 +56,7 @@ final internal class RequesterStream {
 extension RequesterStream: StreamAdapterDelegate {
     internal func send(frame: Frame) {
         delegate?.send(frame: frame)
-        if terminationBehaviour.requesterSend(frame: frame) {
+        if terminationBehaviour.shouldTerminateAfterRequesterSent(frame) {
             delegate?.terminate(streamId: id)
         }
     }

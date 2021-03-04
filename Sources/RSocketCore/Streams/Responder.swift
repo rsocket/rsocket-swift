@@ -38,14 +38,14 @@ internal final class Responder {
             return
         }
 
-        let fragmenter = ResponderStream(
+        let stream = ResponderStream(
             streamId: streamId,
             responderSocket: responderSocket,
             eventLoop: eventLoop,
             delegate: self
         )
-        activeStreams[streamId] = fragmenter
-        fragmenter.receive(frame: frame)
+        activeStreams[streamId] = stream
+        stream.receive(frame: frame)
     }
 }
 

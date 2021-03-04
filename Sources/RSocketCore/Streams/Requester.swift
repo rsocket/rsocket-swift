@@ -40,19 +40,13 @@ internal final class Requester {
     }
 
     internal func receiveInbound(frame: Frame) {
-        guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
+        let streamId = frame.header.streamId
+        guard let existingStreamAdapter = activeStreams[streamId] else {
             // TODO: do not close connection for late frames
-            closeConnection(with: .connectionError(message: "No active stream for given id"))
+            send(frame: Error.connectionError(message: "No active stream for given id").asFrame(withStreamId: streamId))
             return
         }
         existingStreamAdapter.receive(frame: frame)
-    }
-
-    private func closeConnection(with error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
-        sendFrame(frame)
     }
 }
 
@@ -61,7 +55,6 @@ extension Requester: StreamDelegate {
         sendFrame(frame)
     }
     func terminate(streamId: StreamID) {
-        activeStreams[streamId] = nil
         activeStreams.removeValue(forKey: streamId)
     }
 }

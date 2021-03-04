@@ -86,6 +86,9 @@ final internal class ResponderStream {
                 }
                 if let streamKind = streamKind {
                     state = .active(streamKind)
+                    if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
+                        delegate?.terminate(streamId: streamId)
+                    }
                 } else {
                     /// Fire & Forget does not need an active stream after receiving a request and needs to be terminated immediately
                     delegate?.terminate(streamId: streamId)
@@ -93,10 +96,11 @@ final internal class ResponderStream {
             case let .active(adapter):
                 if let error = adapter.forward(frame: frame) {
                     send(frame: error.asFrame(withStreamId: streamId))
+                } else {
+                    if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
+                        delegate?.terminate(streamId: streamId)
+                    }
                 }
-            }
-            if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
-                delegate?.terminate(streamId: streamId)
             }
 
         case .incomplete:

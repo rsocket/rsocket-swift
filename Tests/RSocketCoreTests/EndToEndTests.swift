@@ -147,8 +147,8 @@ final class EndToEndTests: XCTestCase {
                         return channel.pipeline.addHandlers([
                             DemultiplexerHandler(
                                 connectionSide: .server,
-                                requester: Requester(streamIdGenerator: .server, sendFrame: sendFrame),
-                                responder: Responder(createStream: createStream, sendFrame: sendFrame)
+                                requester: Requester(streamIdGenerator: .server, maximumFrameSize: Payload.Constants.minMtuSize, sendFrame: sendFrame),
+                                responder: Responder(maximumFrameSize: Payload.Constants.minMtuSize, createStream: createStream, sendFrame: sendFrame)
                             ),
                             ConnectionStreamHandler(),
                         ])
@@ -180,8 +180,8 @@ final class EndToEndTests: XCTestCase {
                     SetupWriter(config: config),
                     DemultiplexerHandler(
                         connectionSide: .client,
-                        requester: Requester(streamIdGenerator: .client, sendFrame: sendFrame),
-                        responder: Responder(createStream: createStream, sendFrame: sendFrame)
+                        requester: Requester(streamIdGenerator: .client, maximumFrameSize: Payload.Constants.minMtuSize, sendFrame: sendFrame),
+                        responder: Responder(maximumFrameSize: Payload.Constants.minMtuSize, createStream: createStream, sendFrame: sendFrame)
                     ),
                     ConnectionStreamHandler(),
                 ])

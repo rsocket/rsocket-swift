@@ -17,13 +17,16 @@
 internal final class Requester: FrameHandler {
     private let sendFrame: (Frame) -> Void
     private var streamIdGenerator: StreamIDGenerator
+    private let maximumFrameSize: Int32
     private var activeStreams: [StreamID: StreamFragmenter] = [:]
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
+        maximumFrameSize: Int32,
         sendFrame: @escaping (Frame) -> Void
     ) {
         self.streamIdGenerator = streamIdGenerator
+        self.maximumFrameSize = maximumFrameSize
         self.sendFrame = sendFrame
     }
 
@@ -48,9 +51,7 @@ internal final class Requester: FrameHandler {
     }
 
     private func closeConnection(with error: Error) {
-        let body = ErrorFrameBody(error: error)
-        let header = body.header(withStreamId: .connection)
-        let frame = Frame(header: header, body: .error(body))
+        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
         sendFrame(frame)
     }
 }
@@ -76,7 +77,11 @@ extension Requester {
     ) -> StreamOutput {
         let newId = generateNewStreamId()
         let adapter = StreamAdapter(id: newId)
-        let fragmeter = StreamFragmenter(streamId: newId, adapter: adapter)
+        let fragmeter = StreamFragmenter(
+            streamId: newId,
+            maximumFrameSize: maximumFrameSize,
+            adapter: adapter
+        )
         fragmeter.delegate = self
         adapter.input = createInput(adapter)
         activeStreams[newId] = fragmeter
@@ -85,47 +90,28 @@ extension Requester {
     }
 
     private func sendRequest(id: StreamID, type: StreamType, payload: Payload) {
-        let header: FrameHeader
-        let body: FrameBody
+        let frame: Frame
         switch type {
         case .response:
-            let requestResponseBody = RequestResponseFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = requestResponseBody.header(withStreamId: id)
-            body = .requestResponse(requestResponseBody)
+            frame = RequestResponseFrameBody(payload: payload).frame(withStreamId: id)
 
         case .fireAndForget:
-            let fireAndForgetBody = RequestFireAndForgetFrameBody(
-                fragmentsFollow: false,
-                payload: payload
-            )
-            header = fireAndForgetBody.header(withStreamId: id)
-            body = .requestFnf(fireAndForgetBody)
+            frame = RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: id)
 
         case let .stream(initialRequestN):
-            let streamBody = RequestStreamFrameBody(
-                fragmentsFollow: false,
+            frame = RequestStreamFrameBody(
                 initialRequestN: initialRequestN,
                 payload: payload
-            )
-            header = streamBody.header(withStreamId: id)
-            body = .requestStream(streamBody)
+            ).frame(withStreamId: id)
 
         case let .channel(initialRequestN, isCompleted):
-            let channelBody = RequestChannelFrameBody(
-                fragmentsFollow: false,
+            frame = RequestChannelFrameBody(
                 isCompleted: isCompleted,
                 initialRequestN: initialRequestN,
                 payload: payload
-            )
-            header = channelBody.header(withStreamId: id)
-            body = .requestChannel(channelBody)
+            ).frame(withStreamId: id)
         }
-        let frame = Frame(header: header, body: body)
-        // TODO: adjust MTU
-        for fragment in frame.fragments(mtu: 64) {
+        for fragment in frame.splitIntoFragmentsIfNeeded(maximumFrameSize: maximumFrameSize) {
             send(frame: fragment)
         }
     }

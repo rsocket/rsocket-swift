@@ -20,9 +20,6 @@
  For example, response to a request, or message on a channel.
  */
 internal struct PayloadFrameBody: Hashable {
-    /// If more fragments follow this frame
-    internal let fragmentsFollow: Bool
-
     /// If this frame marks the completion of the stream
     internal let isCompletion: Bool
 
@@ -35,13 +32,10 @@ internal struct PayloadFrameBody: Hashable {
 
 extension PayloadFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .payload(self) }
-    func header(withStreamId streamId: StreamID) -> FrameHeader {
-        var flags = FrameFlags()
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
+        var flags = additionalFlags
         if payload.metadata != nil {
             flags.insert(.metadata)
-        }
-        if fragmentsFollow {
-            flags.insert(.payloadFollows)
         }
         if isCompletion {
             flags.insert(.payloadComplete)

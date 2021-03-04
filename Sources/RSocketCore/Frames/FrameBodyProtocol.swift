@@ -26,29 +26,47 @@ internal protocol FrameBodyProtocol {
 internal protocol FrameBodyBoundToConnection: FrameBodyProtocol {
     /// returns a header for `self` by inferring the flags from the given body.
     /// The stream id will always be `.connection`.
-    func header() -> FrameHeader
+    /// - Parameter additionalFlags: additional flags which should be enabled
+    func header(additionalFlags: FrameFlags) -> FrameHeader
+}
+
+extension FrameBodyBoundToConnection {
+    /// returns a header for `self` by inferring the flags from the given body.
+    /// The stream id will always be `.connection`.
+    internal func header() -> FrameHeader {
+        header(additionalFlags: [])
+    }
 }
 
 /// a frame body that can be send or received on different streams and not only on `.connection`  (stream 0)
 internal protocol FrameBodyBoundToStream: FrameBodyProtocol {
     /// returns a header for `self` by inferring the flags from the given body.
     /// - Parameter streamId: stream id for the header
-    func header(withStreamId streamId: StreamID) -> FrameHeader
+    /// - Parameter additionalFlags: additional flags which should be enabled
+    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader
+}
+
+extension FrameBodyBoundToStream {
+    /// returns a header for `self` by inferring the flags from the given body.
+    /// - Parameter streamId: stream id for the header
+    internal func header(withStreamId streamId: StreamID) -> FrameHeader {
+        header(withStreamId: streamId, additionalFlags: [])
+    }
 }
 
 
 extension FrameBodyBoundToConnection {
     /// returns complete frame for `self`.
     /// The stream id will always be `.connection`.
-    func frame() -> Frame {
-        Frame(header: header(), body: body())
+    func frame(additionalFlags: FrameFlags = []) -> Frame {
+        Frame(header: header(additionalFlags: additionalFlags), body: body())
     }
 }
 
 extension FrameBodyBoundToStream {
     /// returns complete frame for `self`.
     /// - Parameter streamId: stream id for the header
-    func frame(withStreamId streamId: StreamID) -> Frame {
-        Frame(header: header(withStreamId: streamId), body: body())
+    func frame(withStreamId streamId: StreamID, additionalFlags: FrameFlags = []) -> Frame {
+        Frame(header: header(withStreamId: streamId, additionalFlags: additionalFlags), body: body())
     }
 }

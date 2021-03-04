@@ -26,7 +26,6 @@ internal struct RequestFireAndForgetFrameBodyDecoder: FrameBodyDecoding {
     internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> RequestFireAndForgetFrameBody {
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return RequestFireAndForgetFrameBody(
-            fragmentsFollow: header.flags.contains(.requestFireAndForgetFollows),
             payload: payload
         )
     }

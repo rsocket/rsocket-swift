@@ -17,7 +17,6 @@
 import NIO
 
 final internal class ResponderStream {
-    private let id: StreamID
     fileprivate enum StreamKind {
         case requestResponse(Cancellable)
         case stream(Subscription)
@@ -28,6 +27,7 @@ final internal class ResponderStream {
         case waitingForInitialFragments(RSocket)
         case active(StreamKind)
     }
+    private let id: StreamID
     private var state: State
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     private var terminationBehaviour: TerminationBehaviour?

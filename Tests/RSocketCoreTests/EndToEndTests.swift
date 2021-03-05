@@ -64,28 +64,28 @@ final class TestRSocket: RSocket {
         fireAndForget(payload)
     }
     
-    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return requestResponse(payload, responderOutput)
+        return requestResponse(payload, responderStream)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
         guard let stream = stream else {
             XCTFail("stream not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return stream(payload, initialRequestN, responderOutput)
+        return stream(payload, initialRequestN, responderStream)
     }
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderOutput: UnidirectionalStream) -> UnidirectionalStream {
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         guard let channel = channel else {
             XCTFail("channel not expected to be called ", file: file, line: line)
             return TestStreamInput()
         }
-        return channel(payload, initialRequestN, isCompleted, responderOutput)
+        return channel(payload, initialRequestN, isCompleted, responderStream)
     }
     
     
@@ -322,7 +322,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertTrue(isCompletion)
             response.fulfill()
         }
-        _ = rsocket.requestResponse(payload: helloWorld, responderOutput: input)
+        _ = rsocket.requestResponse(payload: helloWorld, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testChannelEcho() throws {
@@ -351,7 +351,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
         weakInput = input
-        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderOutput: input!)
+        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input!)
         output.onNext(" ", isCompletion: false)
         output.onNext("W", isCompletion: false)
         output.onNext("o", isCompletion: false)
@@ -391,7 +391,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)
         })
         weakInput = input
-        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, responderOutput: input)
+        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
 }

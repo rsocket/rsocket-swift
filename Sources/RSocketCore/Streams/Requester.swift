@@ -65,12 +65,12 @@ extension Requester {
         send(frame: RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: newId))
     }
     
-    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
         let newId = generateNewStreamId()
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: RequestResponseTerminationBehaviour(),
-            input: responderOutput,
+            input: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream
@@ -79,12 +79,12 @@ extension Requester {
         return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
         let newId = generateNewStreamId()
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: StreamTerminationBehaviour(),
-            input: responderOutput,
+            input: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream
@@ -100,13 +100,13 @@ extension Requester {
         payload: Payload,
         initialRequestN: Int32,
         isCompleted: Bool,
-        responderOutput: UnidirectionalStream
+        responderStream: UnidirectionalStream
     ) -> UnidirectionalStream {
         let newId = generateNewStreamId()
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: ChannelTerminationBehaviour(),
-            input: responderOutput,
+            input: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream

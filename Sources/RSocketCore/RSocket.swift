@@ -22,9 +22,9 @@ public protocol RSocket {
     
     func fireAndForget(payload: Payload)
     
-    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable
     
-    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderOutput: UnidirectionalStream) -> UnidirectionalStream
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream
 }

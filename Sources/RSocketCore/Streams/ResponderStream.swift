@@ -61,14 +61,14 @@ final internal class ResponderStream {
                     terminationBehaviour = RequestResponseTerminationBehaviour()
                     streamKind = .requestResponse(socket.requestResponse(
                         payload: body.payload,
-                        responderOutput: adapter
+                        responderStream: adapter
                     ))
                 case let .requestStream(body):
                     terminationBehaviour = StreamTerminationBehaviour()
                     streamKind = .stream(socket.stream(
                         payload: body.payload,
                         initialRequestN: body.initialRequestN,
-                        responderOutput: adapter
+                        responderStream: adapter
                     ))
                 case let .requestChannel(body):
                     terminationBehaviour = ChannelTerminationBehaviour()
@@ -76,7 +76,7 @@ final internal class ResponderStream {
                         payload: body.payload,
                         initialRequestN: body.initialRequestN,
                         isCompleted: body.isCompleted,
-                        responderOutput: adapter
+                        responderStream: adapter
                     ))
                 default:
                     if !frame.header.flags.contains(.ignore) {

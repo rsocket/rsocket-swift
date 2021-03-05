@@ -88,15 +88,15 @@ extension DemultiplexerHandler: RSocket {
         requester.fireAndForget(payload: payload)
     }
     
-    func requestResponse(payload: Payload, responderOutput: UnidirectionalStream) -> Cancellable {
-        requester.requestResponse(payload: payload, responderOutput: responderOutput)
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+        requester.requestResponse(payload: payload, responderStream: responderStream)
     }
     
-    func stream(payload: Payload, initialRequestN: Int32, responderOutput: UnidirectionalStream) -> Subscription {
-        requester.stream(payload: payload, initialRequestN: initialRequestN, responderOutput: responderOutput)
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
+        requester.stream(payload: payload, initialRequestN: initialRequestN, responderStream: responderStream)
     }
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderOutput: UnidirectionalStream) -> UnidirectionalStream {
-        requester.channel(payload: payload, initialRequestN: initialRequestN, isCompleted: isCompleted, responderOutput: responderOutput)
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
+        requester.channel(payload: payload, initialRequestN: initialRequestN, isCompleted: isCompleted, responderStream: responderStream)
     }
 }

@@ -311,16 +311,15 @@ extension Error {
 }
 
 extension Error {
-    /// Creates an error frame. Depending on the error type, it uses the given `streamId` or the connection stream id (stream 0).
+    /// Creates an error frame from `self`. Depending on the error type, it uses the given `streamId` or the connection stream id (stream 0).
+    ///
+    /// This allows the call side to create error frames without knowing whether the error should be sent on the connection or on the specified stream.
+    /// It is especially useful in case the error is later changed from an error that should be sent on the stream instead of on the connection.
+    /// Then the call side would not need to be change, thus can not be forgotten.
     /// - Parameter streamId: used if it is *not* a connection error
     /// - Returns: Error Frame
     internal func asFrame(withStreamId streamId: StreamID) -> Frame {
-        let body = ErrorFrameBody(error: self)
-        if isConnectionError {
-            return body.frame(withStreamId: .connection)
-        } else {
-            return body.frame(withStreamId: streamId)
-        }
-        
+        ErrorFrameBody(error: self)
+            .frame(withStreamId: isConnectionError ? .connection : streamId)
     }
 }

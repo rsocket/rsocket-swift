@@ -31,10 +31,9 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let frame = unwrapOutboundIn(data)
         do {
-            // Todo: performance optimization, we could calculate the actual capacity of the current frame
-            // but for now the buffer will grow automatically
-            // TODO: make MTU configurable
             for fragment in frame.splitIntoFragmentsIfNeeded(maximumFrameSize: maximumFrameSize) {
+                // Todo: performance optimization, we could calculate the actual capacity of the current frame
+                // but for now the buffer will grow automatically
                 var buffer = context.channel.allocator.buffer(capacity: FrameHeader.lengthInBytes)
                 try frameEncoder.encode(frame: fragment, into: &buffer)
                 context.write(wrapOutboundOut(buffer), promise: promise)

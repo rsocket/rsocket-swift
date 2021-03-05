@@ -108,7 +108,7 @@ final internal class ResponderStream {
 
         case let .error(reason):
             if !frame.header.flags.contains(.ignore) {
-                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
+                send(frame: Error.canceled(message: reason).asFrame(withStreamId: id))
             }
         }
     }

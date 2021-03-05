@@ -45,9 +45,9 @@ final internal class RequesterStream {
                     delegate?.terminate(streamId: id)
                 }
             }
-        case let .error(reason):
+        case .error:
             if !frame.header.flags.contains(.ignore) {
-                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
+                send(frame: CancelFrameBody().frame(withStreamId: id))
             }
         }
     }

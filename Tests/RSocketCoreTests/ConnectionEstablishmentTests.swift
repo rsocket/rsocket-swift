@@ -51,7 +51,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
             metadataEncodingMimeType: "utf8",
             dataEncodingMimeType: "utf8",
             payload: .empty
-        ).frame())
+        ).asFrame())
         
         XCTAssertThrowsError(
             try channel.pipeline.handler(type: ConnectionEstablishmentHandler.self).wait(),
@@ -80,10 +80,10 @@ final class ConnectionEstablishmentTests: XCTestCase {
             metadataEncodingMimeType: "utf8",
             dataEncodingMimeType: "utf8",
             payload: .empty
-        ).frame())
+        ).asFrame())
         
         let frame = RequestResponseFrameBody(payload: .empty)
-            .frame(withStreamId: 3)
+            .asFrame(withStreamId: 3)
         try channel.writeInbound(frame)
         
         connectionInitialization.completeWith(.success(()))

@@ -47,7 +47,7 @@ final internal class RequesterStream {
             }
         case .error:
             if !frame.header.flags.contains(.ignore) {
-                send(frame: CancelFrameBody().frame(withStreamId: id))
+                send(frame: CancelFrameBody().asFrame(withStreamId: id))
             }
         }
     }

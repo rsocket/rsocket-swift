@@ -41,24 +41,24 @@ final class SetupValidationTests: XCTestCase {
     func testToOldVersionIsAccepted() {
         XCTAssertNoThrow(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 0, minor: 1)
-        }).frame()))
+        }).asFrame()))
     }
     func testCurrentVersionIsAccepted() {
         XCTAssertNoThrow(try validator.validate(frame: goodSetup.modify({
             $0.version = .current
-        }).frame()))
+        }).asFrame()))
     }
     func testNewerVersionIsRejected() {
         XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 1, minor: 1)
-        }).frame())){ error in
+        }).asFrame())){ error in
             XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
         }
     }
     func testLeaseIsNotSupported() {
         XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.honorsLease = true
-        }).frame())){ error in
+        }).asFrame())){ error in
             XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
         }
     }
@@ -68,7 +68,7 @@ final class SetupValidationTests: XCTestCase {
             resumeIdentificationToken: Data([0, 1, 2, 3]),
             lastReceivedServerPosition: 5,
             firstAvailableClientPosition: 6
-        ).frame())) { error in
+        ).asFrame())) { error in
             XCTAssertEqual((error as? RSocketCore.Error)?.kind, .rejectedResume)
         }
     }

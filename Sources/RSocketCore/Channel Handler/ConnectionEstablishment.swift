@@ -240,7 +240,7 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     
     private func writeErrorAndCloseConnection(context: ChannelHandlerContext, error: Swift.Error) {
         let error = error as? Error ?? Error.connectionError(message: "unknown error")
-        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
+        let frame = ErrorFrameBody(error: error).asFrame(withStreamId: .connection)
         
         let writePromise = context.writeAndFlush(wrapOutboundOut(frame))
         writePromise.whenComplete { _ in

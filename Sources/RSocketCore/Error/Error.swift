@@ -327,6 +327,6 @@ extension Error {
     /// - Returns: Error Frame
     internal func asFrame(withStreamId streamId: StreamID) -> Frame {
         ErrorFrameBody(error: self)
-            .frame(withStreamId: isConnectionError ? .connection : streamId)
+            .asFrame(withStreamId: isConnectionError ? .connection : streamId)
     }
 }

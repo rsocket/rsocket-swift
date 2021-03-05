@@ -63,7 +63,7 @@ extension Requester {
     func fireAndForget(payload: Payload) {
         eventLoop.execute { [self] in
             let newId = generateNewStreamId()
-            send(frame: RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: newId))
+            send(frame: RequestFireAndForgetFrameBody(payload: payload).asFrame(withStreamId: newId))
         }
     }
     
@@ -84,7 +84,7 @@ extension Requester {
             activeStreams[newId] = stream
             adapter.id = newId
             adapter.delegate = stream
-            send(frame: body.frame(withStreamId: newId))
+            send(frame: body.asFrame(withStreamId: newId))
         }
         
         return adapter

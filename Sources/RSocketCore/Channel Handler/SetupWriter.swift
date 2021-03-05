@@ -117,7 +117,7 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             metadataEncodingMimeType: setup.metadataEncodingMimeType,
             dataEncodingMimeType: setup.dataEncodingMimeType,
             payload: setup.payload
-        ).frame()), promise: nil)
+        ).asFrame()), promise: nil)
         
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
     }

@@ -36,7 +36,7 @@ internal final class ThreadSafeStreamAdapter {
 extension ThreadSafeStreamAdapter: UnidirectionalStream {
     private func send<Body>(_ body: Body) where Body: FrameBodyBoundToStream {
         eventLoop.execute { [self] in
-            self.delegate?.send(frame: body.frame(withStreamId: self.id))
+            self.delegate?.send(frame: body.asFrame(withStreamId: self.id))
         }
     }
     

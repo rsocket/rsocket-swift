@@ -23,7 +23,6 @@ final internal class ResponderStream {
         case channel(UnidirectionalStream)
     }
     private enum State {
-        
         case waitingForInitialFragments(RSocket)
         case active(StreamKind)
     }

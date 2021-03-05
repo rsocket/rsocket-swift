@@ -65,7 +65,6 @@ internal struct StreamTerminationBehaviour: TerminationBehaviour {
     }
 }
 
-
 /// Implements the termination behaviour of channel.
 /// - Note:
 ///     returns true if one of the following conditions is met:
@@ -100,8 +99,6 @@ internal struct ChannelTerminationBehaviour: TerminationBehaviour  {
         }
     }
 }
-
-
 
 extension Frame {
     /// termination type of this frame, if it could terminate an active stream

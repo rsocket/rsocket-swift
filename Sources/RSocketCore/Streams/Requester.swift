@@ -70,7 +70,7 @@ extension Requester {
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: RequestResponseTerminationBehaviour(),
-            input: responderStream,
+            output: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream
@@ -84,7 +84,7 @@ extension Requester {
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: StreamTerminationBehaviour(),
-            input: responderStream,
+            output: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream
@@ -106,7 +106,7 @@ extension Requester {
         let stream = RequesterStream(
             id: newId,
             terminationBehaviour: ChannelTerminationBehaviour(),
-            input: responderStream,
+            output: responderStream,
             delegate: self
         )
         activeStreams[newId] = stream

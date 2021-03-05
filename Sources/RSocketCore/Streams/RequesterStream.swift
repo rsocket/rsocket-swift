@@ -18,18 +18,18 @@ final internal class RequesterStream {
     private let id: StreamID
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     private var terminationBehaviour: TerminationBehaviour
-    internal let input: UnidirectionalStream
+    internal let output: UnidirectionalStream
     internal weak var delegate: StreamDelegate?
 
     internal init(
         id: StreamID,
         terminationBehaviour: TerminationBehaviour,
-        input: UnidirectionalStream,
+        output: UnidirectionalStream,
         delegate: StreamDelegate? = nil
     ) {
         self.id = id
         self.terminationBehaviour = terminationBehaviour
-        self.input = input
+        self.output = output
         self.delegate = delegate
     }
 
@@ -38,7 +38,7 @@ final internal class RequesterStream {
         case .incomplete:
             break
         case let .complete(completeFrame):
-            if let error = completeFrame.forward(to: input) {
+            if let error = completeFrame.forward(to: output) {
                 send(frame: error.asFrame(withStreamId: id))
             } else {
                 if terminationBehaviour.shouldTerminateAfterResponderSent(frame) {

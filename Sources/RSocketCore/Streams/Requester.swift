@@ -67,7 +67,7 @@ extension Requester {
         }
     }
     
-    private func makeStream<Body>(
+    private func createAndAddStream<Body>(
         responderStream: UnidirectionalStream,
         terminationBehaviour: TerminationBehaviour,
         initialFrame body: Body
@@ -91,7 +91,7 @@ extension Requester {
     }
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
-        return makeStream(
+        return createAndAddStream(
             responderStream: responderStream,
             terminationBehaviour: RequestResponseTerminationBehaviour(),
             initialFrame: RequestResponseFrameBody(payload: payload)
@@ -99,7 +99,7 @@ extension Requester {
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
-        return makeStream(
+        return createAndAddStream(
             responderStream: responderStream,
             terminationBehaviour: StreamTerminationBehaviour(),
             initialFrame: RequestStreamFrameBody(
@@ -115,7 +115,7 @@ extension Requester {
         isCompleted: Bool,
         responderStream: UnidirectionalStream
     ) -> UnidirectionalStream {
-        return makeStream(
+        return createAndAddStream(
             responderStream: responderStream,
             terminationBehaviour: ChannelTerminationBehaviour(),
             initialFrame: RequestChannelFrameBody(

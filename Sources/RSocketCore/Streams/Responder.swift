@@ -39,7 +39,7 @@ internal final class Responder {
         }
 
         let stream = ResponderStream(
-            streamId: streamId,
+            id: streamId,
             responderSocket: responderSocket,
             eventLoop: eventLoop,
             delegate: self

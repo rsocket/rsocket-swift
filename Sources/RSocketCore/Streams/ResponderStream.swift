@@ -17,7 +17,7 @@
 import NIO
 
 final internal class ResponderStream {
-    private let streamId: StreamID
+    private let id: StreamID
     fileprivate enum StreamKind {
         case requestResponse(Cancellable)
         case stream(Subscription)
@@ -35,12 +35,12 @@ final internal class ResponderStream {
     internal weak var delegate: StreamDelegate?
     
     internal init(
-        streamId: StreamID,
+        id: StreamID,
         responderSocket: RSocket,
         eventLoop: EventLoop,
         delegate: StreamDelegate? = nil
     ) {
-        self.streamId = streamId
+        self.id = id
         self.eventLoop = eventLoop
         self.delegate = delegate
         state = .waitingForInitialFragments(responderSocket)
@@ -51,7 +51,7 @@ final internal class ResponderStream {
         case let .complete(completeFrame):
             switch state {
             case let .waitingForInitialFragments(socket):
-                let adapter = ThreadSafeStreamAdapter(id: streamId, eventLoop: eventLoop, delegate: self)
+                let adapter = ThreadSafeStreamAdapter(id: id, eventLoop: eventLoop, delegate: self)
                 let streamKind: StreamKind?
                 switch completeFrame.body {
                 case let .requestFnf(body):
@@ -80,25 +80,25 @@ final internal class ResponderStream {
                     ))
                 default:
                     if !frame.header.flags.contains(.ignore) {
-                        send(frame: Error.connectionError(message: "Frame is not requesting new stream").asFrame(withStreamId: streamId))
+                        send(frame: Error.connectionError(message: "Frame is not requesting new stream").asFrame(withStreamId: id))
                     }
                     return
                 }
                 if let streamKind = streamKind {
                     state = .active(streamKind)
                     if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
-                        delegate?.terminate(streamId: streamId)
+                        delegate?.terminate(streamId: id)
                     }
                 } else {
                     /// Fire & Forget does not need an active stream after receiving a request and needs to be terminated immediately
-                    delegate?.terminate(streamId: streamId)
+                    delegate?.terminate(streamId: id)
                 }
             case let .active(adapter):
                 if let error = adapter.forward(frame: frame) {
-                    send(frame: error.asFrame(withStreamId: streamId))
+                    send(frame: error.asFrame(withStreamId: id))
                 } else {
                     if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
-                        delegate?.terminate(streamId: streamId)
+                        delegate?.terminate(streamId: id)
                     }
                 }
             }
@@ -108,7 +108,7 @@ final internal class ResponderStream {
 
         case let .error(reason):
             if !frame.header.flags.contains(.ignore) {
-                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: streamId))
+                send(frame: Error.connectionError(message: reason).asFrame(withStreamId: id))
             }
         }
     }
@@ -118,7 +118,7 @@ extension ResponderStream: StreamAdapterDelegate {
     func send(frame: Frame) {
         delegate?.send(frame: frame)
         if terminationBehaviour?.shouldTerminateAfterResponderSent(frame) == true {
-            delegate?.terminate(streamId: streamId)
+            delegate?.terminate(streamId: id)
         }
     }
 }

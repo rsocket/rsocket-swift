@@ -82,25 +82,3 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
         }
     }
 }
-
-extension DemultiplexerHandler: RSocket {
-    func metadataPush(metadata: Data) {
-        requester.metadataPush(metadata: metadata)
-    }
-    
-    func fireAndForget(payload: Payload) {
-        requester.fireAndForget(payload: payload)
-    }
-    
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
-        requester.requestResponse(payload: payload, responderStream: responderStream)
-    }
-    
-    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
-        requester.stream(payload: payload, initialRequestN: initialRequestN, responderStream: responderStream)
-    }
-    
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
-        requester.channel(payload: payload, initialRequestN: initialRequestN, isCompleted: isCompleted, responderStream: responderStream)
-    }
-}

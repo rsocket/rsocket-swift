@@ -39,7 +39,7 @@ internal final class Responder {
         }
         
         guard frame.header.type.canCreateStream else {
-            // ignore
+            // ignore frame because it could be a late frame
             return
         }
 

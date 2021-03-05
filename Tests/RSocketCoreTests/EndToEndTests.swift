@@ -214,8 +214,6 @@ final class EndToEndTests: XCTestCase {
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
                     FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
-                    DebugInboundEventsHandler(),
-                    DebugOutboundEventsHandler(),
                     ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
                         let sendFrame: (Frame) -> () = { [weak channel] frame in
                             channel?.writeAndFlush(frame, promise: nil)
@@ -249,8 +247,6 @@ final class EndToEndTests: XCTestCase {
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                     FrameDecoderHandler(),
                     FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
-                    DebugInboundEventsHandler(),
-                    DebugOutboundEventsHandler(),
                     SetupWriter(config: config),
                     DemultiplexerHandler(
                         connectionSide: .client,

@@ -61,39 +61,52 @@ extension Requester: StreamDelegate {
 
 extension Requester {
     func fireAndForget(payload: Payload) {
-        let newId = generateNewStreamId()
-        send(frame: RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: newId))
+        eventLoop.execute { [self] in
+            let newId = generateNewStreamId()
+            send(frame: RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: newId))
+        }
+    }
+    
+    private func makeStream<Body>(
+        responderStream: UnidirectionalStream,
+        terminationBehaviour: TerminationBehaviour,
+        initialFrame body: Body
+    ) -> ThreadSafeStreamAdapter where Body: FrameBodyBoundToStream {
+        let adapter = ThreadSafeStreamAdapter(eventLoop: eventLoop)
+        eventLoop.execute { [self] in
+            let newId = generateNewStreamId()
+            let stream = RequesterStream(
+                id: newId,
+                terminationBehaviour: terminationBehaviour,
+                output: responderStream,
+                delegate: self
+            )
+            activeStreams[newId] = stream
+            adapter.id = newId
+            adapter.delegate = stream
+            send(frame: body.frame(withStreamId: newId))
+        }
+        
+        return adapter
     }
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
-        let newId = generateNewStreamId()
-        let stream = RequesterStream(
-            id: newId,
+        return makeStream(
+            responderStream: responderStream,
             terminationBehaviour: RequestResponseTerminationBehaviour(),
-            output: responderStream,
-            delegate: self
+            initialFrame: RequestResponseFrameBody(payload: payload)
         )
-        activeStreams[newId] = stream
-        
-        send(frame: RequestResponseFrameBody(payload: payload).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
-        let newId = generateNewStreamId()
-        let stream = RequesterStream(
-            id: newId,
+        return makeStream(
+            responderStream: responderStream,
             terminationBehaviour: StreamTerminationBehaviour(),
-            output: responderStream,
-            delegate: self
+            initialFrame: RequestStreamFrameBody(
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
         )
-        activeStreams[newId] = stream
-        
-        send(frame: RequestStreamFrameBody(
-            initialRequestN: initialRequestN,
-            payload: payload
-        ).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
     
     func channel(
@@ -102,20 +115,14 @@ extension Requester {
         isCompleted: Bool,
         responderStream: UnidirectionalStream
     ) -> UnidirectionalStream {
-        let newId = generateNewStreamId()
-        let stream = RequesterStream(
-            id: newId,
+        return makeStream(
+            responderStream: responderStream,
             terminationBehaviour: ChannelTerminationBehaviour(),
-            output: responderStream,
-            delegate: self
+            initialFrame: RequestChannelFrameBody(
+                isCompleted: isCompleted,
+                initialRequestN: initialRequestN,
+                payload: payload
+            )
         )
-        activeStreams[newId] = stream
-        
-        send(frame: RequestChannelFrameBody(
-            isCompleted: isCompleted,
-            initialRequestN: initialRequestN,
-            payload: payload
-        ).frame(withStreamId: newId))
-        return ThreadSafeStreamAdapter(id: newId, eventLoop: eventLoop, delegate: stream)
     }
 }

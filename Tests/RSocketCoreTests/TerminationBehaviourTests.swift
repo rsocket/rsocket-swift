@@ -66,7 +66,7 @@ final class StreamTerminationBehaviourTests: XCTestCase {
 
 final class ChannelTerminationBehaviourTests: XCTestCase {
     private var tb = ChannelTerminationBehaviour()
-    // MARK: single termination events
+    // MARK: termination on first event
     func testRequesterSendsComplete() {
         XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
     }
@@ -86,7 +86,7 @@ final class ChannelTerminationBehaviourTests: XCTestCase {
         XCTAssertTrue(tb.shouldTerminateAfterResponderSent(event: .error))
     }
     
-    // MARK: double termination events
+    // MARK: termination on second event
     func testRequesterCompletesBeforeResponderCancels() {
         XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
         XCTAssertTrue(tb.shouldTerminateAfterResponderSent(event: .cancel))
@@ -102,6 +102,30 @@ final class ChannelTerminationBehaviourTests: XCTestCase {
     }
     
     func testRequesterCompletesAfterResponderCompletes() {
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSent(event: .complete))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSent(event: .complete))
+    }
+    
+    // MARK: termination on third event
+    func testRequesterCompletesBeforeResponderCancelsWithDuplicatedEvent() {
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSent(event: .cancel))
+    }
+    func testRequesterCompletesAfterResponderCancelsWithDuplicatedEvent() {
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSent(event: .cancel))
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSent(event: .cancel))
+        XCTAssertTrue(tb.shouldTerminateAfterRequesterSent(event: .complete))
+    }
+    
+    func testRequesterCompletesBeforeResponderCompletesWithDuplicatedEvent() {
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
+        XCTAssertFalse(tb.shouldTerminateAfterRequesterSent(event: .complete))
+        XCTAssertTrue(tb.shouldTerminateAfterResponderSent(event: .complete))
+    }
+    
+    func testRequesterCompletesAfterResponderCompletesWithDuplicatedEvent() {
+        XCTAssertFalse(tb.shouldTerminateAfterResponderSent(event: .complete))
         XCTAssertFalse(tb.shouldTerminateAfterResponderSent(event: .complete))
         XCTAssertTrue(tb.shouldTerminateAfterRequesterSent(event: .complete))
     }

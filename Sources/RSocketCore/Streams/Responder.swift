@@ -37,6 +37,11 @@ internal final class Responder {
             existingStreamAdapter.receive(frame: frame)
             return
         }
+        
+        guard frame.header.type.canCreateStream else {
+            // ignore
+            return
+        }
 
         let stream = ResponderStream(
             id: streamId,
@@ -55,5 +60,19 @@ extension Responder: StreamDelegate {
     }
     func terminate(streamId: StreamID) {
         activeStreams.removeValue(forKey: streamId)
+    }
+}
+
+extension FrameType {
+    /// returns true for all request frame types, false otherwise
+    fileprivate var canCreateStream: Bool {
+        switch self {
+        case .requestFnf,
+             .requestResponse,
+             .requestStream,
+             .requestChannel:
+            return true
+        default: return false
+        }
     }
 }

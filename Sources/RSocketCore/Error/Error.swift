@@ -255,7 +255,14 @@ extension Error {
              .connectionError,
              .connectionClose:
             return true
-        default: return false
+        case .reservedLower,
+             .applicationError,
+             .rejected,
+             .canceled,
+             .invalid,
+             .reservedUpper,
+             .other:
+            return false
         }
     }
     public var isProtocolError: Bool {

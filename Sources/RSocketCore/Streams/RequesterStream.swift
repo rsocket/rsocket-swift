@@ -38,7 +38,7 @@ final internal class RequesterStream {
         case .incomplete:
             break
         case let .complete(completeFrame):
-            if let error = completeFrame.forward(to: output) {
+            if let error = output.receive(completeFrame) {
                 send(frame: error.asFrame(withStreamId: id))
             } else {
                 if terminationBehaviour.shouldTerminateAfterResponderSent(frame) {

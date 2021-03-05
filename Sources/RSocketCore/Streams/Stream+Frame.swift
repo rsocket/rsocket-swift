@@ -14,58 +14,62 @@
  * limitations under the License.
  */
 
-extension Frame {
-    internal func forward(to stream: Cancellable) -> Error? {
-        switch body {
+extension Cancellable {
+    internal func receive(_ frame: Frame) -> Error? {
+        switch frame.body {
         case .cancel:
-            stream.onCancel()
+            onCancel()
         default:
-            if !header.flags.contains(.ignore) {
-                return .connectionError(message: "Invalid frame type \(self.body.type) for an active cancelable")
+            if !frame.header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(frame.body.type) for an active cancelable")
             }
         }
         return nil
     }
-    func forward(to stream: Subscription) -> Error? {
-        switch body {
+}
+extension Subscription {
+    internal func receive(_ frame: Frame) -> Error? {
+        switch frame.body {
         case let .requestN(body):
-            stream.onRequestN(body.requestN)
+            onRequestN(body.requestN)
         case .cancel:
-            stream.onCancel()
+            onCancel()
         default:
-            if !header.flags.contains(.ignore) {
-                return .connectionError(message: "Invalid frame type \(self.body.type) for an active subscription")
+            if !frame.header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(frame.body.type) for an active subscription")
             }
         }
         return nil
     }
-    func forward(to stream: UnidirectionalStream) -> Error? {
-        switch body {
+}
+extension UnidirectionalStream {
+    internal func receive(_ frame: Frame) -> Error? {
+        switch frame.body {
         case let .requestN(body):
-            stream.onRequestN(body.requestN)
+            onRequestN(body.requestN)
 
         case .cancel:
-            stream.onCancel()
+            onCancel()
 
         case let .payload(body):
             if body.isNext {
-                stream.onNext(body.payload, isCompletion: body.isCompletion)
+                onNext(body.payload, isCompletion: body.isCompletion)
             } else if body.isCompletion {
-                stream.onComplete()
+                onComplete()
             }
 
         case let .error(body):
-            stream.onError(body.error)
+            onError(body.error)
 
         case let .ext(body):
-            stream.onExtension(
+            onExtension(
                 extendedType: body.extendedType,
                 payload: body.payload,
                 canBeIgnored: body.canBeIgnored
             )
         default:
-            if !header.flags.contains(.ignore) {
-                return .connectionError(message: "Invalid frame type \(self.body.type) for an active unidirectional stream")
+            if !frame.header.flags.contains(.ignore) {
+                return .connectionError(message: "Invalid frame type \(frame.body.type) for an active unidirectional stream")
             }
         }
         return nil

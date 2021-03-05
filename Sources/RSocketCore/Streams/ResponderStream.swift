@@ -94,7 +94,7 @@ final internal class ResponderStream {
                     delegate?.terminate(streamId: id)
                 }
             case let .active(adapter):
-                if let error = adapter.forward(frame: frame) {
+                if let error = adapter.receive(frame: frame) {
                     send(frame: error.asFrame(withStreamId: id))
                 } else {
                     if terminationBehaviour?.shouldTerminateAfterRequesterSent(frame) == true {
@@ -124,11 +124,11 @@ extension ResponderStream: StreamAdapterDelegate {
 }
 
 extension ResponderStream.StreamKind {
-    func forward(frame: Frame) -> Error? {
+    func receive(frame: Frame) -> Error? {
         switch self {
-        case let .requestResponse(stream): return frame.forward(to: stream)
-        case let .stream(stream): return frame.forward(to: stream)
-        case let .channel(stream): return frame.forward(to: stream)
+        case let .requestResponse(stream): return stream.receive(frame)
+        case let .stream(stream): return stream.receive(frame)
+        case let .channel(stream): return stream.receive(frame)
         }
     }
 }

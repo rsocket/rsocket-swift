@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIO
 
 /// The role of a connection
@@ -40,9 +41,12 @@ internal struct DemultiplexerRouter {
     
     internal var connectionSide: ConnectionRole
     
-    internal func route(for streamId: StreamID) -> Route {
+    internal func route(for streamId: StreamID, type: FrameType) -> Route {
         switch (streamId.generatedBy, connectionSide) {
-        case (nil, _):
+        case (nil, _):    
+            guard type != .metadataPush else {
+                return .responder
+            }
             return .connection
         case (.client, .client), (.server, .server):
             return .requester
@@ -68,7 +72,7 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        switch router.route(for: frame.header.streamId) {
+        switch router.route(for: frame.header.streamId, type: frame.header.type) {
         case .connection:
             context.fireChannelRead(wrapInboundOut(frame))
         case .requester:
@@ -80,8 +84,8 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
 }
 
 extension DemultiplexerHandler: RSocket {
-    func metadataPush(payload: Payload) {
-        fatalError("not implemented")
+    func metadataPush(metadata: Data) {
+        requester.metadataPush(metadata: metadata)
     }
     
     func fireAndForget(payload: Payload) {

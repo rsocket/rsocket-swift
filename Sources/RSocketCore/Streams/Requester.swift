@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import Foundation
 import NIO
 
 internal final class Requester {
@@ -59,7 +61,13 @@ extension Requester: StreamDelegate {
     }
 }
 
-extension Requester {
+extension Requester: RSocket {
+    func metadataPush(metadata: Data) {
+        eventLoop.execute { [self] in
+            send(frame: MetadataPushFrameBody(metadata: metadata).asFrame())
+        }
+    }
+
     func fireAndForget(payload: Payload) {
         eventLoop.execute { [self] in
             let newId = generateNewStreamId()

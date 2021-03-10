@@ -20,7 +20,7 @@ import NIOExtras
 @testable import RSocketCore
 
 final class TestRSocket: RSocket {
-    var metadataPush: ((Payload) -> ())? = nil
+    var metadataPush: ((Data) -> ())? = nil
     var fireAndForget: ((_ payload: Payload) -> ())? = nil
     var requestResponse: ((_ payload: Payload, _ responderOutput: UnidirectionalStream) -> Cancellable)? = nil
     var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ responderOutput: UnidirectionalStream) -> Subscription)? = nil
@@ -30,7 +30,7 @@ final class TestRSocket: RSocket {
     private let line: UInt
     
     internal init(
-        metadataPush: ((Payload) -> ())? = nil,
+        metadataPush: ((Data) -> ())? = nil,
         fireAndForget: ((Payload) -> ())? = nil,
         requestResponse: ((Payload, UnidirectionalStream) -> Cancellable)? = nil,
         stream: ((Payload, Int32, UnidirectionalStream) -> Subscription)? = nil,
@@ -48,12 +48,12 @@ final class TestRSocket: RSocket {
     }
     
     
-    func metadataPush(payload: Payload) {
+    func metadataPush(metadata: Data) {
         guard let metadataPush = metadataPush else {
             XCTFail("metadataPush not expected to be called ", file: file, line: line)
             return
         }
-        metadataPush(payload)
+        metadataPush(metadata)
     }
     
     func fireAndForget(payload: Payload) {

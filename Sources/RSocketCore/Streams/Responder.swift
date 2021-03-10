@@ -37,6 +37,11 @@ internal final class Responder {
             existingStreamAdapter.receive(frame: frame)
             return
         }
+
+        if case let .metadataPush(body) = frame.body, streamId == .connection {
+            responderSocket.metadataPush(metadata: body.metadata)
+            return
+        }
         
         guard frame.header.type.canCreateStream else {
             // ignore frame because it could be a late frame

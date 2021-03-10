@@ -42,11 +42,11 @@ internal struct DemultiplexerRouter {
     internal var connectionSide: ConnectionRole
     
     internal func route(for streamId: StreamID, type: FrameType) -> Route {
-        guard type != .metadataPush else {
-            return .responder
-        }
         switch (streamId.generatedBy, connectionSide) {
-        case (nil, _):
+        case (nil, _):    
+            guard type != .metadataPush else {
+                return .responder
+            }
             return .connection
         case (.client, .client), (.server, .server):
             return .requester

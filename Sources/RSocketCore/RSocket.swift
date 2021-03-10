@@ -17,40 +17,14 @@
 import Foundation
 
 public protocol RSocket {
-    func fireAndForget(_ payload: Payload) -> AnySinglePublisher<Never, Swift.Error>
-
-    func requestResponse(_ payload: Payload) -> AnySinglePublisher<Payload, Swift.Error>
-
-    func requestStream(_ payload: Payload) -> AnyPublisher<Payload, Swift.Error>
-
-    func requestChannel(initialPayload: Payload, payloadsPublisher: AnyPublisher<Payload, Swift.Error>) -> AnyPublisher<Payload, Swift.Error>
-
-    func metadataPush(_ payload: Payload) -> AnySinglePublisher<Never, Swift.Error>
-}
-
-public extension RSocket {
-    func fireAndForget(_ payload: Payload) -> AnySinglePublisher<Never, Swift.Error> {
-        ErrorPublisher(failure: RSocketError.unsupportedInteraction(message: "fireAndForget"))
-                .eraseToAnySinglePublisher()
-    }
-
-    func requestResponse(_ payload: Payload) -> AnySinglePublisher<Payload, Swift.Error> {
-        ErrorPublisher(failure: RSocketError.unsupportedInteraction(message: "requestResponse"))
-                .eraseToAnySinglePublisher()
-    }
-
-    func requestStream(_ payload: Payload) -> AnyPublisher<Payload, Swift.Error> {
-        ErrorPublisher(failure: RSocketError.unsupportedInteraction(message: "requestStream"))
-                .eraseToAnyPublisher()
-    }
-
-    func requestChannel(initialPayload: Payload, payloadsPublisher: AnyPublisher<Payload, Swift.Error>) -> AnyPublisher<Payload, Swift.Error> {
-        ErrorPublisher(failure: RSocketError.unsupportedInteraction(message: "requestChannel"))
-                .eraseToAnyPublisher()
-    }
-
-    func metadataPush(_ payload: Payload) -> AnySinglePublisher<Never, Swift.Error> {
-        ErrorPublisher(failure: RSocketError.unsupportedInteraction(message: "metadataPush"))
-                .eraseToAnySinglePublisher()
-    }
+    
+    func metadataPush(payload: Payload)
+    
+    func fireAndForget(payload: Payload)
+    
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable
+    
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
+    
+    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream
 }

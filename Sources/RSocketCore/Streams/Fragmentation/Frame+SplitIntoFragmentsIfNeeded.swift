@@ -106,7 +106,7 @@ private extension FrameBodyBoundToStream {
         lastFragmentShouldCompleteStream: Bool
     ) -> [Frame] {
         precondition(!fragments.isEmpty)
-        return [frame(withStreamId: streamId, additionalFlags: .fragmentFollows)]
+        return [asFrame(withStreamId: streamId, additionalFlags: .fragmentFollows)]
             + fragments.enumerated().map { index, fragment in
                 let isLastFragment = index == fragments.count - 1
                 let isFragmentCompletion = lastFragmentShouldCompleteStream && isLastFragment
@@ -115,7 +115,7 @@ private extension FrameBodyBoundToStream {
                     isNext: false,
                     payload: fragment
                 )
-                return fragmentBody.frame(
+                return fragmentBody.asFrame(
                     withStreamId: streamId,
                     additionalFlags: isLastFragment ? [] : .fragmentFollows
                 )

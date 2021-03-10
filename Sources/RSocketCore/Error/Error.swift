@@ -246,7 +246,25 @@ extension Error {
             return message
         }
     }
-
+    public var isConnectionError: Bool {
+        switch self {
+        case .invalidSetup,
+             .unsupportedSetup,
+             .rejectedSetup,
+             .rejectedResume,
+             .connectionError,
+             .connectionClose:
+            return true
+        case .reservedLower,
+             .applicationError,
+             .rejected,
+             .canceled,
+             .invalid,
+             .reservedUpper,
+             .other:
+            return false
+        }
+    }
     public var isProtocolError: Bool {
         0x0001 <= code && code <= 0x00300
     }
@@ -296,5 +314,19 @@ extension Error {
         default:
             self = .other(code: code, message: message)
         }
+    }
+}
+
+extension Error {
+    /// Creates an error frame from `self`. Depending on the error type, it uses the given `streamId` or the connection stream id (stream 0).
+    ///
+    /// This allows the call side to create error frames without knowing whether the error should be sent on the connection or on the specified stream.
+    /// It is especially useful in case the error is later changed from an error that should be sent on the stream instead of on the connection.
+    /// Then the call side would not need to be change, thus can not be forgotten.
+    /// - Parameter streamId: used if it is *not* a connection error
+    /// - Returns: Error Frame
+    internal func asFrame(withStreamId streamId: StreamID) -> Frame {
+        ErrorFrameBody(error: self)
+            .asFrame(withStreamId: isConnectionError ? .connection : streamId)
     }
 }

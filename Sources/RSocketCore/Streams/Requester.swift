@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import NIO
 
-internal final class Requester: FrameHandler {
+internal final class Requester {
     private let sendFrame: (Frame) -> Void
+    private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator
-    private let maximumFrameSize: Int32
-    private var activeStreams: [StreamID: StreamFragmenter] = [:]
+    private var activeStreams: [StreamID: RequesterStream] = [:]
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
-        maximumFrameSize: Int32,
+        eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void
     ) {
         self.streamIdGenerator = streamIdGenerator
-        self.maximumFrameSize = maximumFrameSize
+        self.eventLoop = eventLoop
         self.sendFrame = sendFrame
     }
 
@@ -39,80 +40,89 @@ internal final class Requester: FrameHandler {
     }
 
     internal func receiveInbound(frame: Frame) {
-        guard let existingStreamAdapter = activeStreams[frame.header.streamId] else {
+        let streamId = frame.header.streamId
+        guard let existingStreamAdapter = activeStreams[streamId] else {
             // TODO: do not close connection for late frames
-            closeConnection(with: .connectionError(message: "No active stream for given id"))
+            send(frame: Error.connectionError(message: "No active stream for given id").asFrame(withStreamId: streamId))
             return
         }
         existingStreamAdapter.receive(frame: frame)
-        if frame.isTerminating {
-            activeStreams.removeValue(forKey: frame.header.streamId)
-        }
-    }
-
-    private func closeConnection(with error: Error) {
-        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
-        sendFrame(frame)
     }
 }
 
-extension Requester: StreamAdapterDelegate {
+extension Requester: StreamDelegate {
     internal func send(frame: Frame) {
         sendFrame(frame)
-        /// TODO: we can not just terminate the connection if it is a terminating frame, because it may be a stream of type channel.
-        /// In that case, we would terminate too early. We need to wait until both sides have been terminated.
-//        if frame.isTerminating && frame.header.streamId != .connection {
-//            activeStreams.removeValue(forKey: frame.header.streamId)
-//        }
+    }
+    func terminate(streamId: StreamID) {
+        activeStreams.removeValue(forKey: streamId)
     }
 }
 
 extension Requester {
-    /// Creates a stream that is already active
-    @discardableResult
-    public func requestStream(
-        for type: StreamType,
-        payload: Payload,
-        createInput: (StreamOutput) -> StreamInput
-    ) -> StreamOutput {
-        let newId = generateNewStreamId()
-        let adapter = StreamAdapter(id: newId)
-        let fragmeter = StreamFragmenter(
-            streamId: newId,
-            maximumFrameSize: maximumFrameSize,
-            adapter: adapter
-        )
-        fragmeter.delegate = self
-        adapter.input = createInput(adapter)
-        activeStreams[newId] = fragmeter
-        sendRequest(id: newId, type: type, payload: payload)
+    func fireAndForget(payload: Payload) {
+        eventLoop.execute { [self] in
+            let newId = generateNewStreamId()
+            send(frame: RequestFireAndForgetFrameBody(payload: payload).asFrame(withStreamId: newId))
+        }
+    }
+    
+    private func createAndAddStream<Body>(
+        responderStream: UnidirectionalStream,
+        terminationBehaviour: TerminationBehaviour,
+        initialFrame body: Body
+    ) -> ThreadSafeStreamAdapter where Body: FrameBodyBoundToStream {
+        let adapter = ThreadSafeStreamAdapter(eventLoop: eventLoop)
+        eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
+            let newId = generateNewStreamId()
+            let stream = RequesterStream(
+                id: newId,
+                terminationBehaviour: terminationBehaviour,
+                output: responderStream,
+                delegate: self
+            )
+            activeStreams[newId] = stream
+            adapter.id = newId
+            adapter.delegate = stream
+            send(frame: body.asFrame(withStreamId: newId))
+        }
+        
         return adapter
     }
-
-    private func sendRequest(id: StreamID, type: StreamType, payload: Payload) {
-        let frame: Frame
-        switch type {
-        case .response:
-            frame = RequestResponseFrameBody(payload: payload).frame(withStreamId: id)
-
-        case .fireAndForget:
-            frame = RequestFireAndForgetFrameBody(payload: payload).frame(withStreamId: id)
-
-        case let .stream(initialRequestN):
-            frame = RequestStreamFrameBody(
+    
+    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+        return createAndAddStream(
+            responderStream: responderStream,
+            terminationBehaviour: RequestResponseTerminationBehaviour(),
+            initialFrame: RequestResponseFrameBody(payload: payload)
+        )
+    }
+    
+    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
+        return createAndAddStream(
+            responderStream: responderStream,
+            terminationBehaviour: StreamTerminationBehaviour(),
+            initialFrame: RequestStreamFrameBody(
                 initialRequestN: initialRequestN,
                 payload: payload
-            ).frame(withStreamId: id)
-
-        case let .channel(initialRequestN, isCompleted):
-            frame = RequestChannelFrameBody(
+            )
+        )
+    }
+    
+    func channel(
+        payload: Payload,
+        initialRequestN: Int32,
+        isCompleted: Bool,
+        responderStream: UnidirectionalStream
+    ) -> UnidirectionalStream {
+        return createAndAddStream(
+            responderStream: responderStream,
+            terminationBehaviour: ChannelTerminationBehaviour(),
+            initialFrame: RequestChannelFrameBody(
                 isCompleted: isCompleted,
                 initialRequestN: initialRequestN,
                 payload: payload
-            ).frame(withStreamId: id)
-        }
-        for fragment in frame.splitIntoFragmentsIfNeeded(maximumFrameSize: maximumFrameSize) {
-            send(frame: fragment)
-        }
+            )
+        )
     }
 }

@@ -16,57 +16,63 @@
 
 import NIO
 
-internal final class Responder: FrameHandler {
-    private let maximumFrameSize: Int32
-    private let createStream: (StreamType, Payload, StreamOutput) -> StreamInput
+internal final class Responder {
+    private let responderSocket: RSocket
     private let sendFrame: (Frame) -> Void
-    private var activeStreams: [StreamID: StreamFragmenter] = [:]
-
+    private var activeStreams: [StreamID: ResponderStream] = [:]
+    private let eventLoop: EventLoop
     internal init(
-        maximumFrameSize: Int32,
-        createStream: @escaping (StreamType, Payload, StreamOutput) -> StreamInput,
+        responderSocket: RSocket,
+        eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void
     ) {
-        self.maximumFrameSize = maximumFrameSize
-        self.createStream = createStream
+        self.responderSocket = responderSocket
         self.sendFrame = sendFrame
+        self.eventLoop = eventLoop
     }
 
     internal func receiveInbound(frame: Frame) {
         let streamId = frame.header.streamId
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
-            if frame.isTerminating {
-                activeStreams.removeValue(forKey: streamId)
-            }
+            return
+        }
+        
+        guard frame.header.type.canCreateStream else {
+            // ignore frame because it could be a late frame
             return
         }
 
-        let fragmenter = StreamFragmenter(
-            streamId: streamId,
-            maximumFrameSize: maximumFrameSize,
-            createInput: createStream
+        let stream = ResponderStream(
+            id: streamId,
+            responderSocket: responderSocket,
+            eventLoop: eventLoop,
+            delegate: self
         )
-        fragmenter.delegate = self
-        activeStreams[streamId] = fragmenter
-        fragmenter.receive(frame: frame)
-
-        if frame.isTerminating {
-            activeStreams.removeValue(forKey: streamId)
-        }
-    }
-
-    private func closeConnection(with error: Error) {
-        let frame = ErrorFrameBody(error: error).frame(withStreamId: .connection)
-        sendFrame(frame)
+        activeStreams[streamId] = stream
+        stream.receive(frame: frame)
     }
 }
 
-extension Responder: StreamAdapterDelegate {
+extension Responder: StreamDelegate {
     internal func send(frame: Frame) {
         sendFrame(frame)
-        if frame.isTerminating && frame.header.streamId != .connection {
-            activeStreams.removeValue(forKey: frame.header.streamId)
+    }
+    func terminate(streamId: StreamID) {
+        activeStreams.removeValue(forKey: streamId)
+    }
+}
+
+extension FrameType {
+    /// returns true for all request frame types, false otherwise
+    fileprivate var canCreateStream: Bool {
+        switch self {
+        case .requestFnf,
+             .requestResponse,
+             .requestStream,
+             .requestChannel:
+            return true
+        default: return false
         }
     }
 }

@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-public protocol StreamOutput {
-    func sendNext(_ payload: Payload, isCompletion: Bool)
-    func sendError(_ error: Error)
-    func sendComplete()
-    func sendCancel()
-    func sendRequestN(_ requestN: Int32)
-    func sendExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
+public protocol Cancellable: AnyObject {
+    func onCancel()
+}
+
+public protocol Subscription: Cancellable {
+    func onRequestN(_ requestN: Int32)
+}
+
+public protocol UnidirectionalStream: Subscription {
+    func onNext(_ payload: Payload, isCompletion: Bool)
+    func onError(_ error: Error)
+    func onComplete()
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
-public protocol SinglePublisher: Publisher {
-    
+protocol StreamDelegate: AnyObject {
+    func send(frame: Frame)
+    func terminate(streamId: StreamID)
 }

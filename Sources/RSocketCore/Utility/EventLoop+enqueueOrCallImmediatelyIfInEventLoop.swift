@@ -13,10 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import NIO
 
-public enum StreamType: Hashable {
-    case response
-    case fireAndForget
-    case stream(initialRequestN: Int32)
-    case channel(initialRequestN: Int32, isCompleted: Bool)
+extension EventLoop {
+    /// executes the given `task` immediately if `inEventLoop` returns true, otherwise enqueues the `task` on `self`.
+    /// - Parameter task: task to execute
+    func enqueueOrCallImmediatelyIfInEventLoop(_ task: @escaping () -> ()) {
+        if inEventLoop {
+            task()
+        } else {
+            execute(task)
+        }
+    }
 }

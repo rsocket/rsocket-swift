@@ -33,6 +33,10 @@ internal final class Responder {
 
     internal func receiveInbound(frame: Frame) {
         let streamId = frame.header.streamId
+        if streamId == .connection && frame.header.type == .error {
+            activeStreams.values.forEach { $0.receive(frame: frame) }
+            return
+        }
         if let existingStreamAdapter = activeStreams[streamId] {
             existingStreamAdapter.receive(frame: frame)
             return

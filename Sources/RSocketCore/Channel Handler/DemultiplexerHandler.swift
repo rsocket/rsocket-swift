@@ -34,12 +34,12 @@ extension StreamID {
 
 internal struct DemultiplexerRouter {
     internal struct Route: OptionSet {
-        internal let rawValue: UInt8
-
         internal static let connection = Route(rawValue: 1 << 0)
         internal static let requester = Route(rawValue: 1 << 1)
         internal static let responder = Route(rawValue: 1 << 2)
         internal static let all: Route = [connection, requester, responder]
+
+        internal let rawValue: UInt8
     }
     
     internal var connectionSide: ConnectionRole

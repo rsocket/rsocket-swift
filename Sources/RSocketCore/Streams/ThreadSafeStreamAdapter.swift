@@ -20,7 +20,10 @@ internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)
 }
 
-/// `ThreadSafeStreamAdapter` converts all stream events (e.g. onNext, onCancel, etc,) into frames with the given `id` and forwards them to `delegate` on `eventLoop`
+/// `ThreadSafeStreamAdapter` converts all stream events (e.g. onNext, onCancel, etc,) into frames with the given `id` and forwards them to `delegate` on `eventLoop`.
+/// `ThreadSafeStreamAdapter` can be initialised without `id` and `delegate`.
+/// In this case, the callee of the initialiser needs to make sure that setting `id` and `delegate` is at least scheduled on the given `eventLoop`.
+/// Calls to e.g. onNext, onCancel, etc will submit a task to `eventLoop` which will require `id` to be set. Otherwise it will crash.
 internal final class ThreadSafeStreamAdapter {
     internal var id: StreamID!
     private let eventLoop: EventLoop
@@ -35,7 +38,7 @@ internal final class ThreadSafeStreamAdapter {
 
 extension ThreadSafeStreamAdapter: UnidirectionalStream {
     private func send<Body>(_ body: Body) where Body: FrameBodyBoundToStream {
-        eventLoop.execute { [self] in
+        eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             self.delegate?.send(frame: body.asFrame(withStreamId: self.id))
         }
     }

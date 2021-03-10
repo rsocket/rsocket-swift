@@ -73,7 +73,7 @@ extension Requester {
         initialFrame body: Body
     ) -> ThreadSafeStreamAdapter where Body: FrameBodyBoundToStream {
         let adapter = ThreadSafeStreamAdapter(eventLoop: eventLoop)
-        eventLoop.execute { [self] in
+        eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             let newId = generateNewStreamId()
             let stream = RequesterStream(
                 id: newId,

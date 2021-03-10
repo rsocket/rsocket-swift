@@ -19,9 +19,10 @@ import NIO
 extension ChannelPipeline {
     public func addRSocketClientHandlers(
         config: ClientSetupConfig,
-        responder: RSocket,
+        responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil
     ) -> EventLoopFuture<Void> {
+        let responder = responder ?? DefaultRSocket()
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
@@ -43,7 +44,7 @@ extension ChannelPipeline {
 extension ChannelPipeline {
     public func addRSocketServerHandlers(
         shouldAcceptClient: ClientAcceptorCallback? = nil,
-        makeResponder: @escaping (SetupInfo) -> RSocket,
+        makeResponder: ((SetupInfo) -> RSocket?)? = nil,
         maximumFrameSize: Int32? = nil
     ) -> EventLoopFuture<Void> {
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
@@ -51,7 +52,7 @@ extension ChannelPipeline {
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
             ConnectionEstablishmentHandler(initializeConnection: { [unowned self] (info, channel) in
-                let responder = makeResponder(info)
+                let responder = makeResponder?(info) ?? DefaultRSocket()
                 let sendFrame: (Frame) -> () = { [weak self] frame in
                     self?.writeAndFlush(NIOAny(frame), promise: nil)
                 }

@@ -26,7 +26,10 @@ let package = Package(
             .product(name: "NIOFoundationCompat", package: "swift-nio"),
         ]),
         .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
-        .target(name: "RSocketReactiveSwift", dependencies: ["RSocketCore", "ReactiveSwift"]),
+        .target(name: "RSocketReactiveSwift", dependencies: [
+            "RSocketCore",
+            "ReactiveSwift"
+        ]),
         .target(name: "RSocketTestUtilities", dependencies: [
             "RSocketCore",
         ]),
@@ -41,7 +44,13 @@ let package = Package(
             .product(name: "NIOExtras", package: "swift-nio-extras"),
         ]),
         .testTarget(name: "RSocketCombineTests", dependencies: ["RSocketCombine"]),
-        .testTarget(name: "RSocketReactiveSwiftTests", dependencies: ["RSocketReactiveSwift"]),
+        .testTarget(name: "RSocketReactiveSwiftTests", dependencies: [
+            "RSocketCore",
+            "RSocketReactiveSwift",
+            "RSocketTestUtilities",
+            "ReactiveSwift",
+            .product(name: "NIO", package: "swift-nio"),
+        ]),
     ],
     swiftLanguageVersions: [.v5]
 )

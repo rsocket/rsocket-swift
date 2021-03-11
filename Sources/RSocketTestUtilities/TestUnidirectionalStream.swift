@@ -16,7 +16,7 @@
 
 import RSocketCore
 
-public final class TestStreamInput: RSocketCore.UnidirectionalStream {
+public final class TestUnidirectionalStream: RSocketCore.UnidirectionalStream {
     public enum Event: Hashable {
         case next(Payload, isCompletion: Bool)
         case error(Error)
@@ -82,9 +82,9 @@ public final class TestStreamInput: RSocketCore.UnidirectionalStream {
     }
 }
 
-extension TestStreamInput {
-    public static func echo(to output: UnidirectionalStream) -> TestStreamInput {
-        return TestStreamInput {
+extension TestUnidirectionalStream {
+    public static func echo(to output: UnidirectionalStream) -> TestUnidirectionalStream {
+        return TestUnidirectionalStream {
             output.onNext($0, isCompletion: $1)
         } onError: {
             output.onError($0)
@@ -100,7 +100,7 @@ extension TestStreamInput {
     }
 }
 
-extension TestStreamInput.Event: ExpressibleByStringLiteral {
+extension TestUnidirectionalStream.Event: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
         self = .next(.init(stringLiteral: value), isCompletion: false)
     }

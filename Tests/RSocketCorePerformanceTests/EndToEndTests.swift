@@ -100,7 +100,7 @@ final class EndToEndTests: XCTestCase {
                 request.fulfill()
                 // just echo back
                 output.onNext(payload, isCompletion: true)
-                return TestStreamInput()
+                return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
             
@@ -112,7 +112,7 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             let helloWorld: Payload = "Hello World"
-            let input = TestStreamInput { payload, isCompletion in
+            let input = TestUnidirectionalStream { payload, isCompletion in
                 response.fulfill()
             }
             for _ in 0..<requestCount {
@@ -126,10 +126,10 @@ final class EndToEndTests: XCTestCase {
             let requestCount = 1_000
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
-            var echo: TestStreamInput?
+            var echo: TestUnidirectionalStream?
             let server = makeServerBootstrap(responderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
                 request.fulfill()
-                echo = TestStreamInput.echo(to: output)
+                echo = TestUnidirectionalStream.echo(to: output)
                 // just echo back
                 output.onNext(payload, isCompletion: false)
                 return echo!
@@ -144,7 +144,7 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
-                let input = TestStreamInput(onComplete: {
+                let input = TestUnidirectionalStream(onComplete: {
                     response.fulfill()
                 })
                 let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
@@ -173,7 +173,7 @@ final class EndToEndTests: XCTestCase {
                 output.onNext("r", isCompletion: false)
                 output.onNext("l", isCompletion: false)
                 output.onNext("d", isCompletion: true)
-                return TestStreamInput()
+                return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
             
@@ -185,7 +185,7 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
-                let input = TestStreamInput(onNext: { _, isCompletion in
+                let input = TestUnidirectionalStream(onNext: { _, isCompletion in
                     guard isCompletion else { return }
                     response.fulfill()
                 })
@@ -205,7 +205,7 @@ final class EndToEndTests: XCTestCase {
             let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
                 outputs.append(output)
                 request.fulfill()
-                return TestStreamInput()
+                return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
             
@@ -220,7 +220,7 @@ final class EndToEndTests: XCTestCase {
             receivedMessage.expectedFulfillmentCount = messageCount
             let initialMessage: Payload = "Hello World!"
             (0..<requestCount).forEach { _ in
-                let input = TestStreamInput(onNext: { _, _ in
+                let input = TestUnidirectionalStream(onNext: { _, _ in
                     receivedMessage.fulfill()
                 }, onComplete: {
                     response.fulfill()

@@ -117,7 +117,7 @@ final class EndToEndTests: XCTestCase {
             request.fulfill()
             // just echo back
             output.onNext(payload, isCompletion: true)
-            return TestStreamInput()
+            return TestUnidirectionalStream()
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
@@ -128,7 +128,7 @@ final class EndToEndTests: XCTestCase {
         
         let response = self.expectation(description: "receive response")
         let helloWorld: Payload = "Hello World"
-        let input = TestStreamInput { payload, isCompletion in
+        let input = TestUnidirectionalStream { payload, isCompletion in
             XCTAssertEqual(payload, helloWorld)
             XCTAssertTrue(isCompletion)
             response.fulfill()
@@ -138,12 +138,12 @@ final class EndToEndTests: XCTestCase {
     }
     func testChannelEcho() throws {
         let request = self.expectation(description: "receive request")
-        var echo: TestStreamInput?
+        var echo: TestUnidirectionalStream?
         let server = makeServerBootstrap(responderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
             request.fulfill()
             XCTAssertEqual(initialRequestN, .max)
             XCTAssertFalse(isCompletion)
-            echo = TestStreamInput.echo(to: output)
+            echo = TestUnidirectionalStream.echo(to: output)
             // just echo back
             output.onNext(payload, isCompletion: false)
             return echo!
@@ -156,9 +156,9 @@ final class EndToEndTests: XCTestCase {
             .wait()
         
         let response = self.expectation(description: "receive response")
-        var input: TestStreamInput!
-        weak var weakInput: TestStreamInput?
-        input = TestStreamInput(onComplete: {
+        var input: TestUnidirectionalStream!
+        weak var weakInput: TestUnidirectionalStream?
+        input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
@@ -186,7 +186,7 @@ final class EndToEndTests: XCTestCase {
             output.onNext("r", isCompletion: false)
             output.onNext("l", isCompletion: false)
             output.onNext("d", isCompletion: true)
-            return TestStreamInput()
+            return TestUnidirectionalStream()
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
@@ -196,9 +196,9 @@ final class EndToEndTests: XCTestCase {
             .wait()
         
         let response = self.expectation(description: "receive response")
-        var input: TestStreamInput!
-        weak var weakInput: TestStreamInput?
-        input = TestStreamInput(onNext: { _, isCompletion in
+        var input: TestUnidirectionalStream!
+        weak var weakInput: TestUnidirectionalStream?
+        input = TestUnidirectionalStream(onNext: { _, isCompletion in
             guard isCompletion else { return }
             response.fulfill()
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)

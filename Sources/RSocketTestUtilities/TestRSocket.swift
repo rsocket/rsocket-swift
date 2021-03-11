@@ -66,7 +66,7 @@ public final class TestRSocket: RSocket {
     public func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
-            return TestStreamInput()
+            return TestUnidirectionalStream()
         }
         return requestResponse(payload, responderStream)
     }
@@ -74,7 +74,7 @@ public final class TestRSocket: RSocket {
     public func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
         guard let stream = stream else {
             XCTFail("stream not expected to be called ", file: file, line: line)
-            return TestStreamInput()
+            return TestUnidirectionalStream()
         }
         return stream(payload, initialRequestN, responderStream)
     }
@@ -82,7 +82,7 @@ public final class TestRSocket: RSocket {
     public func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         guard let channel = channel else {
             XCTFail("channel not expected to be called ", file: file, line: line)
-            return TestStreamInput()
+            return TestUnidirectionalStream()
         }
         return channel(payload, initialRequestN, isCompleted, responderStream)
     }

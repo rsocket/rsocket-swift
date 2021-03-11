@@ -33,21 +33,28 @@ extension StreamID {
 }
 
 internal struct DemultiplexerRouter {
-    internal enum Route {
-        case connection
-        case requester
-        case responder
+    internal struct Route: OptionSet {
+        internal static let connection = Route(rawValue: 1 << 0)
+        internal static let requester = Route(rawValue: 1 << 1)
+        internal static let responder = Route(rawValue: 1 << 2)
+        internal static let all: Route = [connection, requester, responder]
+
+        internal let rawValue: UInt8
     }
     
     internal var connectionSide: ConnectionRole
     
     internal func route(for streamId: StreamID, type: FrameType) -> Route {
         switch (streamId.generatedBy, connectionSide) {
-        case (nil, _):    
-            guard type != .metadataPush else {
+        case (nil, _):
+            switch type {
+            case .metadataPush:
                 return .responder
+            case .error:
+                return .all
+            default:
+                return .connection
             }
-            return .connection
         case (.client, .client), (.server, .server):
             return .requester
         case (.client, .server), (.server, .client):
@@ -72,12 +79,14 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        switch router.route(for: frame.header.streamId, type: frame.header.type) {
-        case .connection:
+        let route = router.route(for: frame.header.streamId, type: frame.header.type)
+        if route.contains(.connection) {
             context.fireChannelRead(wrapInboundOut(frame))
-        case .requester:
+        }
+        if route.contains(.requester) {
             requester.receiveInbound(frame: frame)
-        case .responder:
+        }
+        if route.contains(.responder) {
             responder.receiveInbound(frame: frame)
         }
     }

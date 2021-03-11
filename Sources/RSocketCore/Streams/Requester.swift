@@ -43,6 +43,10 @@ internal final class Requester {
 
     internal func receiveInbound(frame: Frame) {
         let streamId = frame.header.streamId
+        if streamId == .connection && frame.header.type == .error {
+            activeStreams.values.forEach { $0.receive(frame: frame) }
+            return
+        }
         guard let existingStreamAdapter = activeStreams[streamId] else {
             // TODO: do not close connection for late frames
             send(frame: Error.connectionError(message: "No active stream for given id").asFrame(withStreamId: streamId))

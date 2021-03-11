@@ -17,7 +17,7 @@
 import XCTest
 import NIO
 import NIOExtras
-@testable import RSocketCore
+import RSocketCore
 
 final class TestRSocket: RSocket {
     var metadataPush: ((Data) -> ())? = nil
@@ -212,22 +212,12 @@ final class EndToEndTests: XCTestCase {
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
-                    FrameDecoderHandler(),
-                    FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
-                    ConnectionEstablishmentHandler(initializeConnection: { (info, channel) in
-                        let sendFrame: (Frame) -> () = { [weak channel] frame in
-                            channel?.writeAndFlush(frame, promise: nil)
-                        }
-                        return channel.pipeline.addHandlers([
-                            DemultiplexerHandler(
-                                connectionSide: .server,
-                                requester: Requester(streamIdGenerator: .server, eventLoop: channel.eventLoop, sendFrame: sendFrame),
-                                responder: Responder(responderSocket: responderSocket, eventLoop: channel.eventLoop, sendFrame: sendFrame)
-                            ),
-                            ConnectionStreamHandler(),
-                        ])
-                    }, shouldAcceptClient: shouldAcceptClient)
-                ])
+                ]).flatMap {
+                    channel.pipeline.addRSocketServerHandlers(
+                        shouldAcceptClient: shouldAcceptClient,
+                        makeResponder: { _ in responderSocket }
+                    )
+                }
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
     }
@@ -239,22 +229,12 @@ final class EndToEndTests: XCTestCase {
     ) -> ClientBootstrap {
         return ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
-                let sendFrame: (Frame) -> () = { [weak channel] frame in
-                    channel?.writeAndFlush(frame, promise: nil)
-                }
-                return channel.pipeline.addHandlers([
+                channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
-                    FrameDecoderHandler(),
-                    FrameEncoderHandler(maximumFrameSize: Payload.Constants.minMtuSize),
-                    SetupWriter(config: config),
-                    DemultiplexerHandler(
-                        connectionSide: .client,
-                        requester: Requester(streamIdGenerator: .client, eventLoop: channel.eventLoop, sendFrame: sendFrame),
-                        responder: Responder(responderSocket: responderSocket, eventLoop: channel.eventLoop, sendFrame: sendFrame)
-                    ),
-                    ConnectionStreamHandler(),
-                ])
+                ]).flatMap {
+                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                }
             }
     }
     func testClientServerSetup() throws {
@@ -276,9 +256,9 @@ final class EndToEndTests: XCTestCase {
         })
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let client = makeClientBootstrap(config: setup)
-        
-        let channel = try client.connect(host: host, port: port).wait()
+        let channel = try makeClientBootstrap(config: setup)
+            .connect(host: host, port: port)
+            .wait()
         XCTAssertTrue(channel.isActive)
         self.wait(for: [clientDidConnect], timeout: 1)
     }
@@ -290,11 +270,12 @@ final class EndToEndTests: XCTestCase {
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let client = makeClientBootstrap()
-        let channel = try client.connect(host: host, port: port).wait()
-        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
+        let requester = try makeClientBootstrap()
+            .connect(host: host, port: port)
+            .flatMap { $0.pipeline.requesterSocket() }
+            .wait()
         
-        rsocket.fireAndForget(payload: "Hello World")
+        requester.fireAndForget(payload: "Hello World")
         self.wait(for: [request], timeout: 1)
     }
     func testRequestResponseEcho() throws {
@@ -307,9 +288,10 @@ final class EndToEndTests: XCTestCase {
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let client = makeClientBootstrap()
-        let channel = try client.connect(host: host, port: port).wait()
-        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
+        let requester = try makeClientBootstrap()
+            .connect(host: host, port: port)
+            .flatMap { $0.pipeline.requesterSocket() }
+            .wait()
         
         let response = self.expectation(description: "receive response")
         let helloWorld: Payload = "Hello World"
@@ -318,7 +300,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertTrue(isCompletion)
             response.fulfill()
         }
-        _ = rsocket.requestResponse(payload: helloWorld, responderStream: input)
+        _ = requester.requestResponse(payload: helloWorld, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testChannelEcho() throws {
@@ -335,9 +317,10 @@ final class EndToEndTests: XCTestCase {
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let client = makeClientBootstrap()
-        let channel = try client.connect(host: host, port: port).wait()
-        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
+        let requester = try makeClientBootstrap()
+            .connect(host: host, port: port)
+            .flatMap { $0.pipeline.requesterSocket() }
+            .wait()
         
         let response = self.expectation(description: "receive response")
         var input: TestStreamInput!
@@ -347,7 +330,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
         weakInput = input
-        let output = rsocket.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input!)
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input!)
         output.onNext(" ", isCompletion: false)
         output.onNext("W", isCompletion: false)
         output.onNext("o", isCompletion: false)
@@ -374,9 +357,10 @@ final class EndToEndTests: XCTestCase {
         }))
         let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let client = makeClientBootstrap()
-        let channel = try client.connect(host: host, port: port).wait()
-        let rsocket: RSocket = try channel.pipeline.handler(type: DemultiplexerHandler.self).wait()
+        let requester = try makeClientBootstrap()
+            .connect(host: host, port: port)
+            .flatMap { $0.pipeline.requesterSocket() }
+            .wait()
         
         let response = self.expectation(description: "receive response")
         var input: TestStreamInput!
@@ -387,7 +371,7 @@ final class EndToEndTests: XCTestCase {
             XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)
         })
         weakInput = input
-        _ = rsocket.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
+        _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
 }

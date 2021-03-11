@@ -19,7 +19,7 @@ import RSocketCore
 import Foundation
 
 internal class ResponderAdapter: RSocketCore.RSocket {
-    private let responder: RSocket
+    internal let responder: RSocket
     internal init(responder: RSocket?) {
         self.responder = responder ?? RSocketDefault()
     }
@@ -59,6 +59,10 @@ internal class ResponderAdapter: RSocketCore.RSocket {
             output: responderStream
         )
     }
+}
+
+extension RSocket {
+    public var asCore: RSocketCore.RSocket { ResponderAdapter(responder: self) }
 }
 
 fileprivate extension UnidirectionalStream {

@@ -21,6 +21,7 @@ internal final class Responder {
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: ResponderStream] = [:]
     private let eventLoop: EventLoop
+    
     internal init(
         responderSocket: RSocket,
         eventLoop: EventLoop,

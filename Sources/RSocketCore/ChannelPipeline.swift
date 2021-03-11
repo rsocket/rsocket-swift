@@ -70,7 +70,7 @@ extension ChannelPipeline {
 }
 
 extension ChannelPipeline {
-    public func requesterSocket() -> EventLoopFuture<RSocket> {
-        self.handler(type: DemultiplexerHandler.self).map({ $0.requester as RSocket })
+    public var requester: EventLoopFuture<RSocket> {
+        self.handler(type: DemultiplexerHandler.self).map { $0.requester }
     }
 }

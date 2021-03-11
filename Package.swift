@@ -19,6 +19,7 @@ let package = Package(
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
         .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
+        .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2")
     ],
     targets: [
         .target(name: "RSocketCore", dependencies: [
@@ -32,6 +33,11 @@ let package = Package(
         ]),
         .target(name: "RSocketTestUtilities", dependencies: [
             "RSocketCore",
+        ]),
+        .target(name: "RSocketClient", dependencies: [
+            "RSocketCore",
+            "RSocketReactiveSwift",
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services")
         ]),
         .testTarget(name: "RSocketCoreTests", dependencies: [
             "RSocketCore",

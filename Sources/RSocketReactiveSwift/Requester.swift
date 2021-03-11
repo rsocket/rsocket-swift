@@ -18,22 +18,22 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-internal final class RequesterAdapter: RSocket {
+internal struct RequesterAdapter: RSocket {
     internal let requester: RSocketCore.RSocket
     
     internal init(requester: RSocketCore.RSocket) {
         self.requester = requester
     }
     
-    func metadataPush(metadata: Data) {
+    internal func metadataPush(metadata: Data) {
         requester.metadataPush(metadata: metadata)
     }
     
-    func fireAndForget(payload: Payload) {
+    internal func fireAndForget(payload: Payload) {
         requester.fireAndForget(payload: payload)
     }
 
-    public func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
+    internal func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
             stream.output = requester.requestResponse(payload: payload, responderStream: stream)
@@ -43,7 +43,7 @@ internal final class RequesterAdapter: RSocket {
             }
         }
     }
-    public func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
+    internal func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
             stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
@@ -53,10 +53,8 @@ internal final class RequesterAdapter: RSocket {
             }
         }
     }
-    public func metadataPush(payload: Payload) {
-        fatalError("not implemented")
-    }
-    public func requestChannel(
+
+    internal func requestChannel(
         payload: Payload,
         isCompleted: Bool,
         payloadProducer: SignalProducer<Payload, Swift.Error>
@@ -86,7 +84,7 @@ internal final class RequesterAdapter: RSocket {
 }
 
 extension RSocketCore.RSocket {
-    public var rSocket: RSocket { RequesterAdapter(requester: self) }
+    public var reactive: RSocket { RequesterAdapter(requester: self) }
 }
 
 

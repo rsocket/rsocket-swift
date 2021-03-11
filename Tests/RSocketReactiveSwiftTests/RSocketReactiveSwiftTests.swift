@@ -110,7 +110,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+        client.requester.reactive.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -140,7 +140,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.rSocket.requestStream(payload: "Hello World").startWithSignal { signal, _ in
+        client.requester.reactive.requestStream(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -185,7 +185,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let requestSocket = client.requester.rSocket
+        let requestSocket = client.requester.reactive
         requestSocket.requestChannel(payload: "Hello Responder", isCompleted: false, payloadProducer: .init({ observer, _ in
             requesterDidSendChannelMessages.fulfill()
             observer.send(value: "Hello")

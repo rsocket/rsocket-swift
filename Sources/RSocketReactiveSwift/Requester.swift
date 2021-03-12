@@ -37,20 +37,12 @@ internal final class RequesterAdapter: RSocket {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
             stream.output = requester.requestResponse(payload: payload, responderStream: stream)
-
-            lifetime.observeEnded {
-                stream.output?.onCancel()
-            }
         }
     }
     public func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer {[self] (observer, lifetime) in
-            let stream = RequestResponseOperator(observer: observer)
+            let stream = RequestStreamOperator(observer: observer)
             stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
-
-            lifetime.observeEnded {
-                stream.output?.onCancel()
-            }
         }
     }
     public func metadataPush(payload: Payload) {
@@ -62,13 +54,10 @@ internal final class RequesterAdapter: RSocket {
         payloadProducer: SignalProducer<Payload, Swift.Error>
     ) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer { [self] (observer, lifetime) in
-            let stream = RequestResponseOperator(observer: observer)
+            let stream = RequestChannelOperator(observer: observer)
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: false, responderStream: stream)
             stream.output = output
 
-            lifetime.observeEnded {
-                stream.output?.onCancel()
-            }
             payloadProducer.start { event in
                 switch event {
                 case let .value(value):

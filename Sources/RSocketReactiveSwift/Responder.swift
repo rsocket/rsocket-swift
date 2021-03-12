@@ -74,17 +74,6 @@ fileprivate extension UnidirectionalStream {
             onCancel()
         }
     }
-
-    func send(event: Signal<Never, Swift.Error>.Event) {
-        switch event {
-        case let .failed(error):
-            onError(Error.applicationError(message: error.localizedDescription))
-        case .completed:
-            onComplete()
-        case .interrupted:
-            onCancel()
-        }
-    }
 }
 
 fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
@@ -163,12 +152,10 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
     
     func onComplete() {
         observer.sendCompleted()
-        disposable.dispose()
     }
     
     func onCancel() {
         observer.sendInterrupted()
-        disposable.dispose()
     }
     
     func onRequestN(_ requestN: Int32) {
@@ -180,7 +167,6 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         observer.send(error: error)
         output.onError(error)
-        disposable.dispose()
     }
     deinit {
         disposable.dispose()

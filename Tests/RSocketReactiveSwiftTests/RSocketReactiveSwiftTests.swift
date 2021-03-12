@@ -110,7 +110,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -120,6 +120,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         }
         self.wait(for: [didReceiveRequest, didReceiveResponse], timeout: 0.1)
+        disposable?.dispose()
     }
     func testRequestStream() {
         let didReceiveRequest = expectation(description: "did receive request")
@@ -140,7 +141,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.rSocket.requestStream(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.rSocket.requestStream(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -150,6 +151,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         }
         self.wait(for: [didReceiveRequest, didReceiveResponse], timeout: 0.1)
+        disposable?.dispose()
     }
     func testRequestChannel() {
         let didReceiveRequestChannel = expectation(description: "did receive request channel")
@@ -167,6 +169,9 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 signal.flatMapError({ error in
                     XCTFail("\(error)")
                     return .empty
+                }).map({ payload -> Payload in
+                    print(payload)
+                    return payload
                 }).collect().observeValues { values in
                     responderDidReceiveChannelMessages.fulfill()
                     XCTAssertEqual(values, ["Hello", "from", "Requester", "on", "Channel"])
@@ -186,7 +191,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         })
         let (_, client) = setup(server: serverResponder)
         let requestSocket = client.requester.rSocket
-        requestSocket.requestChannel(payload: "Hello Responder", isCompleted: false, payloadProducer: .init({ observer, _ in
+        let disposable = requestSocket.requestChannel(payload: "Hello Responder", isCompleted: false, payloadProducer: .init({ observer, _ in
             requesterDidSendChannelMessages.fulfill()
             observer.send(value: "Hello")
             observer.send(value: "from")
@@ -211,5 +216,6 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             responderDidReceiveChannelMessages,
             requesterDidReceiveChannelMessages,
         ], timeout: 0.1)
+        disposable?.dispose()
     }
 }

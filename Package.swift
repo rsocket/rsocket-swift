@@ -19,7 +19,8 @@ let package = Package(
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
         .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
-        .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2")
+        .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
+        .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4")
     ],
     targets: [
         .target(name: "RSocketCore", dependencies: [
@@ -37,7 +38,10 @@ let package = Package(
         .target(name: "RSocketClient", dependencies: [
             "RSocketCore",
             "RSocketReactiveSwift",
-            .product(name: "NIOTransportServices", package: "swift-nio-transport-services")
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
+            .product(name: "NIOSSL", package: "swift-nio-ssl"),
+            .product(name: "NIOHTTP1", package: "swift-nio"),
+            .product(name: "NIOWebSocket", package: "swift-nio"),
         ]),
         .testTarget(name: "RSocketCoreTests", dependencies: [
             "RSocketCore",

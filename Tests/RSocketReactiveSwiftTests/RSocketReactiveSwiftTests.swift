@@ -96,7 +96,27 @@ final class TestRSocket: RSocketReactiveSwift.RSocket {
 }
 
 final class RSocketReactiveSwiftTests: XCTestCase {
-    
+    func testMetadataPush() {
+        let metadata = Data(String("Hello World").utf8)
+        let didReceiveRequest = expectation(description: "did receive request")
+        let serverResponder = TestRSocket(metadataPush: { data in
+            didReceiveRequest.fulfill()
+            XCTAssertEqual(data, metadata)
+        })
+        let (_, client) = setup(server: serverResponder)
+        client.requester.rSocket.metadataPush(metadata: metadata)
+        self.wait(for: [didReceiveRequest], timeout: 0.1)
+    }
+    func testFireAndForget() {
+        let didReceiveRequest = expectation(description: "did receive request")
+        let serverResponder = TestRSocket(fireAndForget: { payload in
+            didReceiveRequest.fulfill()
+            XCTAssertEqual(payload, "Hello World")
+        })
+        let (_, client) = setup(server: serverResponder)
+        client.requester.rSocket.fireAndForget(payload: "Hello World")
+        self.wait(for: [didReceiveRequest], timeout: 0.1)
+    }
     func testRequestResponse() {
         let didReceiveRequest = expectation(description: "did receive request")
         let didReceiveResponse = expectation(description: "did receive response")

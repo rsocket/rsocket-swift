@@ -32,22 +32,21 @@ internal final class RequesterAdapter: RSocket {
     func fireAndForget(payload: Payload) {
         requester.fireAndForget(payload: payload)
     }
-
+    
     public func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
             stream.output = requester.requestResponse(payload: payload, responderStream: stream)
         }
     }
+    
     public func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestStreamOperator(observer: observer)
             stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
         }
     }
-    public func metadataPush(payload: Payload) {
-        fatalError("not implemented")
-    }
+    
     public func requestChannel(
         payload: Payload,
         isCompleted: Bool,
@@ -107,9 +106,7 @@ fileprivate final class RequestResponseOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        let error = Error.invalid(message: "\(Self.self) does not support requestN")
-        output?.onCancel()
-        observer.send(error: error)
+        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
@@ -147,9 +144,7 @@ fileprivate final class RequestStreamOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        let error = Error.invalid(message: "\(Self.self) does not support requestN")
-        output?.onCancel()
-        observer.send(error: error)
+        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }

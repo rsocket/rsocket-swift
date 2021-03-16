@@ -142,57 +142,6 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         self.wait(for: [didReceiveRequest, didReceiveResponse], timeout: 0.1)
         disposable?.dispose()
     }
-    func testSignalLifetime() {
-        let signalProducerLifetimeEnded = expectation(description: "signal producer lifetime ended")
-        var observerStrongRef: Signal<Void, Never>.Observer?
-        let signalProducer = SignalProducer<Void, Never> { observer, lifetime in
-            observerStrongRef = observer
-            lifetime.observeEnded {
-                signalProducerLifetimeEnded.fulfill()
-            }
-        }
-        let signalInterrupted = self.expectation(description: "signal interrupted")
-        let disposable = signalProducer.startWithSignal { signal, _ in
-            signal.observeInterrupted {
-                signalInterrupted.fulfill()
-            }
-        }
-        disposable?.dispose()
-        wait(for: [signalProducerLifetimeEnded, signalInterrupted], timeout: 0.1)
-    }
-    func testRequestResponseCancellation() {
-        let didReceiveRequest = expectation(description: "did receive request")
-        let didEndLifetimeOnRequester = expectation(description: "did end lifetime on requester")
-        let didEndLifetimeOnResponder = expectation(description: "did end lifetime on responder")
-        
-        let serverResponder = TestRSocket(requestResponse: { payload -> SignalProducer<Payload, Swift.Error> in
-            didReceiveRequest.fulfill()
-            XCTAssertEqual(payload, "Hello World")
-            return SignalProducer { observer, lifetime in
-                lifetime.observeEnded {
-                    didEndLifetimeOnResponder.fulfill()
-                }
-            }
-        })
-        let (eventLoop, _, client) = setup(server: serverResponder)
-        let disposable = client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
-            signal.observeInterrupted {
-                didEndLifetimeOnRequester.fulfill()
-            }
-//            signal.flatMapError({ error -> Signal<Payload, Never> in
-//                XCTFail("\(error)")
-//                return .empty
-//            }).materialize().collect().observeValues { values in
-//                didEndLifetimeOnRequester.fulfill()
-//                XCTAssertEqual(values, [.interrupted])
-//            }
-        }
-        self.wait(for: [didReceiveRequest], timeout: 0.1)
-        disposable?.dispose()
-        eventLoop.run()
-        self.wait(for: [didEndLifetimeOnRequester, didEndLifetimeOnResponder], timeout: 0.1)
-        
-    }
     func testRequestStream() {
         let didReceiveRequest = expectation(description: "did receive request")
         let didReceiveResponse = expectation(description: "did receive response")
@@ -288,5 +237,64 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             requesterDidReceiveChannelMessages,
         ], timeout: 0.1)
         disposable?.dispose()
+    }
+    // MARK: - Cancellation
+    func testRequestResponseCancellation() {
+        let didStartRequestSignal = expectation(description: "did start request signal")
+        let didReceiveRequest = expectation(description: "did receive request")
+        let didEndLifetimeOnResponder = expectation(description: "did end lifetime on responder")
+        
+        let serverResponder = TestRSocket(requestResponse: { payload -> SignalProducer<Payload, Swift.Error> in
+            didReceiveRequest.fulfill()
+            XCTAssertEqual(payload, "Hello World")
+            return SignalProducer { observer, lifetime in
+                lifetime.observeEnded {
+                    _ = observer /// we need a strong reference to `observer`, otherwise the signal will be interrupted immediately
+                    didEndLifetimeOnResponder.fulfill()
+                }
+            }
+        })
+        let (_, _, client) = setup(server: serverResponder)
+        let disposable = client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
+            didStartRequestSignal.fulfill()
+            return signal.flatMapError({ error -> Signal<Payload, Never> in
+                XCTFail("\(error)")
+                return .empty
+            }).materialize().collect().observeValues { values in
+                XCTFail("should not produce any event")
+            }
+        }
+        self.wait(for: [didStartRequestSignal], timeout: 0.1)
+        disposable?.dispose()
+        self.wait(for: [didReceiveRequest, didEndLifetimeOnResponder], timeout: 0.1)
+    }
+    func testStreamCancellation() {
+        let didStartRequestSignal = expectation(description: "did start request signal")
+        let didReceiveRequest = expectation(description: "did receive request")
+        let didEndLifetimeOnResponder = expectation(description: "did end lifetime on responder")
+        
+        let serverResponder = TestRSocket(requestStream: { payload -> SignalProducer<Payload, Swift.Error> in
+            didReceiveRequest.fulfill()
+            XCTAssertEqual(payload, "Hello World")
+            return SignalProducer { observer, lifetime in
+                lifetime.observeEnded {
+                    _ = observer /// we need a strong reference to `observer`, otherwise the signal will be interrupted immediately
+                    didEndLifetimeOnResponder.fulfill()
+                }
+            }
+        })
+        let (_, _, client) = setup(server: serverResponder)
+        let disposable = client.requester.rSocket.requestStream(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
+            didStartRequestSignal.fulfill()
+            return signal.flatMapError({ error -> Signal<Payload, Never> in
+                XCTFail("\(error)")
+                return .empty
+            }).materialize().collect().observeValues { values in
+                XCTFail("should not produce any event")
+            }
+        }
+        self.wait(for: [didStartRequestSignal], timeout: 0.1)
+        disposable?.dispose()
+        self.wait(for: [didReceiveRequest, didEndLifetimeOnResponder], timeout: 0.1)
     }
 }

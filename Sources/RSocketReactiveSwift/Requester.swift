@@ -47,6 +47,9 @@ internal final class RequesterAdapter: RSocket {
         SignalProducer {[self] (observer, lifetime) in
             let stream = RequestStreamOperator(observer: observer)
             stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
+            lifetime.observeEnded { [weak stream] in
+                stream?.output?.onCancel()
+            }
         }
     }
     

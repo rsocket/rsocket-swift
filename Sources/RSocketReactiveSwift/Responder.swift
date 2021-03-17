@@ -18,7 +18,7 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-internal class ResponderAdapter: RSocketCore.RSocket {
+internal struct ResponderAdapter: RSocketCore.RSocket {
     private let responder: RSocket
     internal init(responder: RSocket) {
         self.responder = responder

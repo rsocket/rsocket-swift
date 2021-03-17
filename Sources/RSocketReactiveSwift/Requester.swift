@@ -18,7 +18,7 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-internal final class RequesterAdapter: RSocket {
+internal struct RequesterAdapter: RSocket {
     internal let requester: RSocketCore.RSocket
     
     internal init(requester: RSocketCore.RSocket) {
@@ -34,7 +34,7 @@ internal final class RequesterAdapter: RSocket {
     }
     
     public func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer {[self] (observer, lifetime) in
+        SignalProducer { (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
             stream.output = requester.requestResponse(payload: payload, responderStream: stream)
             lifetime.observeEnded { [weak stream] in
@@ -44,7 +44,7 @@ internal final class RequesterAdapter: RSocket {
     }
     
     public func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer {[self] (observer, lifetime) in
+        SignalProducer { (observer, lifetime) in
             let stream = RequestStreamOperator(observer: observer)
             stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
             lifetime.observeEnded { [weak stream] in
@@ -57,7 +57,7 @@ internal final class RequesterAdapter: RSocket {
         payload: Payload,
         payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer { [self] (observer, lifetime) in
+        SignalProducer { (observer, lifetime) in
             let stream = RequestChannelOperator(observer: observer, lifetime: lifetime)
             let isComplete = payloadProducer == nil
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)

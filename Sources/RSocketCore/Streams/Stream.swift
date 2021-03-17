@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-public protocol Cancellable: AnyObject {
+public protocol Cancellable {
     func onCancel()
     func onError(_ error: Error)
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)

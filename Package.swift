@@ -27,12 +27,21 @@ let package = Package(
         ]),
         .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
         .target(name: "RSocketReactiveSwift", dependencies: ["RSocketCore", "ReactiveSwift"]),
+        .target(name: "RSocketTestUtilities", dependencies: [
+            "RSocketCore",
+        ]),
         .testTarget(name: "RSocketCoreTests", dependencies: [
             "RSocketCore",
+            "RSocketTestUtilities",
+            .product(name: "NIOExtras", package: "swift-nio-extras"),
+        ]),
+        .testTarget(name: "RSocketCorePerformanceTests", dependencies: [
+            "RSocketCore",
+            "RSocketTestUtilities",
             .product(name: "NIOExtras", package: "swift-nio-extras"),
         ]),
         .testTarget(name: "RSocketCombineTests", dependencies: ["RSocketCombine"]),
-        .testTarget(name: "RSocketReactiveSwiftTests", dependencies: ["RSocketReactiveSwift"])
+        .testTarget(name: "RSocketReactiveSwiftTests", dependencies: ["RSocketReactiveSwift"]),
     ],
     swiftLanguageVersions: [.v5]
 )

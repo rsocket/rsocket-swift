@@ -20,8 +20,8 @@ import Foundation
 
 internal class ResponderAdapter: RSocketCore.RSocket {
     private let responder: RSocket
-    internal init(responder: RSocket?) {
-        self.responder = responder ?? RSocketDefault()
+    internal init(responder: RSocket) {
+        self.responder = responder
     }
     func metadataPush(metadata: Data) {
         responder.metadataPush(metadata: metadata)
@@ -52,9 +52,7 @@ internal class ResponderAdapter: RSocketCore.RSocket {
             observer: observer,
             producer: responder.requestChannel(
                 payload: payload,
-                payloadProducer: isCompleted ? nil : SignalProducer({ observer, lifetime in
-                    signal.take(during: lifetime).observe(observer)
-                })
+                payloadProducer: isCompleted ? nil : signal.producer
             ),
             output: responderStream
         )

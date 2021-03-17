@@ -32,14 +32,14 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     }
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
-        ReactiveSwiftRequestResponseResponder(
+        RequestResponseResponder(
             producer: responder.requestResponse(payload: payload),
             output: responderStream
         )
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
-        ReactiveSwiftRequestStreamResponder(
+        RequestStreamResponder(
             producer: responder.requestStream(payload: payload),
             output: responderStream
         )
@@ -48,7 +48,7 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         let (signal, observer) = Signal<Payload, Swift.Error>.pipe()
         
-        return ReactiveSwiftRequestChannelResponder(
+        return RequestChannelResponder(
             observer: observer,
             producer: responder.requestChannel(
                 payload: payload,
@@ -74,7 +74,7 @@ fileprivate extension UnidirectionalStream {
     }
 }
 
-fileprivate class ReactiveSwiftRequestResponseResponder {
+fileprivate class RequestResponseResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     
@@ -90,7 +90,7 @@ fileprivate class ReactiveSwiftRequestResponseResponder {
     }
 }
 
-extension ReactiveSwiftRequestResponseResponder: Cancellable {
+extension RequestResponseResponder: Cancellable {
     func onCancel() {
         disposable.dispose()
     }
@@ -106,7 +106,7 @@ extension ReactiveSwiftRequestResponseResponder: Cancellable {
     }
 }
 
-fileprivate class ReactiveSwiftRequestStreamResponder {
+fileprivate class RequestStreamResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     
@@ -122,7 +122,7 @@ fileprivate class ReactiveSwiftRequestStreamResponder {
     }
 }
 
-extension ReactiveSwiftRequestStreamResponder: Subscription {
+extension RequestStreamResponder: Subscription {
     func onCancel() {
         disposable.dispose()
     }
@@ -141,7 +141,7 @@ extension ReactiveSwiftRequestStreamResponder: Subscription {
     }
 }
 
-fileprivate class ReactiveSwiftRequestChannelResponder {
+fileprivate class RequestChannelResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     let observer: Signal<Payload, Swift.Error>.Observer
@@ -163,7 +163,7 @@ fileprivate class ReactiveSwiftRequestChannelResponder {
     }
 }
 
-extension ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
+extension RequestChannelResponder: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {

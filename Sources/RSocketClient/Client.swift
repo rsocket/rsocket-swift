@@ -300,8 +300,8 @@ let bootstrap = NFClientBootstrap(
     tlsOptions: NWProtocolTLS.Options()
 )
 
-let client = bootstrap
-    .connect(host: "", port: 80)
-    .map { client in
-        let streamProducer: SignalProducer<Payload, Swift.Error> = client.requester.requestStream(payload: .empty)
-    }
+let clientProducer: SignalProducer<ReactiveSwiftClient, Swift.Error> = bootstrap.connect(host: "", port: 80)
+
+let client: Property<ReactiveSwiftClient?> = Property(initial: nil, then: clientProducer.flatMapError { _ in .empty })
+
+let streamProducer: SignalProducer<Payload, Swift.Error> = client.value!.requester.requestStream(payload: .empty)

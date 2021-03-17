@@ -74,7 +74,7 @@ fileprivate extension UnidirectionalStream {
     }
 }
 
-fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
+fileprivate class ReactiveSwiftRequestResponseResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     
@@ -83,10 +83,6 @@ fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
         self.disposable = producer.start { (event) in
             output.send(event: event)
         }
-    }
-    
-    func onCancel() {
-        disposable.dispose()
     }
     
     deinit {
@@ -94,7 +90,23 @@ fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
     }
 }
 
-fileprivate class ReactiveSwiftRequestStreamResponder: Subscription {
+extension ReactiveSwiftRequestResponseResponder: Cancellable {
+    func onCancel() {
+        disposable.dispose()
+    }
+    func onError(_ error: Error) {
+        // TODO: can we deliver this error to the producer?
+        disposable.dispose()
+    }
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+        guard !canBeIgnored else { return }
+        let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
+        output.onError(error)
+        disposable.dispose()
+    }
+}
+
+fileprivate class ReactiveSwiftRequestStreamResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     
@@ -104,21 +116,32 @@ fileprivate class ReactiveSwiftRequestStreamResponder: Subscription {
             output.send(event: event)
         }
     }
-    
+
+    deinit {
+        disposable.dispose()
+    }
+}
+
+extension ReactiveSwiftRequestStreamResponder: Subscription {
     func onCancel() {
         disposable.dispose()
     }
-    
+    func onError(_ error: Error) {
+        // TODO: can we deliver this error to the producer?
+        disposable.dispose()
+    }
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+        guard !canBeIgnored else { return }
+        let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
+        output.onError(error)
+        disposable.dispose()
+    }
     func onRequestN(_ requestN: Int32) {
         // TODO: Not supported by ReactiveSwift. What should we do with it?
     }
-
-    deinit {
-        disposable.dispose()
-    }
 }
 
-fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
+fileprivate class ReactiveSwiftRequestChannelResponder {
     let disposable: ReactiveSwift.Disposable
     let output: UnidirectionalStream
     let observer: Signal<Payload, Swift.Error>.Observer
@@ -135,38 +158,36 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
         }
     }
     
+    deinit {
+        disposable.dispose()
+    }
+}
+
+extension ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {
             observer.sendCompleted()
         }
     }
-    
     func onError(_ error: Error) {
         observer.send(error: error)
         // TODO: can we deliver this error to the producer?
         disposable.dispose()
     }
-    
     func onComplete() {
         observer.sendCompleted()
     }
-    
     func onCancel() {
         observer.sendInterrupted()
     }
-    
     func onRequestN(_ requestN: Int32) {
         // TODO: Not supported by ReactiveSwift. What should we do with it?
     }
-    
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         observer.send(error: error)
         output.onError(error)
-    }
-    deinit {
-        disposable.dispose()
     }
 }

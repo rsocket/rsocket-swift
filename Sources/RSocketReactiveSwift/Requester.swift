@@ -107,7 +107,7 @@ extension RequestResponseOperator: UnidirectionalStream {
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
-        output?.onCancel()
+        output?.onError(error)
         observer.send(error: error)
     }
 }
@@ -148,7 +148,7 @@ extension RequestStreamOperator: UnidirectionalStream {
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
-        output?.onCancel()
+        output?.onError(error)
         observer.send(error: error)
     }
 }

@@ -297,4 +297,84 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         disposable?.dispose()
         self.wait(for: [didReceiveRequest, didEndLifetimeOnResponder], timeout: 0.1)
     }
+//    func testSignalLifetime() {
+//        let signalProducerLifetimeEnded = expectation(description: "signal producer lifetime ended")
+//        var observerStrongRef: Signal<Void, Never>.Observer?
+//        let signalProducer = SignalProducer<Void, Never> { observer, lifetime in
+//            observerStrongRef = observer
+//            lifetime.observeEnded {
+//                signalProducerLifetimeEnded.fulfill()
+//            }
+//        }
+//        let signalInterrupted = self.expectation(description: "signal interrupted")
+//        let disposable = signalProducer.startWithSignal { signal, _ in
+//            signal.observeInterrupted {
+//                signalInterrupted.fulfill()
+//            }
+//        }
+//        disposable?.dispose()
+//        wait(for: [signalProducerLifetimeEnded, signalInterrupted], timeout: 0.1)
+//    }
+    func testRequestChannelCancellation() {
+        let didReceiveRequestChannel = expectation(description: "did receive request channel")
+        let requesterDidSendChannelMessages = expectation(description: "requester did send channel messages")
+        let responderDidSendChannelMessages = expectation(description: "responder did send channel messages")
+        let responderDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
+        let responderProducerLifetimeEnded = expectation(description: "responder producer lifetime ended")
+        
+        let serverResponder = TestRSocket(requestChannel: { payload, isComplete, producer in
+            didReceiveRequestChannel.fulfill()
+            XCTAssertEqual(payload, "Hello")
+
+            producer.startWithSignal { signal, disposable in
+                responderDidStartListeningChannelMessages.fulfill()
+                signal.flatMapError({ error -> Signal<Payload, Never> in
+                    XCTFail("\(error)")
+                    return .empty
+                }).materialize().collect().observeValues { values in
+                    XCTFail("should not produce any event")
+                }
+            }
+
+            return SignalProducer { observer, lifetime in
+                responderDidSendChannelMessages.fulfill()
+                lifetime.observeEnded {
+                    _ = observer
+                    responderProducerLifetimeEnded.fulfill()
+                }
+            }
+        })
+        let (_, _, client) = setup(server: serverResponder)
+        let requestSocket = client.requester.rSocket
+        let requesterDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
+        let payloadProducerLifetimeEnded = expectation(description: "payload producer lifetime ended")
+        let disposable = requestSocket.requestChannel(payload: "Hello", isCompleted: false, payloadProducer: .init({ observer, lifetime in
+            requesterDidSendChannelMessages.fulfill()
+            lifetime.observeEnded {
+                _ = observer
+                payloadProducerLifetimeEnded.fulfill()
+            }
+        })).startWithSignal { signal, _ -> Disposable? in
+            requesterDidStartListeningChannelMessages.fulfill()
+            return signal.flatMapError({ error -> Signal<Payload, Never> in
+                XCTFail("\(error)")
+                return .empty
+            }).materialize().collect().observeValues { values in
+                XCTFail("should not produce any event")
+            }
+        }
+        self.wait(for: [
+            didReceiveRequestChannel,
+            requesterDidSendChannelMessages,
+            responderDidStartListeningChannelMessages,
+            responderDidSendChannelMessages,
+            requesterDidStartListeningChannelMessages,
+        ], timeout: 0.1)
+        disposable?.dispose()
+        self.wait(for: [
+            responderProducerLifetimeEnded,
+            payloadProducerLifetimeEnded,
+        ], timeout: 0.1)
+    }
+
 }

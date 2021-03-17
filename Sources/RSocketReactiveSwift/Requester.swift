@@ -59,22 +59,11 @@ internal final class RequesterAdapter: RSocket {
         payloadProducer: SignalProducer<Payload, Swift.Error>
     ) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer { [self] (observer, lifetime) in
-            let stream = RequestChannelOperator(observer: observer)
-            let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: false, responderStream: stream)
+            let stream = RequestChannelOperator(observer: observer, lifetime: lifetime)
+            let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isCompleted, responderStream: stream)
             stream.output = output
-
-            payloadProducer.start { event in
-                switch event {
-                case let .value(value):
-                    output.onNext(value, isCompletion: false)
-                case let .failed(error):
-                    output.onError(Error.applicationError(message: error.localizedDescription))
-                case .completed:
-                    output.onComplete()
-                case .interrupted:
-                    output.onCancel()
-                }
-            }
+            
+            stream.start(output: output, payloadProducer: payloadProducer)
         }
     }
 }
@@ -84,7 +73,7 @@ extension RSocketCore.RSocket {
 }
 
 
-fileprivate final class RequestResponseOperator: UnidirectionalStream {
+fileprivate final class RequestResponseOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
     var output: Cancellable?
     internal init(
@@ -92,6 +81,9 @@ fileprivate final class RequestResponseOperator: UnidirectionalStream {
     ) {
         self.observer = observer
     }
+}
+
+extension RequestResponseOperator: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {
@@ -122,7 +114,7 @@ fileprivate final class RequestResponseOperator: UnidirectionalStream {
     }
 }
 
-fileprivate final class RequestStreamOperator: UnidirectionalStream {
+fileprivate final class RequestStreamOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
     var output: Subscription?
     internal init(
@@ -130,6 +122,9 @@ fileprivate final class RequestStreamOperator: UnidirectionalStream {
     ) {
         self.observer = observer
     }
+}
+
+extension RequestStreamOperator: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {
@@ -160,17 +155,48 @@ fileprivate final class RequestStreamOperator: UnidirectionalStream {
     }
 }
 
-fileprivate final class RequestChannelOperator: UnidirectionalStream {
+fileprivate final class RequestChannelOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
     var output: UnidirectionalStream?
+    private var payloadProducerDisposable: Disposable?
+    private var isTerminated = false
     internal init(
-        observer: Signal<Payload, Swift.Error>.Observer
+        observer: Signal<Payload, Swift.Error>.Observer,
+        lifetime: Lifetime
     ) {
         self.observer = observer
+        lifetime.observeEnded { [weak self] in
+            guard let self = self else { return }
+            guard !self.isTerminated else { return }
+            self.output?.onCancel()
+        }
     }
+    
+    func start(output: UnidirectionalStream, payloadProducer: SignalProducer<Payload, Swift.Error>) {
+        payloadProducerDisposable = payloadProducer.start { event in
+            switch event {
+            case let .value(value):
+                output.onNext(value, isCompletion: false)
+            case let .failed(error):
+                output.onError(Error.applicationError(message: error.localizedDescription))
+            case .completed:
+                output.onComplete()
+            case .interrupted:
+                output.onCancel()
+            }
+        }
+    }
+    
+    deinit {
+        payloadProducerDisposable?.dispose()
+    }
+}
+
+extension RequestChannelOperator: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {
+            isTerminated = true
             observer.sendCompleted()
         }
     }
@@ -180,10 +206,12 @@ fileprivate final class RequestChannelOperator: UnidirectionalStream {
     }
     
     func onComplete() {
+        isTerminated = true
         observer.sendCompleted()
     }
     
     func onCancel() {
+        isTerminated = true
         observer.sendInterrupted()
     }
     
@@ -194,6 +222,8 @@ fileprivate final class RequestChannelOperator: UnidirectionalStream {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         output?.onError(error)
+        isTerminated = true
         observer.send(error: error)
     }
 }
+

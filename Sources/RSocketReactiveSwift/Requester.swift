@@ -201,6 +201,7 @@ extension RequestChannelOperator: UnidirectionalStream {
     }
     
     func onError(_ error: Error) {
+        isTerminated = true
         observer.send(error: error)
     }
     

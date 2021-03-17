@@ -29,8 +29,7 @@ internal class RSocketDefault: RSocket {
     }
     func requestChannel(
         payload: Payload,
-        isCompleted: Bool,
-        payloadProducer: SignalProducer<Payload, Swift.Error>
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error> {
         .init(error: ReactiveSwiftResponderError.requestResponseIsNotSupported)
     }

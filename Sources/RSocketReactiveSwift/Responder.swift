@@ -47,12 +47,12 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     
     func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         let (signal, observer) = Signal<Payload, Swift.Error>.pipe()
+        
         return ReactiveSwiftRequestChannelResponder(
             observer: observer,
             producer: responder.requestChannel(
                 payload: payload,
-                isCompleted: isCompleted,
-                payloadProducer: SignalProducer({ observer, lifetime in
+                payloadProducer: isCompleted ? nil : SignalProducer({ observer, lifetime in
                     signal.take(during: lifetime).observe(observer)
                 })
             ),

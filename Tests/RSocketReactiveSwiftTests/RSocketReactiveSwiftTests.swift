@@ -72,14 +72,14 @@ final class TestRSocket: RSocketReactiveSwift.RSocket {
     var fireAndForgetCallback: (Payload) -> () = { _ in }
     var requestResponseCallback: (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never }
     var requestStreamCallback: (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never }
-    var requestChannelCallback: (Payload, Bool, SignalProducer<Payload, Swift.Error>) -> SignalProducer<Payload, Swift.Error> = { _, _, _ in .never }
+    var requestChannelCallback: (Payload, SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error> = { _, _ in .never }
     
     internal init(
         metadataPush: @escaping (Data) -> () = { _ in },
         fireAndForget: @escaping (Payload) -> () = { _ in },
         requestResponse: @escaping (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never },
         requestStream: @escaping (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never },
-        requestChannel: @escaping (Payload, Bool, SignalProducer<Payload, Swift.Error>) -> SignalProducer<Payload, Swift.Error> = { _, _, _ in .never }
+        requestChannel: @escaping (Payload, SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error> = { _, _ in .never }
     ) {
         self.metadataPushCallback = metadataPush
         self.fireAndForgetCallback = fireAndForget
@@ -92,7 +92,7 @@ final class TestRSocket: RSocketReactiveSwift.RSocket {
     func fireAndForget(payload: Payload) { fireAndForgetCallback(payload) }
     func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> { requestResponseCallback(payload) }
     func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> { requestStreamCallback(payload) }
-    func requestChannel(payload: Payload, isCompleted: Bool, payloadProducer: SignalProducer<Payload, Swift.Error>) -> SignalProducer<Payload, Swift.Error> { requestChannelCallback(payload, isCompleted, payloadProducer) }
+    func requestChannel(payload: Payload, payloadProducer: SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error> { requestChannelCallback(payload, payloadProducer) }
 }
 
 final class RSocketReactiveSwiftTests: XCTestCase {
@@ -180,11 +180,11 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         let responderDidReceiveChannelMessages = expectation(description: "responder did receive channel messages")
         let responderDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
         let requesterDidReceiveChannelMessages = expectation(description: "requester did receive channel messages")
-        let serverResponder = TestRSocket(requestChannel: { payload, isComplete, producer in
+        let serverResponder = TestRSocket(requestChannel: { payload, producer in
             didReceiveRequestChannel.fulfill()
             XCTAssertEqual(payload, "Hello Responder")
             
-            producer.startWithSignal { signal, disposable in
+            producer?.startWithSignal { signal, disposable in
                 responderDidStartListeningChannelMessages.fulfill()
                 signal.flatMapError({ error in
                     XCTFail("\(error)")
@@ -211,7 +211,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         })
         let (_, _, client) = setup(server: serverResponder)
         let requestSocket = client.requester.rSocket
-        let disposable = requestSocket.requestChannel(payload: "Hello Responder", isCompleted: false, payloadProducer: .init({ observer, _ in
+        let disposable = requestSocket.requestChannel(payload: "Hello Responder", payloadProducer: .init({ observer, _ in
             requesterDidSendChannelMessages.fulfill()
             observer.send(value: "Hello")
             observer.send(value: "from")
@@ -322,11 +322,11 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         let responderDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
         let responderProducerLifetimeEnded = expectation(description: "responder producer lifetime ended")
         
-        let serverResponder = TestRSocket(requestChannel: { payload, isComplete, producer in
+        let serverResponder = TestRSocket(requestChannel: { payload, producer in
             didReceiveRequestChannel.fulfill()
             XCTAssertEqual(payload, "Hello")
 
-            producer.startWithSignal { signal, disposable in
+            producer?.startWithSignal { signal, disposable in
                 responderDidStartListeningChannelMessages.fulfill()
                 signal.flatMapError({ error -> Signal<Payload, Never> in
                     XCTFail("\(error)")
@@ -348,7 +348,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         let requestSocket = client.requester.rSocket
         let requesterDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
         let payloadProducerLifetimeEnded = expectation(description: "payload producer lifetime ended")
-        let disposable = requestSocket.requestChannel(payload: "Hello", isCompleted: false, payloadProducer: .init({ observer, lifetime in
+        let disposable = requestSocket.requestChannel(payload: "Hello", payloadProducer: .init({ observer, lifetime in
             requesterDidSendChannelMessages.fulfill()
             lifetime.observeEnded {
                 _ = observer

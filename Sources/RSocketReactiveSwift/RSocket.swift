@@ -26,7 +26,6 @@ public protocol RSocket: AnyObject {
     func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
     func requestChannel(
         payload: Payload,
-        isCompleted: Bool,
-        payloadProducer: SignalProducer<Payload, Swift.Error>
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error>
 }

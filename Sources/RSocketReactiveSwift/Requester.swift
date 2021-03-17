@@ -55,14 +55,12 @@ internal final class RequesterAdapter: RSocket {
     
     public func requestChannel(
         payload: Payload,
-        isCompleted: Bool,
-        payloadProducer: SignalProducer<Payload, Swift.Error>
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer { [self] (observer, lifetime) in
             let stream = RequestChannelOperator(observer: observer, lifetime: lifetime)
-            let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isCompleted, responderStream: stream)
-            stream.output = output
-            
+            let isComplete = payloadProducer == nil
+            let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)
             stream.start(output: output, payloadProducer: payloadProducer)
         }
     }
@@ -172,8 +170,9 @@ fileprivate final class RequestChannelOperator {
         }
     }
     
-    func start(output: UnidirectionalStream, payloadProducer: SignalProducer<Payload, Swift.Error>) {
-        payloadProducerDisposable = payloadProducer.start { event in
+    func start(output: UnidirectionalStream, payloadProducer: SignalProducer<Payload, Swift.Error>?) {
+        self.output = output
+        payloadProducerDisposable = payloadProducer?.start { event in
             switch event {
             case let .value(value):
                 output.onNext(value, isCompletion: false)

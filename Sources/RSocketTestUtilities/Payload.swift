@@ -15,12 +15,13 @@
  */
 
 import RSocketCore
+import Foundation
 
 extension Payload: ExpressibleByStringLiteral {
     /// used to create payload with the given string as a UTF-8 encoded data and no metadata
     /// - Parameter value: string that is encoded as UTF-8 and put into the data segment of the payload
     public init(stringLiteral value: String) {
-        self.init(data: value.data(using: .utf8)!)
+        self.init(data: Data(value.utf8))
     }
 }
 

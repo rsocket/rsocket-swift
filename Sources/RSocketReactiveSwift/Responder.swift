@@ -47,12 +47,12 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     
     func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         let (signal, observer) = Signal<Payload, Swift.Error>.pipe()
+        
         return ReactiveSwiftRequestChannelResponder(
             observer: observer,
             producer: responder.requestChannel(
                 payload: payload,
-                isCompleted: isCompleted,
-                payloadProducer: SignalProducer({ observer, lifetime in
+                payloadProducer: isCompleted ? nil : SignalProducer({ observer, lifetime in
                     signal.take(during: lifetime).observe(observer)
                 })
             ),
@@ -70,17 +70,6 @@ fileprivate extension UnidirectionalStream {
         switch event {
         case let .value(value):
             onNext(value, isCompletion: false)
-        case let .failed(error):
-            onError(Error.applicationError(message: error.localizedDescription))
-        case .completed:
-            onComplete()
-        case .interrupted:
-            onCancel()
-        }
-    }
-
-    func send(event: Signal<Never, Swift.Error>.Event) {
-        switch event {
         case let .failed(error):
             onError(Error.applicationError(message: error.localizedDescription))
         case .completed:
@@ -167,12 +156,10 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
     
     func onComplete() {
         observer.sendCompleted()
-        disposable.dispose()
     }
     
     func onCancel() {
         observer.sendInterrupted()
-        disposable.dispose()
     }
     
     func onRequestN(_ requestN: Int32) {
@@ -184,7 +171,6 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         observer.send(error: error)
         output.onError(error)
-        disposable.dispose()
     }
     deinit {
         disposable.dispose()

@@ -25,8 +25,8 @@ let package = Package(
         .library(name: "RSocketFoundationTransport", targets: ["RSocketFoundationTransport"]),
 
         // Transport protocol
-        .library(name: "RSocketWebSocket", targets: ["RSocketWebSocket"]),
-        .library(name: "RSocketTCP", targets: ["RSocketTCP"])
+        .library(name: "RSocketWebSocketTransport", targets: ["RSocketWebSocketTransport"]),
+        .library(name: "RSocketTCPTransport", targets: ["RSocketTCPTransport"])
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
@@ -38,7 +38,7 @@ let package = Package(
     targets: [
         .target(name: "UserCode", dependencies: [
             "RSocketNetworkFramework",
-            "RSocketWebSocket",
+            "RSocketWebSocketTransport",
             "RSocketReactiveSwift",
             .product(name: "ReactiveSwift", package: "ReactiveSwift")
         ]),
@@ -69,13 +69,13 @@ let package = Package(
         ]),
 
         // Transport protocol
-        .target(name: "RSocketWebSocket", dependencies: [
+        .target(name: "RSocketWebSocketTransport", dependencies: [
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOHTTP1", package: "swift-nio"),
             .product(name: "NIOWebSocket", package: "swift-nio"),
         ]),
-        .target(name: "RSocketTCP", dependencies: [
+        .target(name: "RSocketTCPTransport", dependencies: [
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOExtras", package: "swift-nio-extras")

@@ -2,7 +2,7 @@ import Network
 import ReactiveSwift
 import RSocketNetworkFramework
 import RSocketReactiveSwift
-import RSocketWebSocket
+import RSocketWebSocketTransport
 
 func t() {
     let bootstrap = ClientBootstrap(

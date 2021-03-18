@@ -19,23 +19,35 @@ jobs:
     - name: Build
       run: swift build -v
           
-  tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.platform }}
+  tests-macOS:
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build & Run Tests (without performance tests)
       # filter regex excludes all tests targets which contain the word "Performance" in their name
+      if: runner.os == 'macOS'
       run: >
         swift test
         -v
         --parallel
         --enable-test-discovery
         --sanitize=thread
+        --filter="^((?!(Performance)).)*\..*$"
+        
+  tests-macOS:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build & Run Tests (without performance tests)
+      # filter regex excludes all tests targets which contain the word "Performance" in their name
+      if: runner.os == 'macOS'
+      run: >
+        swift test
+        -v
+        --parallel
+        --enable-test-discovery
         --filter="^((?!(Performance)).)*\..*$"
   performance-tests:
     strategy:

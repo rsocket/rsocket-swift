@@ -20,11 +20,11 @@ import Foundation
 import RSocketReactiveSwift
 
 final class TestRSocket: RSocketReactiveSwift.RSocket {
-    var metadataPushCallback: (Data) -> () = { _ in }
-    var fireAndForgetCallback: (Payload) -> () = { _ in }
-    var requestResponseCallback: (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never }
-    var requestStreamCallback: (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never }
-    var requestChannelCallback: (Payload, SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error> = { _, _ in .never }
+    var metadataPushCallback: (Data) -> ()
+    var fireAndForgetCallback: (Payload) -> ()
+    var requestResponseCallback: (Payload) -> SignalProducer<Payload, Swift.Error>
+    var requestStreamCallback: (Payload) -> SignalProducer<Payload, Swift.Error>
+    var requestChannelCallback: (Payload, SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error>
     
     internal init(
         metadataPush: @escaping (Data) -> () = { _ in },

@@ -25,8 +25,8 @@ func setup(
     client: RSocketReactiveSwift.RSocket? = nil
 ) -> (server: TestDemultiplexer, client: TestDemultiplexer) {
     let (server, client) = TestDemultiplexer.pipe(
-        serverResponder: ResponderAdapter(responder: server),
-        clientResponder: ResponderAdapter(responder: client))
+        serverResponder: server.map(ResponderAdapter.init(responder:)),
+        clientResponder: client.map(ResponderAdapter.init(responder:)))
     return (server, client)
 }
 

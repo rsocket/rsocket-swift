@@ -18,10 +18,10 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-internal class ResponderAdapter: RSocketCore.RSocket {
-    internal let responder: RSocket
-    internal init(responder: RSocket?) {
-        self.responder = responder ?? RSocketDefault()
+internal struct ResponderAdapter: RSocketCore.RSocket {
+    private let responder: RSocket
+    internal init(responder: RSocket) {
+        self.responder = responder
     }
     func metadataPush(metadata: Data) {
         responder.metadataPush(metadata: metadata)
@@ -32,14 +32,14 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     }
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
-        ReactiveSwiftRequestResponseResponder(
+        RequestResponseResponder(
             producer: responder.requestResponse(payload: payload),
             output: responderStream
         )
     }
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
-        ReactiveSwiftRequestStreamResponder(
+        RequestStreamResponder(
             producer: responder.requestStream(payload: payload),
             output: responderStream
         )
@@ -48,21 +48,15 @@ internal class ResponderAdapter: RSocketCore.RSocket {
     func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream {
         let (signal, observer) = Signal<Payload, Swift.Error>.pipe()
         
-        return ReactiveSwiftRequestChannelResponder(
+        return RequestChannelResponder(
             observer: observer,
             producer: responder.requestChannel(
                 payload: payload,
-                payloadProducer: isCompleted ? nil : SignalProducer({ observer, lifetime in
-                    signal.take(during: lifetime).observe(observer)
-                })
+                payloadProducer: isCompleted ? nil : signal.producer
             ),
             output: responderStream
         )
     }
-}
-
-extension RSocket {
-    public var asCore: RSocketCore.RSocket { ResponderAdapter(responder: self) }
 }
 
 fileprivate extension UnidirectionalStream {
@@ -80,19 +74,15 @@ fileprivate extension UnidirectionalStream {
     }
 }
 
-fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
+fileprivate final class RequestResponseResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
     
-    internal init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
+    init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
         self.output = output
         self.disposable = producer.start { (event) in
             output.send(event: event)
         }
-    }
-    
-    func onCancel() {
-        disposable.dispose()
     }
     
     deinit {
@@ -100,36 +90,63 @@ fileprivate class ReactiveSwiftRequestResponseResponder: Cancellable {
     }
 }
 
-fileprivate class ReactiveSwiftRequestStreamResponder: Subscription {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
+extension RequestResponseResponder: Cancellable {
+    func onCancel() {
+        disposable.dispose()
+    }
+    func onError(_ error: Error) {
+        // TODO: We should make it possible to handle errors, e.g. with a callback
+        disposable.dispose()
+    }
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+        guard !canBeIgnored else { return }
+        let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
+        output.onError(error)
+        disposable.dispose()
+    }
+}
+
+fileprivate final class RequestStreamResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
     
-    internal init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
+    init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
         self.output = output
         self.disposable = producer.start { (event) in
             output.send(event: event)
         }
     }
-    
+
+    deinit {
+        disposable.dispose()
+    }
+}
+
+extension RequestStreamResponder: Subscription {
     func onCancel() {
         disposable.dispose()
     }
-    
+    func onError(_ error: Error) {
+        // TODO: We should make it possible to handle errors, e.g. with a callback
+        disposable.dispose()
+    }
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+        guard !canBeIgnored else { return }
+        let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
+        output.onError(error)
+        disposable.dispose()
+    }
     func onRequestN(_ requestN: Int32) {
-        // TODO: Not supported by ReactiveSwift. What should we do with it?
-    }
-
-    deinit {
-        disposable.dispose()
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
 }
 
-fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
-    let observer: Signal<Payload, Swift.Error>.Observer
+fileprivate final class RequestChannelResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
+    private let observer: Signal<Payload, Swift.Error>.Observer
     
-    internal init(
+    init(
         observer: Signal<Payload, Swift.Error>.Observer,
         producer: SignalProducer<Payload, Swift.Error>,
         output: UnidirectionalStream
@@ -141,38 +158,36 @@ fileprivate class ReactiveSwiftRequestChannelResponder: UnidirectionalStream {
         }
     }
     
+    deinit {
+        disposable.dispose()
+    }
+}
+
+extension RequestChannelResponder: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
         if isCompletion {
             observer.sendCompleted()
         }
     }
-    
     func onError(_ error: Error) {
         observer.send(error: error)
-        // TODO: can we deliver this error to the producer?
+        // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
-    
     func onComplete() {
         observer.sendCompleted()
     }
-    
     func onCancel() {
         observer.sendInterrupted()
     }
-    
     func onRequestN(_ requestN: Int32) {
-        // TODO: Not supported by ReactiveSwift. What should we do with it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
-    
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         observer.send(error: error)
         output.onError(error)
-    }
-    deinit {
-        disposable.dispose()
     }
 }

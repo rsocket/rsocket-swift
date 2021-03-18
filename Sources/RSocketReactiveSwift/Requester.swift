@@ -34,34 +34,34 @@ internal struct RequesterAdapter: RSocket {
     }
 
     internal func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer {[self] (observer, lifetime) in
+        SignalProducer { (observer, lifetime) in
             let stream = RequestResponseOperator(observer: observer)
-            stream.output = requester.requestResponse(payload: payload, responderStream: stream)
-            lifetime.observeEnded { [weak stream] in
-                stream?.output?.onCancel()
+            let output = requester.requestResponse(payload: payload, responderStream: stream)
+            lifetime.observeEnded {
+                output.onCancel()
             }
         }
     }
     
     internal func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer {[self] (observer, lifetime) in
+        SignalProducer { (observer, lifetime) in
             let stream = RequestStreamOperator(observer: observer)
-            stream.output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
-            lifetime.observeEnded { [weak stream] in
-                stream?.output?.onCancel()
+            let output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
+            lifetime.observeEnded {
+                output.onCancel()
             }
         }
     }
-
+    
     internal func requestChannel(
         payload: Payload,
         payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer { [self] (observer, lifetime) in
-            let stream = RequestChannelOperator(observer: observer, lifetime: lifetime)
+        SignalProducer { (observer, lifetime) in
+            let stream = RequestChannelOperator(observer: observer)
             let isComplete = payloadProducer == nil
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)
-            stream.start(output: output, payloadProducer: payloadProducer)
+            stream.start(lifetime: lifetime, output: output, payloadProducer: payloadProducer)
         }
     }
 }
@@ -71,9 +71,8 @@ extension RSocketCore.RSocket {
 }
 
 
-fileprivate final class RequestResponseOperator {
+fileprivate struct RequestResponseOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
-    var output: Cancellable?
     internal init(
         observer: Signal<Payload, Swift.Error>.Observer
     ) {
@@ -102,19 +101,17 @@ extension RequestResponseOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
-        output?.onCancel()
         observer.send(error: error)
     }
 }
 
-fileprivate final class RequestStreamOperator {
+fileprivate struct RequestStreamOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
-    var output: Subscription?
     internal init(
         observer: Signal<Payload, Swift.Error>.Observer
     ) {
@@ -143,35 +140,31 @@ extension RequestStreamOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
-        output?.onCancel()
         observer.send(error: error)
     }
 }
 
 fileprivate final class RequestChannelOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
-    var output: UnidirectionalStream?
     private var payloadProducerDisposable: Disposable?
     private var isTerminated = false
     internal init(
-        observer: Signal<Payload, Swift.Error>.Observer,
-        lifetime: Lifetime
+        observer: Signal<Payload, Swift.Error>.Observer
     ) {
         self.observer = observer
+    }
+    
+    func start(lifetime: Lifetime, output: UnidirectionalStream, payloadProducer: SignalProducer<Payload, Swift.Error>?) {
         lifetime.observeEnded { [weak self] in
             guard let self = self else { return }
             guard !self.isTerminated else { return }
-            self.output?.onCancel()
+            output.onCancel()
         }
-    }
-    
-    func start(output: UnidirectionalStream, payloadProducer: SignalProducer<Payload, Swift.Error>?) {
-        self.output = output
         payloadProducerDisposable = payloadProducer?.start { event in
             switch event {
             case let .value(value):
@@ -216,12 +209,11 @@ extension RequestChannelOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
-        output?.onError(error)
         isTerminated = true
         observer.send(error: error)
     }

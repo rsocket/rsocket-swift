@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-public protocol Cancellable: AnyObject {
+public protocol Cancellable {
     func onCancel()
+    func onError(_ error: Error)
+    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }
 
 public protocol Subscription: Cancellable {
@@ -24,7 +26,5 @@ public protocol Subscription: Cancellable {
 
 public protocol UnidirectionalStream: Subscription {
     func onNext(_ payload: Payload, isCompletion: Bool)
-    func onError(_ error: Error)
     func onComplete()
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }

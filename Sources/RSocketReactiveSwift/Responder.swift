@@ -74,11 +74,11 @@ fileprivate extension UnidirectionalStream {
     }
 }
 
-fileprivate class RequestResponseResponder {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
+fileprivate final class RequestResponseResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
     
-    internal init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
+    init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
         self.output = output
         self.disposable = producer.start { (event) in
             output.send(event: event)
@@ -106,11 +106,11 @@ extension RequestResponseResponder: Cancellable {
     }
 }
 
-fileprivate class RequestStreamResponder {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
+fileprivate final class RequestStreamResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
     
-    internal init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
+    init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
         self.output = output
         self.disposable = producer.start { (event) in
             output.send(event: event)
@@ -141,12 +141,12 @@ extension RequestStreamResponder: Subscription {
     }
 }
 
-fileprivate class RequestChannelResponder {
-    let disposable: ReactiveSwift.Disposable
-    let output: UnidirectionalStream
-    let observer: Signal<Payload, Swift.Error>.Observer
+fileprivate final class RequestChannelResponder {
+    private let disposable: ReactiveSwift.Disposable
+    private let output: UnidirectionalStream
+    private let observer: Signal<Payload, Swift.Error>.Observer
     
-    internal init(
+    init(
         observer: Signal<Payload, Swift.Error>.Observer,
         producer: SignalProducer<Payload, Swift.Error>,
         output: UnidirectionalStream

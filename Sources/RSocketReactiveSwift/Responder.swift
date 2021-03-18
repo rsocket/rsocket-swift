@@ -95,7 +95,7 @@ extension RequestResponseResponder: Cancellable {
         disposable.dispose()
     }
     func onError(_ error: Error) {
-        // TODO: can we deliver this error to the producer?
+        // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
@@ -127,7 +127,7 @@ extension RequestStreamResponder: Subscription {
         disposable.dispose()
     }
     func onError(_ error: Error) {
-        // TODO: can we deliver this error to the producer?
+        // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
@@ -137,7 +137,7 @@ extension RequestStreamResponder: Subscription {
         disposable.dispose()
     }
     func onRequestN(_ requestN: Int32) {
-        // TODO: Not supported by ReactiveSwift. What should we do with it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
 }
 
@@ -172,7 +172,7 @@ extension RequestChannelResponder: UnidirectionalStream {
     }
     func onError(_ error: Error) {
         observer.send(error: error)
-        // TODO: can we deliver this error to the producer?
+        // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
     func onComplete() {
@@ -182,7 +182,7 @@ extension RequestChannelResponder: UnidirectionalStream {
         observer.sendInterrupted()
     }
     func onRequestN(_ requestN: Int32) {
-        // TODO: Not supported by ReactiveSwift. What should we do with it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }

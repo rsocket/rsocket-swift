@@ -102,7 +102,7 @@ extension RequestResponseOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
@@ -143,7 +143,7 @@ extension RequestStreamOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
@@ -216,7 +216,7 @@ extension RequestChannelOperator: UnidirectionalStream {
     }
     
     func onRequestN(_ requestN: Int32) {
-        /// TODO: ReactiveSwift does not support demand like Combine. What should we do? Ignore it or maybe buffer outgoing data until we are allowed to send it?
+        /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }

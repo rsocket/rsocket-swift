@@ -30,7 +30,8 @@ public struct ReactiveSwiftClient: Client {
 extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.RSocket  {
     public func connect(host: String, port: Int, responder: RSocketReactiveSwift.RSocket? = nil) -> SignalProducer<ReactiveSwiftClient, Swift.Error> {
         SignalProducer { observer, lifetime in
-            let future = connect(host: host, port: port, responder: responder?.asCore)
+
+            let future = connect(host: host, port: port, responder: responder?.coreAdapter)
                 .map(ReactiveSwiftClient.init)
             future.whenComplete { result in
                 switch result {
@@ -42,5 +43,11 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
                 }
             }
         }
+    }
+}
+
+extension RSocketReactiveSwift.RSocket {
+    var coreAdapter: RSocketCore.RSocket {
+        ResponderAdapter(responder: self)
     }
 }

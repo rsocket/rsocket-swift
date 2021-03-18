@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-
-import ReactiveSwift
+import NIO
 import RSocketCore
-import Foundation
 
-public protocol RSocket {
-    func metadataPush(metadata: Data)
-    func fireAndForget(payload: Payload)
-    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestChannel(
-        payload: Payload,
-        payloadProducer: SignalProducer<Payload, Swift.Error>?
-    ) -> SignalProducer<Payload, Swift.Error>
+public protocol ClientBootstrap {
+    associatedtype Client
+    associatedtype Responder
+    func connect(host: String, port: Int, responder: Responder?) -> EventLoopFuture<Client>
 }
-
-public typealias Payload = RSocketCore.Payload
-
-public typealias Error = RSocketCore.Error

@@ -11,9 +11,22 @@ let package = Package(
         .watchOS(.v2)
     ],
     products: [
+        .library(name: "UserCode", targets: ["UserCode"]),
+
+        // Core
         .library(name: "RSocketCore", targets: ["RSocketCore"]),
+
+        // Reactive streams
         .library(name: "RSocketCombine", targets: ["RSocketCombine"]),
-        .library(name: "RSocketReactiveSwift", targets: ["RSocketReactiveSwift"])
+        .library(name: "RSocketReactiveSwift", targets: ["RSocketReactiveSwift"]),
+
+        // Socket implementation
+        .library(name: "RSocketNetworkFramework", targets: ["RSocketNetworkFramework"]),
+        .library(name: "RSocketBercley", targets: ["RSocketBercley"]),
+
+        // Transport protocol
+        .library(name: "RSocketWebSocket", targets: ["RSocketWebSocket"]),
+        .library(name: "RSocketTCP", targets: ["RSocketTCP"])
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
@@ -23,26 +36,54 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4")
     ],
     targets: [
+        .target(name: "UserCode", dependencies: [
+            "RSocketNetworkFramework",
+            "RSocketWebSocket",
+            "RSocketReactiveSwift",
+            .product(name: "ReactiveSwift", package: "ReactiveSwift")
+        ]),
+
+        // Core
         .target(name: "RSocketCore", dependencies: [
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOFoundationCompat", package: "swift-nio"),
         ]),
+
+        // Reactive streams
         .target(name: "RSocketCombine", dependencies: ["RSocketCore"]),
         .target(name: "RSocketReactiveSwift", dependencies: [
             "RSocketCore",
-            "ReactiveSwift"
+//            "ReactiveSwift"
+            .product(name: "ReactiveSwift", package: "ReactiveSwift")
         ]),
-        .target(name: "RSocketTestUtilities", dependencies: [
+
+        // Socket implementation
+        .target(name: "RSocketNetworkFramework", dependencies: [
             "RSocketCore",
+            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services")
         ]),
-        .target(name: "RSocketClient", dependencies: [
+        .target(name: "RSocketBercley", dependencies: [
             "RSocketCore",
-            "RSocketReactiveSwift",
-            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
-            .product(name: "NIOSSL", package: "swift-nio-ssl"),
+            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOSSL", package: "swift-nio-ssl")
+        ]),
+
+        // Transport protocol
+        .target(name: "RSocketWebSocket", dependencies: [
+            "RSocketCore",
+            .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOHTTP1", package: "swift-nio"),
             .product(name: "NIOWebSocket", package: "swift-nio"),
         ]),
+        .target(name: "RSocketTCP", dependencies: [
+            "RSocketCore",
+            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOExtras", package: "swift-nio-extras")
+        ]),
+
+        // Tests
+        .target(name: "RSocketTestUtilities", dependencies: ["RSocketCore"]),
         .testTarget(name: "RSocketCoreTests", dependencies: [
             "RSocketCore",
             "RSocketTestUtilities",

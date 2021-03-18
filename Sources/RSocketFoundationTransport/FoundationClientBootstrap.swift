@@ -18,7 +18,7 @@ import NIO
 import NIOSSL
 import RSocketCore
 
-public struct TSClientBootstrap {
+public struct FoundationClientBootstrap {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
     private let config: ClientSetupConfig

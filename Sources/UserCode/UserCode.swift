@@ -1,11 +1,11 @@
 import Network
 import ReactiveSwift
-import RSocketNetworkFramework
+import RSocketNetworkFrameworkTransport
 import RSocketReactiveSwift
 import RSocketWebSocket
 
 func t() {
-    let bootstrap = NFClientBootstrap(
+    let bootstrap = NWClientBootstrap(
         config: .defaultMobileToServer,
         transport: WSTransport(),
         timeout: .seconds(30),

@@ -1,6 +1,6 @@
 import Network
 import ReactiveSwift
-import RSocketNetworkFramework
+import RSocketTSChannel
 import RSocketReactiveSwift
 import RSocketWebSocketTransport
 

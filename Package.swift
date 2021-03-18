@@ -21,8 +21,8 @@ let package = Package(
         .library(name: "RSocketReactiveSwift", targets: ["RSocketReactiveSwift"]),
 
         // Socket implementation
-        .library(name: "RSocketNetworkFramework", targets: ["RSocketNetworkFramework"]),
-        .library(name: "RSocketFoundationTransport", targets: ["RSocketFoundationTransport"]),
+        .library(name: "RSocketTSChannel", targets: ["RSocketTSChannel"]),
+        .library(name: "RSocketNIOChannel", targets: ["RSocketNIOChannel"]),
 
         // Transport protocol
         .library(name: "RSocketWebSocketTransport", targets: ["RSocketWebSocketTransport"]),
@@ -37,7 +37,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "UserCode", dependencies: [
-            "RSocketNetworkFramework",
+            "RSocketTSChannel",
             "RSocketWebSocketTransport",
             "RSocketReactiveSwift",
             .product(name: "ReactiveSwift", package: "ReactiveSwift")
@@ -56,13 +56,13 @@ let package = Package(
             .product(name: "ReactiveSwift", package: "ReactiveSwift")
         ]),
 
-        // Socket implementation
-        .target(name: "RSocketNetworkFramework", dependencies: [
+        // Channel
+        .target(name: "RSocketTSChannel", dependencies: [
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOTransportServices", package: "swift-nio-transport-services")
         ]),
-        .target(name: "RSocketFoundationTransport", dependencies: [
+        .target(name: "RSocketNIOChannel", dependencies: [
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOSSL", package: "swift-nio-ssl")

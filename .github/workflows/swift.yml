@@ -23,12 +23,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build & Run Tests (without performance tests)
       # filter regex excludes all tests targets which contain the word "Performance" in their name
-      run: swift test
-           -v
-           --parallel
-           --enable-test-discovery
-           --sanitize=thread
-           --filter="^((?!(Performance)).)*\..*$"
+      run: >
+        swift test
+        -v
+        --parallel
+        --enable-test-discovery
+        --sanitize=thread
+        --filter="^((?!(Performance)).)*\..*$"
   performance-tests:
     runs-on: [macos-latest, ubuntu-latest]
 
@@ -37,7 +38,8 @@ jobs:
     - name: Build & Run Performance Tests
       # filter regex includes only test targets which contain the word "Performance" in their name
       # build with optimisation enabled
-      run: swift test
-           -Xswiftc="-O"
-           --enable-test-discovery
-           --filter="^.*(Performance).*\..*"
+      run: >
+        swift test
+        -Xswiftc="-O"
+        --enable-test-discovery
+        --filter="^.*(Performance).*\..*"

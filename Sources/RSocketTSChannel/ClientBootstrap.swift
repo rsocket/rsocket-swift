@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#if canImport(Network)
+
 import Network
 import NIO
 import NIOTransportServices
@@ -69,3 +71,5 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
             .map(CoreClient.init)
     }
 }
+
+#endif

@@ -18,7 +18,7 @@ import NIO
 import NIOSSL
 import RSocketCore
 
-public struct FoundationClientBootstrap {
+public struct ClientBootstrap {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
     private let config: ClientSetupConfig
@@ -26,35 +26,18 @@ public struct FoundationClientBootstrap {
     private let sslContext: NIOSSLContext?
 
     public init(
-        group: EventLoopGroup,
         config: ClientSetupConfig,
         transport: TransportChannelHandler,
         timeout: TimeAmount = .seconds(30),
         sslContext: NIOSSLContext? = nil
     ) {
-        self.group = group
+        group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.config = config
-        bootstrap = ClientBootstrap(group: group)
+        bootstrap = NIO.ClientBootstrap(group: group)
             .connectTimeout(timeout)
             .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
         self.sslContext = sslContext
         self.transport = transport
-    }
-
-    public init(
-        config: ClientSetupConfig,
-        transport: TransportChannelHandler,
-        numberOfThreads: Int = 1,
-        timeout: TimeAmount = .seconds(30),
-        sslContext: NIOSSLContext? = nil
-    ) {
-        self.init(
-            group: MultiThreadedEventLoopGroup(numberOfThreads: numberOfThreads),
-            config: config,
-            transport: transport,
-            timeout: timeout,
-            sslContext: sslContext
-        )
     }
 
     @discardableResult
@@ -64,7 +47,7 @@ public struct FoundationClientBootstrap {
     }
 }
 
-extension TSClientBootstrap: RSocketCore.ClientBootstrap {
+extension ClientBootstrap: RSocketCore.ClientBootstrap {
     public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
 

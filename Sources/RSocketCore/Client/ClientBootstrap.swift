@@ -15,7 +15,6 @@
  */
 
 import NIO
-import RSocketCore
 
 public protocol ClientBootstrap {
     associatedtype Client

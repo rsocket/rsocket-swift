@@ -19,7 +19,7 @@ import NIO
 import NIOTransportServices
 import RSocketCore
 
-public struct NWClientBootstrap {
+public struct ClientBootstrap {
     private let group = NIOTSEventLoopGroup()
     private let bootstrap: NIOTSConnectionBootstrap
     private let config: ClientSetupConfig
@@ -48,7 +48,7 @@ public struct NWClientBootstrap {
     }
 }
 
-extension NWClientBootstrap: RSocketCore.ClientBootstrap {
+extension ClientBootstrap: RSocketCore.ClientBootstrap {
     public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
 

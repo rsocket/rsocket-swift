@@ -59,8 +59,8 @@ final class EndToEndTests: XCTestCase {
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> ClientBootstrap {
-        return ClientBootstrap(group: eventLoopGroup)
+    ) -> NIO.ClientBootstrap {
+        return NIO.ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),

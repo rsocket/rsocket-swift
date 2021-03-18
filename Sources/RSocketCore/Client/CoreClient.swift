@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import RSocketCore
-
 public class CoreClient: Client {
     public let requester: RSocketCore.RSocket
 

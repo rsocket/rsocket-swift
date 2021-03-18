@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import RSocketCore
-
 public protocol Client {
     associatedtype RSocket
     var requester: RSocket { get }

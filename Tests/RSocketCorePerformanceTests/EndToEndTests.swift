@@ -70,6 +70,13 @@ final class EndToEndTests: XCTestCase {
                 }
             }
     }
+    
+    override func setUpWithError() throws {
+        #if DEBUG
+        try XCTSkipIf(true, "performance tests should only run in release mode")
+        #endif
+    }
+    
     func testFireAndForget() throws {
         measure {
             let requestCount = 10_000

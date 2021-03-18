@@ -26,7 +26,6 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build & Run Tests (without performance tests)
       # filter regex excludes all tests targets which contain the word "Performance" in their name
-      if: runner.os == 'macOS'
       run: >
         swift test
         -v
@@ -42,7 +41,6 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build & Run Tests (without performance tests)
       # filter regex excludes all tests targets which contain the word "Performance" in their name
-      if: runner.os == 'macOS'
       run: >
         swift test
         -v

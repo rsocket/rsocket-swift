@@ -29,8 +29,8 @@ jobs:
         xcodebuild test
         -scheme RSocket-Package
         -parallelizeTargets
-        -parallel-testing-enabled
         -skip-testing:RSocketCorePerformanceTests
+        -parallel-testing-enabled
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
         

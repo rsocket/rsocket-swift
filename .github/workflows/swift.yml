@@ -48,6 +48,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+    - uses: actions/checkout@v2
     - name: Test on Linux
       if: runner.os == 'Linux'
       # filter regex excludes all tests targets which contain the word "Performance" in their name

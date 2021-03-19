@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-macOS:
+  test-on-macOS-and-iOS:
     strategy:
       matrix:
         platform: [macos-latest]
@@ -35,17 +35,20 @@ jobs:
         -parallel-testing-enabled
         -destination 'platform=macOS'
         
+  performance-tests-on-macOS:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
     - name: Build & Run Performance Tests on macOS
       run: >
         swift test
         -Xswiftc="-O"
         --enable-test-discovery
         --filter="^.*(Performance).*\..*"
-  build-linux:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
+    
+  test-on-linux:
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2

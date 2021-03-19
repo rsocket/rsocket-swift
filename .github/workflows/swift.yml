@@ -37,11 +37,10 @@ jobs:
         
     - name: Build & Run Performance Tests on macOS
       run: >
-        xcodebuild test
-        -scheme RSocketCore
-        -configuration Release
-        -only-testing:RSocketCorePerformanceTests
-        -destination 'platform=macOS'
+        swift test
+        -Xswiftc="-O"
+        --enable-test-discovery
+        --filter="^.*(Performance).*\..*"
   build-linux:
     strategy:
       matrix:
@@ -55,7 +54,6 @@ jobs:
       # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
         swift test
-        -v
         --parallel
         --enable-test-discovery
         --filter="^((?!(Performance)).)*\..*$"

@@ -20,7 +20,7 @@ jobs:
         xcodebuild test
         -scheme RSocket-Package
         -parallelizeTargets
-        -skip-testing RSocketCorePerformanceTests
+        -skip-testing:RSocketCorePerformanceTests
         -parallel-testing-enabled
         -destination 'platform=macOS'
         
@@ -30,7 +30,7 @@ jobs:
         -scheme RSocket-Package
         -parallelizeTargets
         -parallel-testing-enabled
-        -skip-testing RSocketCorePerformanceTests
+        -skip-testing:RSocketCorePerformanceTests
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
         
@@ -39,7 +39,7 @@ jobs:
         xcodebuild test
         -scheme RSocketCore
         -configuration Release
-        -only-testing RSocketCorePerformanceTests
+        -only-testing:RSocketCorePerformanceTests
         -destination 'platform=macOS'
   build-linux:
     strategy:

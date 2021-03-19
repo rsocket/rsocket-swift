@@ -10,14 +10,12 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [macos-latest, ubuntu-latest]
+        platform: [macos-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
     - uses: actions/checkout@v2
     - name: Test on macOS
-      if: runner.os == 'macOS'
-      # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
         xcodebuild test
         -scheme RSocket-Package
@@ -25,8 +23,8 @@ jobs:
         -skip-testing RSocketCorePerformanceTests
         -parallel-testing-enabled
         -destination 'platform=macOS'
+        
     - name: Test on iOS Simulator
-      if: runner.os == 'macOS'
       run: >
         xcodebuild test
         -scheme RSocket-Package
@@ -35,6 +33,21 @@ jobs:
         -skip-testing RSocketCorePerformanceTests
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
+        
+    - name: Build & Run Performance Tests on macOS
+      run: >
+        xcodebuild test
+        -scheme RSocketCore
+        -configuration Release
+        -only-testing RSocketCorePerformanceTests
+        -destination 'platform=macOS'
+  build:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
     - name: Test on Linux
       if: runner.os == 'Linux'
       # filter regex excludes all tests targets which contain the word "Performance" in their name
@@ -44,9 +57,9 @@ jobs:
         --parallel
         --enable-test-discovery
         --filter="^((?!(Performance)).)*\..*$"
-    - name: Build & Run Performance Tests
-      # filter regex includes only test targets which contain the word "Performance" in their name
-      # build with optimisation enabled
+        
+    - name: Build & Run Performance Tests on Linux
+      if: runner.os == 'Linux'
       run: >
         swift test
         -Xswiftc="-O"

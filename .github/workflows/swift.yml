@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-macOS:
     strategy:
       matrix:
         platform: [macos-latest]
@@ -41,7 +41,7 @@ jobs:
         -configuration Release
         -only-testing RSocketCorePerformanceTests
         -destination 'platform=macOS'
-  build:
+  build-linux:
     strategy:
       matrix:
         platform: [ubuntu-latest]

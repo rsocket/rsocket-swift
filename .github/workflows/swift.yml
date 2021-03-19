@@ -43,7 +43,7 @@ jobs:
         xcodebuild
         -scheme RSocket-Package
         -parallelizeTargets
-        -skip-testing RSocketCodePerformanceTests
+        -skip-testing RSocketCorePerformanceTests
         test
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'

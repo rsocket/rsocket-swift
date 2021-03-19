@@ -4,6 +4,7 @@ import RSocketTSChannel
 import RSocketReactiveSwift
 import RSocketWebSocketTransport
 
+@available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 func t() {
     let bootstrap = ClientBootstrap(
         config: .defaultMobileToServer,

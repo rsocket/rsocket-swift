@@ -21,6 +21,7 @@ import NIO
 import NIOTransportServices
 import RSocketCore
 
+@available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 public struct ClientBootstrap {
     private let group = NIOTSEventLoopGroup()
     private let bootstrap: NIOTSConnectionBootstrap
@@ -50,6 +51,7 @@ public struct ClientBootstrap {
     }
 }
 
+@available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
     public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)

@@ -7,38 +7,22 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: swift build -v
-          
-  tests-macOS:
+  Build-and-Test:
     runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build & Run Tests (without performance tests)
+    - name: Test on macOS
+      if: runner.os == 'macOS'
       # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
         swift test
-        -v
         --parallel
         --enable-test-discovery
         --sanitize=thread
         --filter="^((?!(Performance)).)*\..*$"
-  tests-iOS:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build & Run Tests (without performance tests)
+    - name: Test on iOS Simulator
+      if: runner.os == 'macOS'
       run: >
         xcodebuild
         -scheme RSocket-Package
@@ -47,13 +31,8 @@ jobs:
         test
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
-        
-  tests-linux:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build & Run Tests (without performance tests)
+    - name: Test on Linux
+      if: runner.os == 'Linux''"
       # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
         swift test
@@ -61,15 +40,6 @@ jobs:
         --parallel
         --enable-test-discovery
         --filter="^((?!(Performance)).)*\..*$"
-  performance-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - uses: actions/checkout@v2
     - name: Build & Run Performance Tests
       # filter regex includes only test targets which contain the word "Performance" in their name
       # build with optimisation enabled

@@ -61,6 +61,33 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             XCTAssertEqual(payload, "Hello World")
             return SignalProducer { observer, lifetime in
                 observer.send(value: "Hello World!")
+                observer.send(value: "Hello World!")
+                observer.send(value: "Hello World!")
+            }
+        })
+        let (_, client) = setup(server: serverResponder)
+        let disposable = client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+            signal.flatMapError({ error in
+                XCTFail("\(error)")
+                return .empty
+            }).collect().observeValues { values in
+                didReceiveResponse.fulfill()
+                XCTAssertEqual(values, ["Hello World!"])
+            }
+        }
+        self.wait(for: [didReceiveRequest, didReceiveResponse], timeout: 0.1)
+        disposable?.dispose()
+    }
+    func testRequestResponseWithMisbehavingResponderSignalProducerWhichSendsTwoValuesInsteadOfOne() {
+        let didReceiveRequest = expectation(description: "did receive request")
+        let didReceiveResponse = expectation(description: "did receive response")
+        
+        let serverResponder = TestRSocket(requestResponse: { payload -> SignalProducer<Payload, Swift.Error> in
+            didReceiveRequest.fulfill()
+            XCTAssertEqual(payload, "Hello World")
+            return SignalProducer { observer, lifetime in
+                observer.send(value: "Hello World!")
+                observer.send(value: "one value two much")
                 observer.sendCompleted()
             }
         })
@@ -124,9 +151,6 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 signal.flatMapError({ error in
                     XCTFail("\(error)")
                     return .empty
-                }).map({ payload -> Payload in
-                    print(payload)
-                    return payload
                 }).collect().observeValues { values in
                     responderDidReceiveChannelMessages.fulfill()
                     XCTAssertEqual(values, ["Hello", "from", "Requester", "on", "Channel"])

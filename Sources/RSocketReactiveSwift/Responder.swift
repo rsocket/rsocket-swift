@@ -80,8 +80,24 @@ fileprivate final class RequestResponseResponder {
     
     init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
         self.output = output
-        self.disposable = producer.start { (event) in
-            output.send(event: event)
+        self.disposable = producer.startWithSignal { signal, disposable in
+            var didReceiveEvent = false
+            signal.observe { event in
+                guard !didReceiveEvent else { return }
+                didReceiveEvent = true
+                switch event {
+                case let .value(value):
+                    output.onNext(value, isCompletion: true)
+                case let .failed(error):
+                    output.onError(Error.applicationError(message: error.localizedDescription))
+                case .completed:
+                    output.onComplete()
+                case .interrupted:
+                    output.onCancel()
+                }
+                disposable.dispose()
+            }
+            return disposable
         }
     }
     

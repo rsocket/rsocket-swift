@@ -46,7 +46,7 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
     }
 }
 
-extension RSocketReactiveSwift.RSocket {
+private extension RSocketReactiveSwift.RSocket {
     var coreAdapter: RSocketCore.RSocket {
         ResponderAdapter(responder: self)
     }

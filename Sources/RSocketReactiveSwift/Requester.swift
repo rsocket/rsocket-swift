@@ -34,7 +34,7 @@ internal struct RequesterAdapter: RSocket {
     }
 
     internal func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer { (observer, lifetime) in
+        SignalProducer { observer, lifetime in
             let stream = RequestResponseOperator(observer: observer)
             let output = requester.requestResponse(payload: payload, responderStream: stream)
             lifetime.observeEnded {
@@ -44,7 +44,7 @@ internal struct RequesterAdapter: RSocket {
     }
     
     internal func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer { (observer, lifetime) in
+        SignalProducer { observer, lifetime in
             let stream = RequestStreamOperator(observer: observer)
             let output = requester.stream(payload: payload, initialRequestN: .max, responderStream: stream)
             lifetime.observeEnded {
@@ -57,7 +57,7 @@ internal struct RequesterAdapter: RSocket {
         payload: Payload,
         payloadProducer: SignalProducer<Payload, Swift.Error>?
     ) -> SignalProducer<Payload, Swift.Error> {
-        SignalProducer { (observer, lifetime) in
+        SignalProducer { observer, lifetime in
             let stream = RequestChannelOperator(observer: observer)
             let isComplete = payloadProducer == nil
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)
@@ -73,6 +73,7 @@ extension RSocketCore.RSocket {
 
 fileprivate struct RequestResponseOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
+
     internal init(
         observer: Signal<Payload, Swift.Error>.Observer
     ) {
@@ -103,6 +104,7 @@ extension RequestResponseOperator: UnidirectionalStream {
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
@@ -112,6 +114,7 @@ extension RequestResponseOperator: UnidirectionalStream {
 
 fileprivate struct RequestStreamOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
+
     internal init(
         observer: Signal<Payload, Swift.Error>.Observer
     ) {
@@ -142,6 +145,7 @@ extension RequestStreamOperator: UnidirectionalStream {
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
@@ -153,9 +157,8 @@ fileprivate final class RequestChannelOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
     private var payloadProducerDisposable: Disposable?
     private var isTerminated = false
-    internal init(
-        observer: Signal<Payload, Swift.Error>.Observer
-    ) {
+
+    internal init(observer: Signal<Payload, Swift.Error>.Observer) {
         self.observer = observer
     }
     
@@ -211,6 +214,7 @@ extension RequestChannelOperator: UnidirectionalStream {
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")

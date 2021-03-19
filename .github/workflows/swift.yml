@@ -19,19 +19,20 @@ jobs:
       if: runner.os == 'macOS'
       # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
-        swift test
-        --parallel
-        --enable-test-discovery
-        --sanitize=thread
-        --filter="^((?!(Performance)).)*\..*$"
-    - name: Test on iOS Simulator
-      if: runner.os == 'macOS'
-      run: >
-        xcodebuild
+        xcodebuild test
         -scheme RSocket-Package
         -parallelizeTargets
         -skip-testing RSocketCorePerformanceTests
-        test
+        -parallel-testing-enabled
+        -destination 'platform=macOS'
+    - name: Test on iOS Simulator
+      if: runner.os == 'macOS'
+      run: >
+        xcodebuild test
+        -scheme RSocket-Package
+        -parallelizeTargets
+        -parallel-testing-enabled
+        -skip-testing RSocketCorePerformanceTests
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
     - name: Test on Linux

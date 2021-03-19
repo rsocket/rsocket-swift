@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  Build-and-Test:
+  build:
     strategy:
       matrix:
         platform: [macos-latest, ubuntu-latest]

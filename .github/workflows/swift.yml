@@ -35,7 +35,7 @@ jobs:
         -sdk iphonesimulator
         -destination 'platform=iOS Simulator,name=iPhone 12'
     - name: Test on Linux
-      if: runner.os == 'Linux''"
+      if: runner.os == 'Linux'
       # filter regex excludes all tests targets which contain the word "Performance" in their name
       run: >
         swift test

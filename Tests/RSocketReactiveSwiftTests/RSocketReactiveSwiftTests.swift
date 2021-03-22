@@ -66,7 +66,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.rSocket.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.reactive.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty

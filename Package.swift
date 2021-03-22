@@ -6,7 +6,6 @@ let package = Package(
     name: "RSocket",
     platforms: [
         .macOS(.v10_15),
-        .iOS(.v9),
         .tvOS(.v9),
         .watchOS(.v2)
     ],
@@ -19,6 +18,7 @@ let package = Package(
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.5.0"),
         .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
+        .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
     ],
     targets: [
         .target(name: "RSocketCore", dependencies: [
@@ -34,11 +34,13 @@ let package = Package(
             "RSocketCore",
             "RSocketTestUtilities",
             .product(name: "NIOExtras", package: "swift-nio-extras"),
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         .testTarget(name: "RSocketCorePerformanceTests", dependencies: [
             "RSocketCore",
             "RSocketTestUtilities",
             .product(name: "NIOExtras", package: "swift-nio-extras"),
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         .testTarget(name: "RSocketCombineTests", dependencies: ["RSocketCombine"]),
         .testTarget(name: "RSocketReactiveSwiftTests", dependencies: ["RSocketReactiveSwift"]),

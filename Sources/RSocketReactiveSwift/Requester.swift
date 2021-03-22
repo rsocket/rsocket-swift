@@ -84,9 +84,7 @@ fileprivate struct RequestResponseOperator {
 extension RequestResponseOperator: UnidirectionalStream {
     func onNext(_ payload: Payload, isCompletion: Bool) {
         observer.send(value: payload)
-        if isCompletion {
-            observer.sendCompleted()
-        }
+        observer.sendCompleted()
     }
     
     func onError(_ error: Error) {

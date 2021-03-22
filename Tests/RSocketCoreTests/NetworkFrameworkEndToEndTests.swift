@@ -43,7 +43,6 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
         NIOTSListenerBootstrap(group: serverEventLoopGroup)
-            // Specify backlog and enable SO_REUSEADDR for the server itself
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),

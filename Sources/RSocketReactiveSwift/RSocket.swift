@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-public protocol Cancellable {
-    func onCancel()
-    func onError(_ error: Error)
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
-}
 
-public protocol Subscription: Cancellable {
-    func onRequestN(_ requestN: Int32)
-}
+import ReactiveSwift
+import RSocketCore
+import Foundation
 
-public protocol UnidirectionalStream: Subscription {
-    func onNext(_ payload: Payload, isCompletion: Bool)
-    func onComplete()
+public protocol RSocket {
+    func metadataPush(metadata: Data)
+    func fireAndForget(payload: Payload)
+    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestChannel(
+        payload: Payload,
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
+    ) -> SignalProducer<Payload, Swift.Error>
 }

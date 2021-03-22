@@ -23,11 +23,14 @@ import RSocketTestUtilities
 func setup(
     server: RSocketReactiveSwift.RSocket? = nil,
     client: RSocketReactiveSwift.RSocket? = nil
-) -> (server: TestDemultiplexer, client: TestDemultiplexer) {
+) -> (server: ReactiveSwiftClient, client: ReactiveSwiftClient) {
     let (server, client) = TestDemultiplexer.pipe(
         serverResponder: server.map(ResponderAdapter.init(responder:)),
         clientResponder: client.map(ResponderAdapter.init(responder:)))
-    return (server, client)
+    return (
+        ReactiveSwiftClient(CoreClient(requester: server.requester)),
+        ReactiveSwiftClient(CoreClient(requester: client.requester))
+    )
 }
 
 final class RSocketReactiveSwiftTests: XCTestCase {
@@ -39,7 +42,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             XCTAssertEqual(data, metadata)
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.reactive.metadataPush(metadata: metadata)
+        client.requester.metadataPush(metadata: metadata)
         self.wait(for: [didReceiveRequest], timeout: 0.1)
     }
     func testFireAndForget() {
@@ -49,7 +52,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             XCTAssertEqual(payload, "Hello World")
         })
         let (_, client) = setup(server: serverResponder)
-        client.requester.reactive.fireAndForget(payload: "Hello World")
+        client.requester.fireAndForget(payload: "Hello World")
         self.wait(for: [didReceiveRequest], timeout: 0.1)
     }
     func testRequestResponse() {
@@ -66,7 +69,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.reactive.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -92,7 +95,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.reactive.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.requestResponse(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -123,7 +126,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.reactive.requestStream(payload: "Hello World").startWithSignal { signal, _ in
+        let disposable = client.requester.requestStream(payload: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
                 return .empty
@@ -169,8 +172,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let requestSocket = client.requester.reactive
-        let disposable = requestSocket.requestChannel(payload: "Hello Responder", payloadProducer: .init({ observer, _ in
+        let disposable = client.requester.requestChannel(payload: "Hello Responder", payloadProducer: .init({ observer, _ in
             requesterDidSendChannelMessages.fulfill()
             observer.send(value: "Hello")
             observer.send(value: "from")
@@ -214,7 +216,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.reactive.requestResponse(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
+        let disposable = client.requester.requestResponse(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
             return signal.flatMapError({ error -> Signal<Payload, Never> in
                 XCTFail("\(error)")
@@ -243,7 +245,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let disposable = client.requester.reactive.requestStream(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
+        let disposable = client.requester.requestStream(payload: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
             return signal.flatMapError({ error -> Signal<Payload, Never> in
                 XCTFail("\(error)")
@@ -285,11 +287,10 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })
         let (_, client) = setup(server: serverResponder)
-        let requestSocket = client.requester.reactive
         let requesterDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
         let payloadProducerLifetimeEnded = expectation(description: "payload producer lifetime ended")
         let requesterDidStartPayloadProducer = expectation(description: "requester did start payload producer")
-        let disposable = requestSocket.requestChannel(payload: "Hello", payloadProducer: .init({ observer, lifetime in
+        let disposable = client.requester.requestChannel(payload: "Hello", payloadProducer: .init({ observer, lifetime in
             requesterDidStartPayloadProducer.fulfill()
             lifetime.observeEnded {
                 _ = observer

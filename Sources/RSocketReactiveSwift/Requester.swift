@@ -66,11 +66,6 @@ internal struct RequesterAdapter: RSocket {
     }
 }
 
-extension RSocketCore.RSocket {
-    public var reactive: RSocket { RequesterAdapter(requester: self) }
-}
-
-
 fileprivate struct RequestResponseOperator {
     private let observer: Signal<Payload, Swift.Error>.Observer
 

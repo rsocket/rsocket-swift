@@ -6,6 +6,7 @@ let package = Package(
     name: "RSocket",
     platforms: [
         .macOS(.v10_15),
+        .iOS(.v9),
         .tvOS(.v9),
         .watchOS(.v2)
     ],

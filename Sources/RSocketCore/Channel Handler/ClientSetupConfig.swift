@@ -101,8 +101,8 @@ extension ClientSetupConfig {
         ClientSetupConfig(
             timeBetweenKeepaliveFrames: 30_000,
             maxLifetime: 30_000,
-            metadataEncodingMimeType: "application/json",
-            dataEncodingMimeType: "application/json"
+            metadataEncodingMimeType: "application/octet-stream",
+            dataEncodingMimeType: "application/octet-stream"
         )
     }
 
@@ -110,8 +110,8 @@ extension ClientSetupConfig {
         ClientSetupConfig(
             timeBetweenKeepaliveFrames: 500,
             maxLifetime: 500,
-            metadataEncodingMimeType: "application/json",
-            dataEncodingMimeType: "application/json"
+            metadataEncodingMimeType: "application/octet-stream",
+            dataEncodingMimeType: "application/octet-stream"
         )
     }
 }

@@ -39,7 +39,14 @@ class EndToEndTests: XCTestCase {
         dataEncodingMimeType: "utf8"
     )
     let host = "127.0.0.1"
-    let maxParallelStreams = 1
+    
+    /// Maximum count of parallel `thing`s a tests sends.
+    ///
+    /// What `thing` means, depends on the test e.g.:
+    /// - `testRequestResponseEcho`: in flight requests
+    /// - `testChannelEcho`: open channels
+    /// - `test1000OpenStreamsButReceivingOnlyOnOne`: in flight payload frames on the last stream
+    let maxParallelism = 6
     
     private var clientEventLoopGroup: MultiThreadedEventLoopGroup!
     private var serverEventLoopGroup: MultiThreadedEventLoopGroup!
@@ -91,7 +98,7 @@ class EndToEndTests: XCTestCase {
     func testFireAndForget() throws {
         measure {
             let requestCount = 10_000
-            let requestSemaphore = DispatchSemaphore(value: maxParallelStreams)
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(fireAndForget: { payload in
@@ -115,7 +122,7 @@ class EndToEndTests: XCTestCase {
     func testRequestResponseEcho() throws {
         measure {
             let requestCount = 1_000
-            let requestSemaphore = DispatchSemaphore(value: maxParallelStreams)
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(requestResponse: { payload, output in
@@ -148,7 +155,7 @@ class EndToEndTests: XCTestCase {
     func testChannelEcho() throws {
         measure {
             let requestCount = 1_000
-            let requestSemaphore = DispatchSemaphore(value: maxParallelStreams)
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             var echo: TestUnidirectionalStream?
@@ -189,7 +196,7 @@ class EndToEndTests: XCTestCase {
     func testStream() throws {
         measure {
             let requestCount = 1_000
-            let requestSemaphore = DispatchSemaphore(value: maxParallelStreams)
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
@@ -228,7 +235,7 @@ class EndToEndTests: XCTestCase {
         measure {
             let requestCount = 1_000
             let messageCount = 10_000
-            let messageSemaphore = DispatchSemaphore(value: maxParallelStreams)
+            let messageSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             var outputs = [UnidirectionalStream]()

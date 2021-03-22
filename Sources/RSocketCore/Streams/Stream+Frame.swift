@@ -19,6 +19,14 @@ extension Cancellable {
         switch frame.body {
         case .cancel:
             onCancel()
+        case let .error(body):
+            onError(body.error)
+        case let .ext(body):
+            onExtension(
+                extendedType: body.extendedType,
+                payload: body.payload,
+                canBeIgnored: body.canBeIgnored
+            )
         default:
             if !frame.header.flags.contains(.ignore) {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active cancelable")
@@ -34,6 +42,14 @@ extension Subscription {
             onRequestN(body.requestN)
         case .cancel:
             onCancel()
+        case let .error(body):
+            onError(body.error)
+        case let .ext(body):
+            onExtension(
+                extendedType: body.extendedType,
+                payload: body.payload,
+                canBeIgnored: body.canBeIgnored
+            )
         default:
             if !frame.header.flags.contains(.ignore) {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active subscription")
@@ -47,17 +63,14 @@ extension UnidirectionalStream {
         switch frame.body {
         case let .requestN(body):
             onRequestN(body.requestN)
-
         case .cancel:
             onCancel()
-
         case let .payload(body):
             if body.isNext {
                 onNext(body.payload, isCompletion: body.isCompletion)
             } else if body.isCompletion {
                 onComplete()
             }
-
         case let .error(body):
             onError(body.error)
 

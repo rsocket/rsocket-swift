@@ -20,7 +20,7 @@ import ReactiveSwift
 public struct ReactiveSwiftClient: Client {
     private let coreClient: CoreClient
 
-    public var requester: RSocketReactiveSwift.RSocket { RequesterAdapter(requester: coreClient) }
+    public var requester: RSocketReactiveSwift.RSocket { RequesterAdapter(requester: coreClient.requester) }
 
     public init(_ coreClient: CoreClient) {
         self.coreClient = coreClient

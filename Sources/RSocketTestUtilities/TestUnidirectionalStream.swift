@@ -30,7 +30,8 @@ public final class TestUnidirectionalStream {
     }
     public private(set) var events: [Event] = []
     
-    /// if true, the current test will fail if an event is received but no callback is defined to handle the given event
+    /// if true, the current test will fail if an event is received but no callback is defined to handle the given event.
+    /// Default is true.
     public var failOnUnexpectedEvent: Bool
     public var onNextCallback: ((_ payload: Payload, _ isCompletion: Bool) -> ())?
     public var onErrorCallback: ((_ error: Error) -> ())?

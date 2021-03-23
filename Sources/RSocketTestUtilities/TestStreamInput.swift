@@ -15,8 +15,9 @@
  */
 
 import RSocketCore
+import XCTest
 
-public final class TestStreamInput: RSocketCore.UnidirectionalStream {
+public final class TestStreamInput {
     public enum Event: Hashable {
         case next(Payload, isCompletion: Bool)
         case error(Error)
@@ -26,22 +27,26 @@ public final class TestStreamInput: RSocketCore.UnidirectionalStream {
         case `extension`(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
     }
     public private(set) var events: [Event] = []
-    public var onNextCallback: (_ payload: Payload, _ isCompletion: Bool) -> ()
-    public var onErrorCallback: (_ error: Error) -> ()
-    public var onCompleteCallback: () -> ()
-    public var onCancelCallback: () -> ()
-    public var onRequestNCallback: (_ requestN: Int32) -> ()
-    public var onExtensionCallback: (_ extendedType: Int32, _ payload: Payload, _ canBeIgnored: Bool) -> ()
-    public var onCompletionOrOnNextWithIsCompletionTrue: () -> ()
+    public var failOnUnexpectedEvent: Bool
+    public var onNextCallback: ((_ payload: Payload, _ isCompletion: Bool) -> ())?
+    public var onErrorCallback: ((_ error: Error) -> ())?
+    public var onCompleteCallback: (() -> ())?
+    public var onCancelCallback: (() -> ())?
+    public var onRequestNCallback: ((_ requestN: Int32) -> ())?
+    public var onExtensionCallback: ((_ extendedType: Int32, _ payload: Payload, _ canBeIgnored: Bool) -> ())?
+    private let file: StaticString
+    private let line: UInt
     
     public init(
-        onNext: @escaping (Payload, Bool) -> () = { _,_ in },
-        onError: @escaping (Error) -> () = { _ in },
-        onComplete: @escaping () -> () = {},
-        onCancel: @escaping () -> () = {},
-        onRequestN: @escaping (Int32) -> () = { _ in },
-        onExtension: @escaping (Int32, Payload, Bool) -> () = { _,_,_ in },
-        onCompletionOrOnNextWithIsCompletionTrue: @escaping () -> () = {}
+        onNext: ((Payload, Bool) -> ())? = nil,
+        onError: ((Error) -> ())? = nil,
+        onComplete: (() -> ())? = nil,
+        onCancel: (() -> ())? = nil,
+        onRequestN: ((Int32) -> ())? = nil,
+        onExtension: ((Int32, Payload, Bool) -> ())? = nil,
+        failOnUnexpectedEvent: Bool = true,
+        file: StaticString = #file,
+        line: UInt = #line
     ) {
         self.onNextCallback = onNext
         self.onErrorCallback = onError
@@ -49,36 +54,62 @@ public final class TestStreamInput: RSocketCore.UnidirectionalStream {
         self.onCancelCallback = onCancel
         self.onRequestNCallback = onRequestN
         self.onExtensionCallback = onExtension
-        self.onCompletionOrOnNextWithIsCompletionTrue = onCompletionOrOnNextWithIsCompletionTrue
+        self.failOnUnexpectedEvent = failOnUnexpectedEvent
+        self.file = file
+        self.line = line
     }
     
+    private func didReceiveEvent<Callback>(_ event: Event, callback: Callback?, notify: (Callback) -> ()) {
+        events.append(event)
+        notifyCallbackOrFailIfNeeded(event: event, callback: callback, notify: notify)
+    }
+    private func notifyCallbackOrFailIfNeeded<Callback>(event: Event, callback: Callback?, notify: (Callback) -> ()) {
+        guard let callback = callback else {
+            eventWithoutCallback(event: event)
+            return
+        }
+        notify(callback)
+    }
+    private func eventWithoutCallback(event: Event) {
+        if failOnUnexpectedEvent {
+            XCTFail("did receive unexpected event \(event)")
+        }
+    }
+}
+
+extension TestStreamInput: UnidirectionalStream {
     public func onNext(_ payload: Payload, isCompletion: Bool) {
-        events.append(.next(payload, isCompletion: isCompletion))
-        onNextCallback(payload, isCompletion)
-        if isCompletion {
-            onCompletionOrOnNextWithIsCompletionTrue()
+        didReceiveEvent(.next(payload, isCompletion: isCompletion), callback: onNextCallback) {
+            $0(payload, isCompletion)
         }
     }
     public func onError(_ error: Error) {
-        events.append(.error(error))
-        onErrorCallback(error)
+        didReceiveEvent(.error(error), callback: onErrorCallback) {
+            $0(error)
+        }
     }
     public func onComplete() {
-        events.append(.complete)
-        onCompleteCallback()
-        onCompletionOrOnNextWithIsCompletionTrue()
+        didReceiveEvent(.complete, callback: onCompleteCallback) {
+            $0()
+        }
     }
     public func onCancel() {
-        events.append(.cancel)
-        onCancelCallback()
+        didReceiveEvent(.cancel, callback: onCancelCallback) {
+            $0()
+        }
     }
     public func onRequestN(_ requestN: Int32) {
-        events.append(.requestN(requestN))
-        onRequestNCallback(requestN)
+        didReceiveEvent(.requestN(requestN), callback: onRequestNCallback) {
+            $0(requestN)
+        }
     }
     public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
-        events.append(.extension(extendedType: extendedType, payload: payload, canBeIgnored: canBeIgnored))
-        onExtensionCallback(extendedType, payload, canBeIgnored)
+        didReceiveEvent(
+            .extension(extendedType: extendedType, payload: payload, canBeIgnored: canBeIgnored),
+            callback: onExtensionCallback
+        ) {
+            $0(extendedType, payload, canBeIgnored)
+        }
     }
 }
 

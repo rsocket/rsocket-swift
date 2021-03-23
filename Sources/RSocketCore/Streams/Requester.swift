@@ -22,15 +22,18 @@ internal final class Requester {
     private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator
     private var activeStreams: [StreamID: RequesterStream] = [:]
+    private var lateFrameHandler: ((Frame) -> ())?
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
         eventLoop: EventLoop,
-        sendFrame: @escaping (Frame) -> Void
+        sendFrame: @escaping (Frame) -> Void,
+        lateFrameHandler: ((Frame) -> ())? = nil
     ) {
         self.streamIdGenerator = streamIdGenerator
         self.eventLoop = eventLoop
         self.sendFrame = sendFrame
+        self.lateFrameHandler = lateFrameHandler
     }
 
     fileprivate func generateNewStreamId() -> StreamID {
@@ -48,8 +51,7 @@ internal final class Requester {
             return
         }
         guard let existingStreamAdapter = activeStreams[streamId] else {
-            // TODO: do not close connection for late frames
-            send(frame: Error.connectionError(message: "No active stream for given id").asFrame(withStreamId: streamId))
+            lateFrameHandler?(frame)
             return
         }
         existingStreamAdapter.receive(frame: frame)

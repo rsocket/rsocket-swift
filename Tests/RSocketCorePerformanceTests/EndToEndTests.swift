@@ -144,9 +144,12 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
-                let input = TestUnidirectionalStream(onComplete: {
-                    response.fulfill()
-                })
+                let input = TestUnidirectionalStream(
+                    onNext: { _, _ in },
+                    onComplete: {
+                        response.fulfill()
+                    }
+                )
                 let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
                 output.onNext(" ", isCompletion: false)
                 output.onNext("W", isCompletion: false)

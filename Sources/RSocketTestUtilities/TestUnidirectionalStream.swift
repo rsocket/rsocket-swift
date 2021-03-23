@@ -17,6 +17,8 @@
 import RSocketCore
 import XCTest
 
+
+/// - Note: **not** Thread-safe
 public final class TestUnidirectionalStream {
     public enum Event: Hashable {
         case next(Payload, isCompletion: Bool)
@@ -27,6 +29,8 @@ public final class TestUnidirectionalStream {
         case `extension`(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
     }
     public private(set) var events: [Event] = []
+    
+    /// if true, the current test will fail if an event is received but no callback is defined to handle the given event
     public var failOnUnexpectedEvent: Bool
     public var onNextCallback: ((_ payload: Payload, _ isCompletion: Bool) -> ())?
     public var onErrorCallback: ((_ error: Error) -> ())?
@@ -59,18 +63,21 @@ public final class TestUnidirectionalStream {
         self.line = line
     }
     
+    /// Appends `event` to `events` and calls `notify` with the given `callback`, if `callback` is not nil.
+    /// If `callback` is nil, the event is treated as unexpected, which will fail the current test if `failOnUnexpectedEvent` is `true`.
+    /// - Parameters:
+    ///   - event: received event
+    ///   - callback: user defined callback to handle the event
+    ///   - notify: called if callback is not nil and should then execute the callback with the required arguments
     private func didReceiveEvent<Callback>(_ event: Event, callback: Callback?, notify: (Callback) -> ()) {
         events.append(event)
-        notifyCallbackOrFailIfNeeded(event: event, callback: callback, notify: notify)
-    }
-    private func notifyCallbackOrFailIfNeeded<Callback>(event: Event, callback: Callback?, notify: (Callback) -> ()) {
         guard let callback = callback else {
-            eventWithoutCallback(event: event)
+            didReceiveUnexpectedEvent(event)
             return
         }
         notify(callback)
     }
-    private func eventWithoutCallback(event: Event) {
+    private func didReceiveUnexpectedEvent(_ event: Event) {
         if failOnUnexpectedEvent {
             XCTFail("did receive unexpected event \(event)")
         }

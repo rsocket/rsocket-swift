@@ -22,7 +22,6 @@ extension ChannelPipeline {
         responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil
     ) -> EventLoopFuture<Void> {
-        let responder = responder ?? DefaultRSocket()
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
@@ -52,7 +51,7 @@ extension ChannelPipeline {
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
             ConnectionEstablishmentHandler(initializeConnection: { [unowned self] (info, channel) in
-                let responder = makeResponder?(info) ?? DefaultRSocket()
+                let responder = makeResponder?(info)
                 let sendFrame: (Frame) -> () = { [weak self] frame in
                     self?.writeAndFlush(NIOAny(frame), promise: nil)
                 }

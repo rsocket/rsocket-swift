@@ -22,11 +22,11 @@ internal final class Responder {
     private var activeStreams: [StreamID: ResponderStream] = [:]
     private let eventLoop: EventLoop
     internal init(
-        responderSocket: RSocket,
+        responderSocket: RSocket? = nil,
         eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void
     ) {
-        self.responderSocket = responderSocket
+        self.responderSocket = responderSocket ?? DefaultRSocket()
         self.sendFrame = sendFrame
         self.eventLoop = eventLoop
     }

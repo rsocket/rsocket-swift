@@ -27,7 +27,7 @@ final class EndToEndTests: XCTestCase {
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )
-    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
     override func tearDownWithError() throws {
         try eventLoopGroup.syncShutdownGracefully()
     }
@@ -216,6 +216,36 @@ final class EndToEndTests: XCTestCase {
         output.onComplete()
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], input.events)
+    }
+    func testChannelResponderError() throws {
+        let request = self.expectation(description: "receive request")
+        let server = makeServerBootstrap(responderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+            request.fulfill()
+            XCTAssertEqual(initialRequestN, .max)
+            XCTAssertFalse(isCompletion)
+            
+            output.onNext(payload, isCompletion: false)
+            output.onError(.applicationError(message: "enough is enough"))
+            
+            return TestUnidirectionalStream()
+        }))
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
+        
+        let requester = try makeClientBootstrap()
+            .connect(host: host, port: port)
+            .flatMap { $0.pipeline.requesterSocket() }
+            .wait()
+        
+        let receivedOnNext = self.expectation(description: "receive onNext")
+        let receivedOnError = self.expectation(description: "receive onError")
+        let input = TestUnidirectionalStream(
+            onNext: { _, _ in receivedOnNext.fulfill() },
+            onError: { _ in receivedOnError.fulfill() })
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
+        self.wait(for: [request, receivedOnNext, receivedOnError], timeout: 1)
+        XCTAssertEqual(input.events, ["Hello", .error(.applicationError(message: "enough is enough"))])
+        
+        output.onComplete() // should not send a late frame (late frames will automatically fail)
     }
     func testStream() throws {
         let request = self.expectation(description: "receive request")

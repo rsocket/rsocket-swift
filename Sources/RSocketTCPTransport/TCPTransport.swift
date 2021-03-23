@@ -14,22 +14,24 @@
  * limitations under the License.
  */
 
-
-import ReactiveSwift
+import NIO
+import NIOExtras
 import RSocketCore
-import Foundation
 
-public protocol RSocket {
-    func metadataPush(metadata: Data)
-    func fireAndForget(payload: Payload)
-    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestChannel(
-        payload: Payload,
-        payloadProducer: SignalProducer<Payload, Swift.Error>?
-    ) -> SignalProducer<Payload, Swift.Error>
+public struct TCPTransport {
+    public init() { }
 }
 
-public typealias Payload = RSocketCore.Payload
-
-public typealias Error = RSocketCore.Error
+extension TCPTransport: TransportChannelHandler {
+    public func addChannelHandler(
+        channel: Channel,
+        host: String,
+        port: Int,
+        upgradeComplete: @escaping () -> EventLoopFuture<Void>
+    ) -> EventLoopFuture<Void> {
+        channel.pipeline.addHandlers([
+            ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
+            LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
+        ]).flatMap(upgradeComplete)
+    }
+}

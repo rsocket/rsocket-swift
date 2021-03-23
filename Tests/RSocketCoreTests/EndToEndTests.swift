@@ -17,7 +17,7 @@
 import XCTest
 import NIO
 import NIOExtras
-import RSocketCore
+@testable import RSocketCore
 import RSocketTestUtilities
 
 final class EndToEndTests: XCTestCase {
@@ -48,7 +48,9 @@ final class EndToEndTests: XCTestCase {
                 ]).flatMap {
                     channel.pipeline.addRSocketServerHandlers(
                         shouldAcceptClient: shouldAcceptClient,
-                        makeResponder: { _ in responderSocket }
+                        makeResponder: { _ in responderSocket },
+                        requesterLateFrameHandler: { XCTFail("server requester did receive late frame \($0)", file: file, line: line) },
+                        responderLateFrameHandler: { XCTFail("server responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
             }
@@ -66,7 +68,12 @@ final class EndToEndTests: XCTestCase {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                 ]).flatMap {
-                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                    channel.pipeline.addRSocketClientHandlers(
+                        config: config,
+                        responder: responderSocket,
+                        requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
+                        responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
+                    )
                 }
             }
     }

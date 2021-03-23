@@ -22,6 +22,21 @@ extension ChannelPipeline {
         responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil
     ) -> EventLoopFuture<Void> {
+        addRSocketClientHandlers(
+            config: config,
+            responder: responder,
+            maximumFrameSize: maximumFrameSize,
+            requesterLateFrameHandler: nil,
+            responderLateFrameHandler: nil
+        )
+    }
+    internal func addRSocketClientHandlers(
+        config: ClientSetupConfig,
+        responder: RSocket? = nil,
+        maximumFrameSize: Int32? = nil,
+        requesterLateFrameHandler: ((Frame) -> Void)? = nil,
+        responderLateFrameHandler: ((Frame) -> Void)? = nil
+    ) -> EventLoopFuture<Void> {
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
@@ -45,6 +60,21 @@ extension ChannelPipeline {
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         makeResponder: ((SetupInfo) -> RSocket?)? = nil,
         maximumFrameSize: Int32? = nil
+    ) -> EventLoopFuture<Void> {
+        addRSocketServerHandlers(
+            shouldAcceptClient: shouldAcceptClient,
+            makeResponder: makeResponder,
+            maximumFrameSize: maximumFrameSize,
+            requesterLateFrameHandler: nil,
+            responderLateFrameHandler: nil
+        )
+    }
+    internal func addRSocketServerHandlers(
+        shouldAcceptClient: ClientAcceptorCallback? = nil,
+        makeResponder: ((SetupInfo) -> RSocket?)? = nil,
+        maximumFrameSize: Int32? = nil,
+        requesterLateFrameHandler: ((Frame) -> Void)? = nil,
+        responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         return addHandlers([

@@ -20,9 +20,11 @@ import Foundation
 
 internal struct ResponderAdapter: RSocketCore.RSocket {
     private let responder: RSocket
+
     internal init(responder: RSocket) {
         self.responder = responder
     }
+
     func metadataPush(metadata: Data) {
         responder.metadataPush(metadata: metadata)
     }
@@ -110,10 +112,12 @@ extension RequestResponseResponder: Cancellable {
     func onCancel() {
         disposable.dispose()
     }
+
     func onError(_ error: Error) {
         // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
@@ -142,16 +146,19 @@ extension RequestStreamResponder: Subscription {
     func onCancel() {
         disposable.dispose()
     }
+
     func onError(_ error: Error) {
         // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")
         output.onError(error)
         disposable.dispose()
     }
+
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
@@ -186,20 +193,25 @@ extension RequestChannelResponder: UnidirectionalStream {
             observer.sendCompleted()
         }
     }
+
     func onError(_ error: Error) {
         observer.send(error: error)
         // TODO: We should make it possible to handle errors, e.g. with a callback
         disposable.dispose()
     }
+
     func onComplete() {
         observer.sendCompleted()
     }
+
     func onCancel() {
         observer.sendInterrupted()
     }
+
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
+
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard !canBeIgnored else { return }
         let error = Error.invalid(message: "\(Self.self) does not support extension type \(extendedType) and it can not be ignored")

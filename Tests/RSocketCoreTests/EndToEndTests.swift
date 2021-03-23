@@ -123,7 +123,7 @@ class EndToEndTests: XCTestCase {
         
         let requester = try makeClientBootstrap()
             .connect(host: host, port: port)
-            .flatMap { $0.pipeline.requesterSocket() }
+            .flatMap(\.pipeline.requester)
             .wait()
         
         requester.fireAndForget(payload: "Hello World")
@@ -141,7 +141,7 @@ class EndToEndTests: XCTestCase {
         
         let requester = try makeClientBootstrap()
             .connect(host: host, port: port)
-            .flatMap { $0.pipeline.requesterSocket() }
+            .flatMap(\.pipeline.requester)
             .wait()
         
         let response = self.expectation(description: "receive response")
@@ -170,7 +170,7 @@ class EndToEndTests: XCTestCase {
         
         let requester = try makeClientBootstrap()
             .connect(host: host, port: port)
-            .flatMap { $0.pipeline.requesterSocket() }
+            .flatMap(\.pipeline.requester)
             .wait()
         
         let response = self.expectation(description: "receive response")
@@ -210,7 +210,7 @@ class EndToEndTests: XCTestCase {
         
         let requester = try makeClientBootstrap()
             .connect(host: host, port: port)
-            .flatMap { $0.pipeline.requesterSocket() }
+            .flatMap(\.pipeline.requester)
             .wait()
         
         let response = self.expectation(description: "receive response")

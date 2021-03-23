@@ -27,6 +27,7 @@ extension ChannelPipeline {
             config: config,
             responder: responder,
             maximumFrameSize: maximumFrameSize,
+            connectedPromise: connectedPromise,
             requesterLateFrameHandler: nil,
             responderLateFrameHandler: nil
         )
@@ -35,6 +36,7 @@ extension ChannelPipeline {
         config: ClientSetupConfig,
         responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil,
+        connectedPromise: EventLoopPromise<RSocket>? = nil,
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {

@@ -59,6 +59,7 @@ final class EndToEndTests: XCTestCase {
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIO.ClientBootstrap {
@@ -71,6 +72,7 @@ final class EndToEndTests: XCTestCase {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
                         responder: responderSocket,
+                        connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
                     )
@@ -94,9 +96,10 @@ final class EndToEndTests: XCTestCase {
         )
         let serverChannel = try server.bind(host: host, port: 0).wait()
         let port = try XCTUnwrap(serverChannel.localAddress?.port)
-        return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig)
+        let clientConnected = eventLoopGroup.next().makePromise(of: RSocket.self)
+        return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig, connectedPromise: clientConnected)
             .connect(host: host, port: port)
-            .flatMap(\.pipeline.requester)
+            .flatMap({ _ in clientConnected.futureResult })
             .wait()
     }
     func testClientServerSetup() throws {

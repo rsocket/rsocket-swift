@@ -61,8 +61,8 @@ final class EndToEndTests: XCTestCase {
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> ClientBootstrap {
-        return ClientBootstrap(group: eventLoopGroup)
+    ) -> NIO.ClientBootstrap {
+        return NIO.ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -96,7 +96,7 @@ final class EndToEndTests: XCTestCase {
         let port = try XCTUnwrap(serverChannel.localAddress?.port)
         return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig)
             .connect(host: host, port: port)
-            .flatMap { $0.pipeline.requesterSocket() }
+            .flatMap(\.pipeline.requester)
             .wait()
     }
     func testClientServerSetup() throws {

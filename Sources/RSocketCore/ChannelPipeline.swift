@@ -20,7 +20,8 @@ extension ChannelPipeline {
     public func addRSocketClientHandlers(
         config: ClientSetupConfig,
         responder: RSocket? = nil,
-        maximumFrameSize: Int32? = nil
+        maximumFrameSize: Int32? = nil,
+        connectedPromise: EventLoopPromise<RSocket>? = nil
     ) -> EventLoopFuture<Void> {
         addRSocketClientHandlers(
             config: config,
@@ -41,13 +42,16 @@ extension ChannelPipeline {
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
         }
+        let promise = eventLoop.makePromise(of: Void.self)
+        let requester = Requester(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: sendFrame)
+        promise.futureResult.map { requester as RSocket }.cascade(to: connectedPromise)
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
-            SetupWriter(config: config),
+            SetupWriter(config: config, connectedPromise: promise),
             DemultiplexerHandler(
                 connectionSide: .client,
-                requester: Requester(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: sendFrame),
+                requester: requester,
                 responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
             ),
             ConnectionStreamHandler(),
@@ -98,8 +102,9 @@ extension ChannelPipeline {
     }
 }
 
+// TODO: REMOVE
 extension ChannelPipeline {
-    public func requesterSocket() -> EventLoopFuture<RSocket> {
-        self.handler(type: DemultiplexerHandler.self).map({ $0.requester as RSocket })
+    public var requester: EventLoopFuture<RSocket> {
+        self.handler(type: DemultiplexerHandler.self).map { $0.requester }
     }
 }

@@ -67,13 +67,13 @@ extension Requester: StreamDelegate {
 
 extension Requester: RSocket {
     func metadataPush(metadata: Data) {
-        eventLoop.execute { [self] in
+        eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             send(frame: MetadataPushFrameBody(metadata: metadata).asFrame())
         }
     }
 
     func fireAndForget(payload: Payload) {
-        eventLoop.execute { [self] in
+        eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             let newId = generateNewStreamId()
             send(frame: RequestFireAndForgetFrameBody(payload: payload).asFrame(withStreamId: newId))
         }

@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/ReactiveCocoa/ReactiveSwift.git",
         "state": {
           "branch": null,
-          "revision": "e03cda84105ba707de039b757e2b2de868c65a3e",
-          "version": "6.5.0"
+          "revision": "4a8e1e4a683e96daf658f68132dae781738bc862",
+          "version": "6.6.0"
         }
       },
       {
@@ -26,6 +26,24 @@
           "branch": null,
           "revision": "de1c80ad1fdff1ba772bcef6b392c3ef735f39a6",
           "version": "1.8.0"
+        }
+      },
+      {
+        "package": "swift-nio-ssl",
+        "repositoryURL": "https://github.com/apple/swift-nio-ssl",
+        "state": {
+          "branch": null,
+          "revision": "bbb38fbcbbe9dc4665b2c638dfa5681b01079bfb",
+          "version": "2.10.4"
+        }
+      },
+      {
+        "package": "swift-nio-transport-services",
+        "repositoryURL": "https://github.com/apple/swift-nio-transport-services",
+        "state": {
+          "branch": null,
+          "revision": "1d28d48e071727f4558a8a4bb1894472abc47a58",
+          "version": "1.9.2"
         }
       }
     ]

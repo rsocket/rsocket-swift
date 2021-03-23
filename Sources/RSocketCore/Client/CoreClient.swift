@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-public protocol Cancellable {
-    func onCancel()
-    func onError(_ error: Error)
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
-}
+public class CoreClient: Client {
+    public let requester: RSocketCore.RSocket
 
-public protocol Subscription: Cancellable {
-    func onRequestN(_ requestN: Int32)
-}
+    public init(requester: RSocketCore.RSocket) {
+        self.requester = requester
+    }
 
-public protocol UnidirectionalStream: Subscription {
-    func onNext(_ payload: Payload, isCompletion: Bool)
-    func onComplete()
+    deinit {
+        // TODO: close channel
+    }
 }

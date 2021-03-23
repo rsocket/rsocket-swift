@@ -16,95 +16,16 @@
 
 import NIO
 
-public struct ClientSetupConfig {
-    /**
-     Time (in milliseconds) between `KEEPALIVE` frames that the client will send
-
-     Value MUST be > `0`.
-     - For server-to-server connections, a reasonable time interval between client `KEEPALIVE` frames is 500ms.
-     - For mobile-to-server connections, the time interval between client `KEEPALIVE` frames is often > 30,000ms.
-     */
-    public var timeBetweenKeepaliveFrames: Int32
-
-    /**
-     Time (in milliseconds) that a client will allow a server to not respond to a `KEEPALIVE`
-     before it is assumed to be dead
-
-     Value MUST be > `0`.
-     */
-    public var maxLifetime: Int32
-
-    /**
-     MIME Type for encoding of Metadata
-
-     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-     Many are registered with IANA such as CBOR.
-     Suffix rules MAY be used for handling layout.
-     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-     */
-    public var metadataEncodingMimeType: String
-
-    /**
-     MIME Type for encoding of Data
-
-     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-     Many are registered with IANA such as CBOR.
-     Suffix rules MAY be used for handling layout.
-     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-     */
-    public var dataEncodingMimeType: String
-
-    /// Payload of this frame describing connection capabilities of the endpoint sending the Setup header
-    public var payload: Payload
-    
-    
-    /// client setup that is initially send to the server
-    /// - Parameters:
-    ///   - timeBetweenKeepaliveFrames: Time (in milliseconds) between `KEEPALIVE` frames that the client will send
-    ///    Value MUST be > `0`.
-    ///     - For server-to-server connections, a reasonable time interval between client `KEEPALIVE` frames is 500ms.
-    ///     - For mobile-to-server connections, the time interval between client `KEEPALIVE` frames is often > 30,000ms.
-    ///   - maxLifetime: Time (in milliseconds) that a client will allow a server to not respond to a `KEEPALIVE`
-    ///     before it is assumed to be dead.
-    ///
-    ///     Value MUST be > `0`.
-    ///   - metadataEncodingMimeType: MIME Type for encoding of Metadata
-    ///
-    ///     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-    ///     Many are registered with IANA such as CBOR.
-    ///     Suffix rules MAY be used for handling layout.
-    ///     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-    ///   - dataEncodingMimeType:MIME Type for encoding of Data
-    ///
-    ///     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-    ///     Many are registered with IANA such as CBOR.
-    ///     Suffix rules MAY be used for handling layout.
-    ///     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-    ///   - payload: Payload of the setup frame describing connection capabilities of the client
-    public init(
-        timeBetweenKeepaliveFrames: Int32,
-        maxLifetime: Int32,
-        metadataEncodingMimeType: String,
-        dataEncodingMimeType: String,
-        payload: Payload = .empty
-    ) {
-        self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames
-        self.maxLifetime = maxLifetime
-        self.metadataEncodingMimeType = metadataEncodingMimeType
-        self.dataEncodingMimeType = dataEncodingMimeType
-        self.payload = payload
-    }
-}
-
-
 /// Writes a setup frame when the channel becomes active and removes itself immediately afterwards
 internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
     private let setup: ClientSetupConfig
+    private let connectedPromise: EventLoopPromise<Void>?
     
-    internal init(config: ClientSetupConfig) {
+    internal init(config: ClientSetupConfig, connectedPromise: EventLoopPromise<Void>? = nil) {
         self.setup = config
+        self.connectedPromise = connectedPromise
     }
     
     func channelActive(context: ChannelHandlerContext) {
@@ -118,8 +39,8 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             dataEncodingMimeType: setup.dataEncodingMimeType,
             payload: setup.payload
         ).asFrame()), promise: nil)
-        
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
+        connectedPromise?.succeed(())
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {

@@ -22,7 +22,7 @@ internal final class Requester {
     private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator
     private var activeStreams: [StreamID: RequesterStream] = [:]
-    private var lateFrameHandler: ((Frame) -> ())?
+    private let lateFrameHandler: ((Frame) -> ())?
 
     internal init(
         streamIdGenerator: StreamIDGenerator,

@@ -173,10 +173,10 @@ final class FragmentationTests: XCTestCase {
         XCTAssertEqual(
             payload.size, 80 + 3 + 1,
             """
-            First fragment should include payload and metadata but second only payload.
+            First fragment should include payload and metadata but the second fragment only data.
             Because the first fragments header needs to include the length of the metadata,
             it is 3 bytes larger than the second fragment.
-            Because of this difference, we add 3 bytes to the end of the payload to fills the last fragment completely.
+            We add 3 bytes to the end of the payload to fills the last fragment completely.
             To overflow the second fragment, we add an additional byte.
             """
         )

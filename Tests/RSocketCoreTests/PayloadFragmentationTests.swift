@@ -32,15 +32,49 @@ extension FragmentedFrameAssembler {
 }
 
 fileprivate extension Payload {
-    init(metadata: String, data: String) {
-        self.init(metadata: Data(metadata.utf8), data: Data(data.utf8))
+    init(metadata: String? = nil, data: String) {
+        self.init(metadata: metadata.map{ Data($0.utf8) }, data: Data(data.utf8))
     }
     var size: Int32 { Int32((metadata?.count ?? 0) + data.count) }
 }
 
-final class FragmentationTests: XCTestCase {
-    private let frameHeaderSize: Int32 = 6
-    private let frameHeaderSizeWithMetadata: Int32 = 6 + 3
+final class RequestResponseFragmentationTests: PayloadFragmentationTests {
+    override func makeFrame(payload: Payload) -> Frame {
+        RequestResponseFrameBody(payload: payload).asFrame(withStreamId: 6)
+    }
+}
+final class FireAndForgetFragmentationTests: PayloadFragmentationTests {
+    override func makeFrame(payload: Payload) -> Frame {
+        RequestFireAndForgetFrameBody(payload: payload).asFrame(withStreamId: 7)
+    }
+}
+final class StreamFragmentationTests: PayloadFragmentationTests {
+    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override func makeFrame(payload: Payload) -> Frame {
+        RequestStreamFrameBody(initialRequestN: 3, payload: payload).asFrame(withStreamId: 8)
+    }
+}
+class ChannelFragmentationTests: PayloadFragmentationTests {
+    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override func makeFrame(payload: Payload) -> Frame {
+        RequestChannelFrameBody(isCompleted: false, initialRequestN: 4, payload: payload).asFrame(withStreamId: 9)
+    }
+}
+final class ChannelCompletionFragmentationTests: ChannelFragmentationTests {
+    override func makeFrame(payload: Payload) -> Frame {
+        RequestChannelFrameBody(isCompleted: true, initialRequestN: 5, payload: payload).asFrame(withStreamId: 9)
+    }
+}
+
+class PayloadFragmentationTests: XCTestCase {
+    var initialFragmentBodyHeaderSize: Int32 { 0 }
+    private var initialFragmentBodyHeaderSizeWithMetadata: Int32 { initialFragmentBodyHeaderSize + 3 }
+    private var frameHeaderSize: Int32 { initialFragmentBodyHeaderSize + 6 }
+    private var frameHeaderSizeWithMetadata: Int32 { frameHeaderSize + 3 }
+    
+    func makeFrame(payload: Payload) -> Frame {
+        PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 5)
+    }
     
     // MARK: Payload without Metadata
     func testDoNotSplitPayloadIfItFitsExactlyIntoOneFrame() {
@@ -48,7 +82,7 @@ final class FragmentationTests: XCTestCase {
         Payload without metadata which is not too large to fit into a single frame
         """
         XCTAssertEqual(payload.size, 74)
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: payload.size + frameHeaderSize
         )
@@ -62,7 +96,7 @@ final class FragmentationTests: XCTestCase {
         Payload without metadata which is too large to fit into a single frame
         """
         XCTAssertEqual(payload.size, 70)
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: payload.size - 1 + frameHeaderSize
         )
@@ -81,7 +115,7 @@ final class FragmentationTests: XCTestCase {
             payload.data.count.isMultiple(of: 2),
             "size of payload needs to be a multiple of two, otherwise it can't fit perfectly into two frames"
         )
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 35 + frameHeaderSize
         )
@@ -92,11 +126,13 @@ final class FragmentationTests: XCTestCase {
         XCTAssertEqual(assembler.process(frame: fragments[safe: 1]), .complete(frame))
     }
     func testSplitPayloadIntoThreeFragmentsIfItIsOneByteTooLarge() {
-        let payload: Payload = """
-        Payload without metadata which is too large to fit into a single frame!
-        """
-        XCTAssertEqual(payload.size, 71)
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let payload = Payload(
+            data: "Payload without metadata which is too large to fit into a single frame!"
+                + repeatElement(".", count: Int(initialFragmentBodyHeaderSizeWithMetadata))
+        )
+        
+        XCTAssertEqual(payload.size, 71 + initialFragmentBodyHeaderSizeWithMetadata)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 35 + frameHeaderSize
         )
@@ -115,7 +151,7 @@ final class FragmentationTests: XCTestCase {
             data: "Payload with metadata which is not too large to fit into a single frame"
         )
         XCTAssertEqual(payload.size, 84)
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: payload.size + frameHeaderSizeWithMetadata
         )
@@ -130,7 +166,7 @@ final class FragmentationTests: XCTestCase {
             data: "Payload with metadata which is too large to fit into a single frame"
         )
         XCTAssertEqual(payload.size, 80)
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: payload.size - 1 + frameHeaderSizeWithMetadata
         )
@@ -143,10 +179,11 @@ final class FragmentationTests: XCTestCase {
     func testSplitPayloadWithMetadataIntoTwoFragmentsIfItFitsExactlyIntoTwoFrames() {
         let payload = Payload(
             metadata: "Some Metadata",
-            data: "Payload with metadata which is too large to fit into a single frame 3b"
+            data: "Payload with metadata which is too large to fit into a single frame" +
+                repeatElement(".", count: Int(initialFragmentBodyHeaderSizeWithMetadata))
         )
         XCTAssertEqual(
-            payload.size, 80 + 3,
+            payload.size, 80 + initialFragmentBodyHeaderSizeWithMetadata,
             """
             First fragment should include payload and metadata but second only payload.
             Because the first fragments header needs to include the length of the metadata,
@@ -155,7 +192,7 @@ final class FragmentationTests: XCTestCase {
             """
         )
         
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 40 + frameHeaderSizeWithMetadata
         )
@@ -168,10 +205,11 @@ final class FragmentationTests: XCTestCase {
     func testSplitPayloadWithMetadataIntoThreeFragmentsIfItIsOneByteTooLarge() {
         let payload = Payload(
             metadata: "Some Metadata",
-            data: "Payload with metadata which is too large to fit into a single frame 3b1"
+            data: "Payload with metadata which is too large to fit into a single frame!" +
+                repeatElement(".", count: Int(initialFragmentBodyHeaderSizeWithMetadata))
         )
         XCTAssertEqual(
-            payload.size, 80 + 3 + 1,
+            payload.size, 80 + initialFragmentBodyHeaderSizeWithMetadata + 1,
             """
             First fragment should include payload and metadata but the second fragment only data.
             Because the first fragments header needs to include the length of the metadata,
@@ -181,7 +219,7 @@ final class FragmentationTests: XCTestCase {
             """
         )
         
-        let frame = PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 7)
+        let frame = makeFrame(payload: payload)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 40 + frameHeaderSizeWithMetadata
         )

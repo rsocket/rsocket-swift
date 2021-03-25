@@ -31,13 +31,6 @@ extension FragmentedFrameAssembler {
     }
 }
 
-fileprivate extension Payload {
-    init(metadata: String? = nil, data: String) {
-        self.init(metadata: metadata.map{ Data($0.utf8) }, data: Data(data.utf8))
-    }
-    var size: Int32 { Int32((metadata?.count ?? 0) + data.count) }
-}
-
 extension FragmentationResult {
     var isError: Bool {
         guard case .error = self else { return false }

@@ -190,7 +190,6 @@ class EndToEndTests: XCTestCase {
                         response.fulfill()
                     }
                 )
-                )
                 let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
                 output.onNext(" ", isCompletion: false)
                 output.onNext("W", isCompletion: false)

@@ -1,3 +1,4 @@
+#if canImport(Network)
 import Network
 import ReactiveSwift
 import RSocketTSChannel
@@ -19,3 +20,4 @@ func t() {
 
     let streamProducer: SignalProducer<Payload, Swift.Error> = client.producer.skipNil().flatMap(.latest) { $0.requester.requestStream(payload: .empty) }
 }
+#endif

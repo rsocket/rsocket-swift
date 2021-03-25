@@ -16,7 +16,7 @@
 
 import Foundation
 
-internal enum FragmentationResult {
+internal enum FragmentationResult: Equatable {
     case complete(Frame)
     case incomplete
     case error(reason: String)

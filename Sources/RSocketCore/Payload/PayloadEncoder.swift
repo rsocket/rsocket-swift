@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 import NIO
 
 internal protocol PayloadEncoding {
@@ -24,10 +23,10 @@ internal protocol PayloadEncoding {
 internal struct PayloadEncoder: PayloadEncoding {
     internal func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
         if let metadata = payload.metadata {
-            guard metadata.count <= FrameConstants.metadataMaximumLength else {
+            guard metadata.count <= FrameBodyConstants.metadataMaximumLength else {
                 throw Error.connectionError(message: "Metadata is too big")
             }
-            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameConstants.metadataLengthFieldLengthInBytes)
+            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameBodyConstants.metadataLengthFieldLengthInBytes)
             buffer.writeBytes(metadataLengthBytes)
             buffer.writeData(metadata)
         }

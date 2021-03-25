@@ -21,7 +21,7 @@ import Foundation
 
  For example, response to a request, or message on a channel.
  */
-public struct Payload {
+public struct Payload: Hashable {
     /// Optional metadata of this payload
     public let metadata: Data?
 

@@ -81,11 +81,13 @@ let package = Package(
             "RSocketCore",
             "RSocketTestUtilities",
             .product(name: "NIOExtras", package: "swift-nio-extras"),
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         .testTarget(name: "RSocketCorePerformanceTests", dependencies: [
             "RSocketCore",
             "RSocketTestUtilities",
             .product(name: "NIOExtras", package: "swift-nio-extras"),
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         .testTarget(name: "RSocketCombineTests", dependencies: ["RSocketCombine"]),
         .testTarget(name: "RSocketReactiveSwiftTests", dependencies: [

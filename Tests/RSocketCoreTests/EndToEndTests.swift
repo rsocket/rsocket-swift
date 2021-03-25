@@ -20,27 +20,45 @@ import NIOExtras
 import RSocketCore
 import RSocketTestUtilities
 
-final class EndToEndTests: XCTestCase {
-    private static let defaultClientSetup = ClientSetupConfig(
+protocol NIOServerTCPBootstrapProtocol {
+    /// Bind the `ServerSocketChannel` to `host` and `port`.
+    ///
+    /// - parameters:
+    ///     - host: The host to bind on.
+    ///     - port: The port to bind on.
+    func bind(host: String, port: Int) -> EventLoopFuture<Channel>
+}
+
+extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
+
+class EndToEndTests: XCTestCase {
+    static let defaultClientSetup = ClientSetupConfig(
         timeBetweenKeepaliveFrames: 500,
         maxLifetime: 5000,
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )
-    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    override func tearDownWithError() throws {
-        try eventLoopGroup.syncShutdownGracefully()
-    }
     
     let host = "127.0.0.1"
+    
+    private var clientEventLoopGroup: MultiThreadedEventLoopGroup!
+    private var serverEventLoopGroup: MultiThreadedEventLoopGroup!
+    override func setUp() {
+        clientEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        serverEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    override func tearDownWithError() throws {
+        try clientEventLoopGroup.syncShutdownGracefully()
+        try serverEventLoopGroup.syncShutdownGracefully()
+    }
     
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> ServerBootstrap {
-        return ServerBootstrap(group: eventLoopGroup)
+    ) -> NIOServerTCPBootstrapProtocol {
+        return ServerBootstrap(group: serverEventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -59,8 +77,8 @@ final class EndToEndTests: XCTestCase {
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> NIO.ClientBootstrap {
-        return NIO.ClientBootstrap(group: eventLoopGroup)
+    ) -> NIOClientTCPBootstrapProtocol {
+        return ClientBootstrap(group: clientEventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),

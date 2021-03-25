@@ -250,6 +250,9 @@ class PayloadFragmentationTests: XCTestCase {
     
     // - Incomplete Fragmentation
     
+    /// We actually need to support receiving cancelation frames while fragment assembly of a previous frame is till in progress.
+    /// If this will be implemented in `FragmentedFrameAssembler` or somewhere else is not yet decided.
+    /// If it will be implemented inside `FragmentedFrameAssembler` this test should be removed or changed accordingly.
     func testReceiveCancelBeforeReceivingAllFragmentsShouldResultInAnError() {
         let payload = Payload(
             metadata: "Some Metadata",

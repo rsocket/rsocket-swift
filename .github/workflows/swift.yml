@@ -7,23 +7,59 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  test-on-macOS-and-iOS:
     runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: swift build -v
-    - name: Run tests (without performance tests)
+        
+    - name: Test on iOS Simulator
+      run: >
+        xcodebuild test
+        -scheme RSocket-Package
+        -parallelizeTargets
+        -skip-testing:RSocketCorePerformanceTests
+        -parallel-testing-enabled
+        -sdk:iphonesimulator
+        -destination:'platform=iOS Simulator,name=iPhone 12'
+        
+    - name: Test on macOS
+      run: >
+        xcodebuild test
+        -scheme RSocket-Package
+        -parallelizeTargets
+        -skip-testing:RSocketCorePerformanceTests
+        -parallel-testing-enabled
+        -destination 'platform=macOS'
+        
+  performance-tests-on-macOS:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build & Run Performance Tests on macOS
+      run: >
+        swift test
+        -Xswiftc="-O"
+        --enable-test-discovery
+        --filter="^.*(Performance).*\..*"
+    
+  test-on-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test on Linux
       # filter regex excludes all tests targets which contain the word "Performance" in their name
-      run: swift test -v --filter="^((?!(Performance)).)*\..*$"
-  performance-tests:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build & Run Performance Tests
-      # filter regex includes only test targets which contain the word "Performance" in their name
-      # build with optimisation enabled
-      run: swift test --filter="^.*(Performance).*\..*" -Xswiftc="-O"
+      run: >
+        swift test
+        --parallel
+        --enable-test-discovery
+        --filter="^((?!(Performance)).)*\..*$"
+        
+    - name: Build & Run Performance Tests on Linux
+      run: >
+        swift test
+        -Xswiftc="-O"
+        --enable-test-discovery
+        --filter="^.*(Performance).*\..*"

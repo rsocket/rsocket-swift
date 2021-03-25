@@ -17,11 +17,24 @@
 import RSocketCore
 import Foundation
 
+extension Payload {
+    /// used to create payload with the given strings as a UTF-8 encoded data and metadata
+    /// - Parameter metadata: string that is encoded as UTF-8 and put into the metadata segment of the payload
+    /// - Parameter data: string that is encoded as UTF-8 and put into the data segment of the payload
+    public init(metadata: String? = nil, data: String) {
+        self.init(metadata: metadata.map{ Data($0.utf8) }, data: Data(data.utf8))
+    }
+    
+    /// combined size of metadata and data.
+    /// - Note: this does not include the extra 3 bytes which is needed to encode the metadata length in some frames
+    public var size: Int32 { Int32((metadata?.count ?? 0) + data.count) }
+}
+
 extension Payload: ExpressibleByStringLiteral {
     /// used to create payload with the given string as a UTF-8 encoded data and no metadata
     /// - Parameter value: string that is encoded as UTF-8 and put into the data segment of the payload
     public init(stringLiteral value: String) {
-        self.init(data: Data(value.utf8))
+        self.init(data: value)
     }
 }
 

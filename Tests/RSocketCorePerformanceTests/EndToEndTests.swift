@@ -20,27 +20,52 @@ import NIOExtras
 import RSocketCore
 import RSocketTestUtilities
 
-final class EndToEndTests: XCTestCase {
-    private static let defaultClientSetup = ClientSetupConfig(
+protocol NIOServerTCPBootstrapProtocol {
+    /// Bind the `ServerSocketChannel` to `host` and `port`.
+    ///
+    /// - parameters:
+    ///     - host: The host to bind on.
+    ///     - port: The port to bind on.
+    func bind(host: String, port: Int) -> EventLoopFuture<Channel>
+}
+
+extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
+
+class EndToEndTests: XCTestCase {
+    static let defaultClientSetup = ClientSetupConfig(
         timeBetweenKeepaliveFrames: 500,
         maxLifetime: 5000,
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )
-    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-    override func tearDownWithError() throws {
-        try eventLoopGroup.syncShutdownGracefully()
-    }
-    
     let host = "127.0.0.1"
+    
+    /// Maximum count of parallel `thing`s a tests sends.
+    ///
+    /// What `thing` means, depends on the test e.g.:
+    /// - `testRequestResponseEcho`: in flight requests
+    /// - `testChannelEcho`: open channels
+    /// - `test1000OpenStreamsButReceivingOnlyOnOne`: in flight payload frames on the last stream
+    let maxParallelism = 6
+    
+    private var clientEventLoopGroup: MultiThreadedEventLoopGroup!
+    private var serverEventLoopGroup: MultiThreadedEventLoopGroup!
+    override func setUp() {
+        clientEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        serverEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    override func tearDownWithError() throws {
+        try clientEventLoopGroup.syncShutdownGracefully()
+        try serverEventLoopGroup.syncShutdownGracefully()
+    }
     
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> ServerBootstrap {
-        return ServerBootstrap(group: eventLoopGroup)
+    ) -> NIOServerTCPBootstrapProtocol {
+        return ServerBootstrap(group: serverEventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -59,8 +84,8 @@ final class EndToEndTests: XCTestCase {
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> NIO.ClientBootstrap {
-        return NIO.ClientBootstrap(group: eventLoopGroup)
+    ) -> NIOClientTCPBootstrapProtocol {
+        return ClientBootstrap(group: clientEventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -80,9 +105,11 @@ final class EndToEndTests: XCTestCase {
     func testFireAndForget() throws {
         measure {
             let requestCount = 10_000
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(fireAndForget: { payload in
+                requestSemaphore.signal()
                 request.fulfill()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
@@ -93,6 +120,7 @@ final class EndToEndTests: XCTestCase {
                 .wait()
             let payload: Payload = "Hello World"
             for _ in 0..<requestCount {
+                requestSemaphore.wait()
                 requester.fireAndForget(payload: payload)
             }
             self.wait(for: [request], timeout: 1)
@@ -100,7 +128,8 @@ final class EndToEndTests: XCTestCase {
     }
     func testRequestResponseEcho() throws {
         measure {
-            let requestCount = 10_000
+            let requestCount = 1_000
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(requestResponse: { payload, output in
@@ -120,9 +149,11 @@ final class EndToEndTests: XCTestCase {
             response.expectedFulfillmentCount = requestCount
             let helloWorld: Payload = "Hello World"
             let input = TestUnidirectionalStream { payload, isCompletion in
+                requestSemaphore.signal()
                 response.fulfill()
             }
             for _ in 0..<requestCount {
+                requestSemaphore.wait()
                 _ = requester.requestResponse(payload: helloWorld, responderStream: input)
             }
             self.wait(for: [request, response], timeout: 5)
@@ -131,6 +162,7 @@ final class EndToEndTests: XCTestCase {
     func testChannelEcho() throws {
         measure {
             let requestCount = 1_000
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             var echo: TestUnidirectionalStream?
@@ -151,11 +183,13 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
+                requestSemaphore.wait()
                 let input = TestUnidirectionalStream(
                     onNext: { _, _ in },
                     onComplete: {
                         response.fulfill()
                     }
+                )
                 )
                 let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
                 output.onNext(" ", isCompletion: false)
@@ -172,6 +206,7 @@ final class EndToEndTests: XCTestCase {
     func testStream() throws {
         measure {
             let requestCount = 1_000
+            let requestSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
@@ -195,8 +230,10 @@ final class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
+                requestSemaphore.wait()
                 let input = TestUnidirectionalStream(onNext: { _, isCompletion in
                     guard isCompletion else { return }
+                    requestSemaphore.signal()
                     response.fulfill()
                 })
                 _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
@@ -208,6 +245,7 @@ final class EndToEndTests: XCTestCase {
         measure {
             let requestCount = 1_000
             let messageCount = 10_000
+            let messageSemaphore = DispatchSemaphore(value: maxParallelism)
             let request = self.expectation(description: "receive request")
             request.expectedFulfillmentCount = requestCount
             var outputs = [UnidirectionalStream]()
@@ -230,7 +268,9 @@ final class EndToEndTests: XCTestCase {
             receivedMessage.expectedFulfillmentCount = messageCount
             let initialMessage: Payload = "Hello World!"
             (0..<requestCount).forEach { _ in
+                
                 let input = TestUnidirectionalStream(onNext: { _, _ in
+                    messageSemaphore.signal()
                     receivedMessage.fulfill()
                 }, onComplete: {
                     response.fulfill()
@@ -244,6 +284,7 @@ final class EndToEndTests: XCTestCase {
             }
             let messagePayload: Payload = "Hello World again..."
             for _ in 0..<messageCount {
+                messageSemaphore.wait()
                 firstOutput.onNext(messagePayload, isCompletion: false)
             }
             outputs.forEach({ $0.onComplete() })

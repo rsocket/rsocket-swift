@@ -38,6 +38,30 @@ fileprivate extension Payload {
     var size: Int32 { Int32((metadata?.count ?? 0) + data.count) }
 }
 
+extension FragmentationResult {
+    var isError: Bool {
+        guard case .error = self else { return false }
+        return true
+    }
+}
+
+func XCTAssertTrue(
+    _ expression: @autoclosure () throws -> Bool?,
+    _ message: @autoclosure () -> String,
+    file: StaticString = #file,
+    line: UInt = #line
+) {
+    XCTAssertEqual(try expression(), true, message(), file: file, line: line)
+}
+func XCTAssertTrue(
+    _ expression: @autoclosure () throws -> Bool?,
+    file: StaticString = #file,
+    line: UInt = #line
+) {
+    XCTAssertEqual(try expression(), true, file: file, line: line)
+}
+
+// - MARK: Frame Bodies with Fragmentable Payload
 final class RequestResponseFragmentationTests: PayloadFragmentationTests {
     override func makeFrame(payload: Payload) -> Frame {
         RequestResponseFrameBody(payload: payload).asFrame(withStreamId: 6)
@@ -229,5 +253,39 @@ class PayloadFragmentationTests: XCTestCase {
         XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
         XCTAssertEqual(assembler.process(frame: fragments[safe: 1]), .incomplete)
         XCTAssertEqual(assembler.process(frame: fragments[safe: 2]), .complete(frame))
+    }
+    
+    // - Incomplete Fragmentation
+    
+    func testReceiveCancelBeforeReceivingAllFragmentsShouldResultInAnError() {
+        let payload = Payload(
+            metadata: "Some Metadata",
+            data: "Payload with metadata which is too large to fit into a single frame"
+        )
+        let frame = makeFrame(payload: payload)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 40 + frameHeaderSizeWithMetadata
+        )
+        XCTAssertEqual(fragments.count, 2)
+
+        var assembler = FragmentedFrameAssembler()
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
+        XCTAssertTrue(assembler.process(frame: Error.canceled(message: "cancel").asFrame(withStreamId: .connection))?.isError)
+    }
+    
+    func testReceiveNewRequestBeforeReceivingAllFragmentsShouldResultInAnError() {
+        let payload = Payload(
+            metadata: "Some Metadata",
+            data: "Payload with metadata which is too large to fit into a single frame"
+        )
+        let frame = makeFrame(payload: payload)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 40 + frameHeaderSizeWithMetadata
+        )
+        XCTAssertEqual(fragments.count, 2)
+
+        var assembler = FragmentedFrameAssembler()
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
+        XCTAssertTrue(assembler.process(frame: fragments[safe: 0])?.isError)
     }
 }

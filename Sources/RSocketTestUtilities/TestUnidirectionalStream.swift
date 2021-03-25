@@ -21,7 +21,7 @@ import XCTest
 /// - Note: **not** Thread-safe
 public final class TestUnidirectionalStream {
     public enum Event: Hashable {
-        case next(Payload, isCompletion: Bool)
+        case next(Payload, isCompletion: Bool = false)
         case error(Error)
         case complete
         case cancel

@@ -40,6 +40,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     override func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
+        maximumFrameSize: Int32? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
@@ -52,6 +53,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                     channel.pipeline.addRSocketServerHandlers(
                         shouldAcceptClient: shouldAcceptClient,
                         makeResponder: { _ in responderSocket },
+                        maximumFrameSize: maximumFrameSize,
                         requesterLateFrameHandler: { XCTFail("server requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("server responder did receive late frame \($0)", file: file, line: line) }
                     )
@@ -61,6 +63,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -74,7 +77,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
                         responder: responderSocket,
-                        connectedPromise: connectedPromise,
+                        maximumFrameSize: maximumFrameSize, connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
                     )

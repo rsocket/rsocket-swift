@@ -38,22 +38,19 @@ class EndToEndTests: XCTestCase {
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )
-    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-    override func tearDownWithError() throws {
-        try eventLoopGroup.syncShutdownGracefully()
-    }
-    
+
     let host = "127.0.0.1"
+    var clientEventLoopGroup: EventLoopGroup { clientMultiThreadedEventLoopGroup as EventLoopGroup }
+    private var clientMultiThreadedEventLoopGroup: MultiThreadedEventLoopGroup!
+    private var serverMultiThreadedEventLoopGroup: MultiThreadedEventLoopGroup!
     
-    private var clientEventLoopGroup: MultiThreadedEventLoopGroup!
-    private var serverEventLoopGroup: MultiThreadedEventLoopGroup!
     override func setUp() {
-        clientEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        serverEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        clientMultiThreadedEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        serverMultiThreadedEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
     override func tearDownWithError() throws {
-        try clientEventLoopGroup.syncShutdownGracefully()
-        try serverEventLoopGroup.syncShutdownGracefully()
+        try clientMultiThreadedEventLoopGroup.syncShutdownGracefully()
+        try serverMultiThreadedEventLoopGroup.syncShutdownGracefully()
     }
     
     func makeServerBootstrap(
@@ -62,7 +59,7 @@ class EndToEndTests: XCTestCase {
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
-        return ServerBootstrap(group: serverEventLoopGroup)
+        return ServerBootstrap(group: serverMultiThreadedEventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -85,7 +82,7 @@ class EndToEndTests: XCTestCase {
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOClientTCPBootstrapProtocol {
-        return ClientBootstrap(group: clientEventLoopGroup)
+        return ClientBootstrap(group: clientMultiThreadedEventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -118,7 +115,7 @@ class EndToEndTests: XCTestCase {
         )
         let serverChannel = try server.bind(host: host, port: 0).wait()
         let port = try XCTUnwrap(serverChannel.localAddress?.port)
-        let clientConnected = eventLoopGroup.next().makePromise(of: RSocket.self)
+        let clientConnected = clientEventLoopGroup.next().makePromise(of: RSocket.self)
         return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig, connectedPromise: clientConnected)
             .connect(host: host, port: port)
             .flatMap({ _ in clientConnected.futureResult })

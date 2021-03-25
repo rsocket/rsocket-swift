@@ -19,26 +19,26 @@ import RSocketTestUtilities
 @testable import RSocketCore
 
 extension RandomAccessCollection {
-    public subscript(safe index: Index) -> Element? {
+    fileprivate subscript(safe index: Index) -> Element? {
         guard self.indices.contains(index) else { return nil }
         return self[index]
     }
 }
 
 extension FragmentedFrameAssembler {
-    mutating func process(frame: Frame?) -> FragmentationResult? {
+    fileprivate mutating func process(frame: Frame?) -> FragmentationResult? {
         frame.map({ process(frame: $0) })
     }
 }
 
 extension FragmentationResult {
-    var isError: Bool {
+    fileprivate var isError: Bool {
         guard case .error = self else { return false }
         return true
     }
 }
 
-func XCTAssertTrue(
+fileprivate func XCTAssertTrue(
     _ expression: @autoclosure () throws -> Bool?,
     _ message: @autoclosure () -> String,
     file: StaticString = #file,
@@ -46,7 +46,7 @@ func XCTAssertTrue(
 ) {
     XCTAssertEqual(try expression(), true, message(), file: file, line: line)
 }
-func XCTAssertTrue(
+fileprivate func XCTAssertTrue(
     _ expression: @autoclosure () throws -> Bool?,
     file: StaticString = #file,
     line: UInt = #line

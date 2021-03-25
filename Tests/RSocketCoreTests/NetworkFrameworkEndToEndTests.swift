@@ -25,15 +25,16 @@ import NIOTransportServices
 extension NIOTSListenerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 final class NetworkFrameworkEndToEndTests: EndToEndTests {
-    private var clientEventLoopGroup: NIOTSEventLoopGroup!
-    private var serverEventLoopGroup: NIOTSEventLoopGroup!
+    override var clientEventLoopGroup: EventLoopGroup { clientNIOEventLoopGroup }
+    private var clientNIOEventLoopGroup: NIOTSEventLoopGroup!
+    private var serverNIOEventLoopGroup: NIOTSEventLoopGroup!
     override func setUp() {
-        clientEventLoopGroup = NIOTSEventLoopGroup()
-        serverEventLoopGroup = NIOTSEventLoopGroup()
+        clientNIOEventLoopGroup = NIOTSEventLoopGroup()
+        serverNIOEventLoopGroup = NIOTSEventLoopGroup()
     }
     override func tearDownWithError() throws {
         try clientEventLoopGroup.syncShutdownGracefully()
-        try serverEventLoopGroup.syncShutdownGracefully()
+        try serverNIOEventLoopGroup.syncShutdownGracefully()
     }
     
     override func makeServerBootstrap(
@@ -42,7 +43,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
-        NIOTSListenerBootstrap(group: serverEventLoopGroup)
+        NIOTSListenerBootstrap(group: serverNIOEventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -58,6 +59,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOClientTCPBootstrapProtocol {
@@ -67,7 +69,11 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                 ]).flatMap {
-                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                    channel.pipeline.addRSocketClientHandlers(
+                        config: config,
+                        responder: responderSocket,
+                        connectedPromise: connectedPromise
+                    )
                 }
             }
     }

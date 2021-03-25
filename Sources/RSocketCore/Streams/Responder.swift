@@ -21,15 +21,17 @@ internal final class Responder {
     private let sendFrame: (Frame) -> Void
     private var activeStreams: [StreamID: ResponderStream] = [:]
     private let eventLoop: EventLoop
-    
+    private let lateFrameHandler: ((Frame) -> ())?
     internal init(
-        responderSocket: RSocket,
+        responderSocket: RSocket? = nil,
         eventLoop: EventLoop,
-        sendFrame: @escaping (Frame) -> Void
+        sendFrame: @escaping (Frame) -> Void,
+        lateFrameHandler: ((Frame) -> ())? = nil
     ) {
-        self.responderSocket = responderSocket
+        self.responderSocket = responderSocket ?? DefaultRSocket()
         self.sendFrame = sendFrame
         self.eventLoop = eventLoop
+        self.lateFrameHandler = lateFrameHandler
     }
 
     internal func receiveInbound(frame: Frame) {
@@ -49,7 +51,7 @@ internal final class Responder {
         }
         
         guard frame.header.type.canCreateStream else {
-            // ignore frame because it could be a late frame
+            lateFrameHandler?(frame)
             return
         }
 

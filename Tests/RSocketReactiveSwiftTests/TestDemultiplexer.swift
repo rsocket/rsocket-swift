@@ -55,7 +55,7 @@ extension TestDemultiplexer {
             requester: .init(streamIdGenerator: .server, eventLoop: eventLoop, sendFrame: { frame in
                 client.receiveFrame(frame: frame)
             }),
-            responder: .init(responderSocket: serverResponder ?? DefaultRSocket(), eventLoop: eventLoop, sendFrame: { frame in
+            responder: .init(responderSocket: serverResponder, eventLoop: eventLoop, sendFrame: { frame in
                 client.receiveFrame(frame: frame)
             }))
         client = TestDemultiplexer(
@@ -63,7 +63,7 @@ extension TestDemultiplexer {
             requester: .init(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: { frame in
                 server.receiveFrame(frame: frame)
             }),
-            responder: .init(responderSocket: clientResponder ?? DefaultRSocket(), eventLoop: eventLoop, sendFrame: { frame in
+            responder: .init(responderSocket: clientResponder, eventLoop: eventLoop, sendFrame: { frame in
                 server.receiveFrame(frame: frame)
             }))
         return (server, client!)

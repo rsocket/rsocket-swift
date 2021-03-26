@@ -23,7 +23,23 @@ extension ChannelPipeline {
         maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil
     ) -> EventLoopFuture<Void> {
-        let responder = responder ?? DefaultRSocket()
+        addRSocketClientHandlers(
+            config: config,
+            responder: responder,
+            maximumFrameSize: maximumFrameSize,
+            connectedPromise: connectedPromise,
+            requesterLateFrameHandler: nil,
+            responderLateFrameHandler: nil
+        )
+    }
+    internal func addRSocketClientHandlers(
+        config: ClientSetupConfig,
+        responder: RSocket? = nil,
+        maximumFrameSize: Int32? = nil,
+        connectedPromise: EventLoopPromise<RSocket>? = nil,
+        requesterLateFrameHandler: ((Frame) -> Void)? = nil,
+        responderLateFrameHandler: ((Frame) -> Void)? = nil
+    ) -> EventLoopFuture<Void> {
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
@@ -51,12 +67,27 @@ extension ChannelPipeline {
         makeResponder: ((SetupInfo) -> RSocket?)? = nil,
         maximumFrameSize: Int32? = nil
     ) -> EventLoopFuture<Void> {
+        addRSocketServerHandlers(
+            shouldAcceptClient: shouldAcceptClient,
+            makeResponder: makeResponder,
+            maximumFrameSize: maximumFrameSize,
+            requesterLateFrameHandler: nil,
+            responderLateFrameHandler: nil
+        )
+    }
+    internal func addRSocketServerHandlers(
+        shouldAcceptClient: ClientAcceptorCallback? = nil,
+        makeResponder: ((SetupInfo) -> RSocket?)? = nil,
+        maximumFrameSize: Int32? = nil,
+        requesterLateFrameHandler: ((Frame) -> Void)? = nil,
+        responderLateFrameHandler: ((Frame) -> Void)? = nil
+    ) -> EventLoopFuture<Void> {
         let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
             ConnectionEstablishmentHandler(initializeConnection: { [unowned self] (info, channel) in
-                let responder = makeResponder?(info) ?? DefaultRSocket()
+                let responder = makeResponder?(info)
                 let sendFrame: (Frame) -> () = { [weak self] frame in
                     self?.writeAndFlush(NIOAny(frame), promise: nil)
                 }

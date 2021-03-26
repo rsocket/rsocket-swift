@@ -17,30 +17,49 @@
 import XCTest
 import NIO
 import NIOExtras
-import RSocketCore
+@testable import RSocketCore
 import RSocketTestUtilities
 
-final class EndToEndTests: XCTestCase {
-    private static let defaultClientSetup = ClientSetupConfig(
+protocol NIOServerTCPBootstrapProtocol {
+    /// Bind the `ServerSocketChannel` to `host` and `port`.
+    ///
+    /// - parameters:
+    ///     - host: The host to bind on.
+    ///     - port: The port to bind on.
+    func bind(host: String, port: Int) -> EventLoopFuture<Channel>
+}
+
+extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
+
+class EndToEndTests: XCTestCase {
+    static let defaultClientSetup = ClientSetupConfig(
         timeBetweenKeepaliveFrames: 500,
         maxLifetime: 5000,
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )
-    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    override func tearDownWithError() throws {
-        try eventLoopGroup.syncShutdownGracefully()
-    }
-    
+
     let host = "127.0.0.1"
+    var clientEventLoopGroup: EventLoopGroup { clientMultiThreadedEventLoopGroup as EventLoopGroup }
+    private var clientMultiThreadedEventLoopGroup: MultiThreadedEventLoopGroup!
+    private var serverMultiThreadedEventLoopGroup: MultiThreadedEventLoopGroup!
+    
+    override func setUp() {
+        clientMultiThreadedEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        serverMultiThreadedEventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    override func tearDownWithError() throws {
+        try clientMultiThreadedEventLoopGroup.syncShutdownGracefully()
+        try serverMultiThreadedEventLoopGroup.syncShutdownGracefully()
+    }
     
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> ServerBootstrap {
-        return ServerBootstrap(group: eventLoopGroup)
+    ) -> NIOServerTCPBootstrapProtocol {
+        return ServerBootstrap(group: serverMultiThreadedEventLoopGroup)
             .childChannelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
@@ -48,7 +67,9 @@ final class EndToEndTests: XCTestCase {
                 ]).flatMap {
                     channel.pipeline.addRSocketServerHandlers(
                         shouldAcceptClient: shouldAcceptClient,
-                        makeResponder: { _ in responderSocket }
+                        makeResponder: { _ in responderSocket },
+                        requesterLateFrameHandler: { XCTFail("server requester did receive late frame \($0)", file: file, line: line) },
+                        responderLateFrameHandler: { XCTFail("server responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
             }
@@ -57,18 +78,48 @@ final class EndToEndTests: XCTestCase {
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
-    ) -> NIO.ClientBootstrap {
-        return NIO.ClientBootstrap(group: eventLoopGroup)
+    ) -> NIOClientTCPBootstrapProtocol {
+        return ClientBootstrap(group: clientMultiThreadedEventLoopGroup)
             .channelInitializer { (channel) -> EventLoopFuture<Void> in
                 channel.pipeline.addHandlers([
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                 ]).flatMap {
-                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                    channel.pipeline.addRSocketClientHandlers(
+                        config: config,
+                        responder: responderSocket,
+                        connectedPromise: connectedPromise,
+                        requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
+                        responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
+                    )
                 }
             }
+    }
+    
+    /// Bootstraps and connects a new server and client
+    /// - Returns: requester socket of the connected client
+    func setupAndConnectServerAndClient(
+        serverResponderSocket: RSocket = TestRSocket(),
+        shouldAcceptClient: ClientAcceptorCallback? = nil,
+        clientResponderSocket: RSocket = TestRSocket(),
+        clientConfig: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        file: StaticString = #file,
+        line: UInt = #line
+    ) throws -> RSocket {
+        let server = makeServerBootstrap(
+            responderSocket: serverResponderSocket,
+            shouldAcceptClient: shouldAcceptClient
+        )
+        let serverChannel = try server.bind(host: host, port: 0).wait()
+        let port = try XCTUnwrap(serverChannel.localAddress?.port)
+        let clientConnected = clientEventLoopGroup.next().makePromise(of: RSocket.self)
+        return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig, connectedPromise: clientConnected)
+            .connect(host: host, port: port)
+            .flatMap({ _ in clientConnected.futureResult })
+            .wait()
     }
     func testClientServerSetup() throws {
         let setup = ClientSetupConfig(
@@ -95,36 +146,40 @@ final class EndToEndTests: XCTestCase {
         XCTAssertTrue(channel.isActive)
         self.wait(for: [clientDidConnect], timeout: 1)
     }
+    func testMetadataPush() throws {
+        let request = self.expectation(description: "receive request")
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(metadataPush: { metadata in
+                request.fulfill()
+                XCTAssertEqual(metadata, Data("Hello World".utf8))
+            })
+        )
+        requester.metadataPush(metadata: Data("Hello World".utf8))
+        self.wait(for: [request], timeout: 1)
+    }
     func testFireAndForget() throws {
         let request = self.expectation(description: "receive request")
-        let server = makeServerBootstrap(responderSocket: TestRSocket(fireAndForget: { payload in
-            request.fulfill()
-            XCTAssertEqual(payload, "Hello World")
-        }))
-        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let requester = try makeClientBootstrap()
-            .connect(host: host, port: port)
-            .flatMap(\.pipeline.requester)
-            .wait()
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(fireAndForget: { payload in
+                request.fulfill()
+                XCTAssertEqual(payload, "Hello World")
+            })
+        )
         
         requester.fireAndForget(payload: "Hello World")
         self.wait(for: [request], timeout: 1)
     }
     func testRequestResponseEcho() throws {
         let request = self.expectation(description: "receive request")
-        let server = makeServerBootstrap(responderSocket: TestRSocket(requestResponse: { payload, output in
-            request.fulfill()
-            // just echo back
-            output.onNext(payload, isCompletion: true)
-            return TestUnidirectionalStream()
-        }))
-        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
-        
-        let requester = try makeClientBootstrap()
-            .connect(host: host, port: port)
-            .flatMap(\.pipeline.requester)
-            .wait()
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(requestResponse: { payload, output in
+                request.fulfill()
+                // just echo back
+                output.onNext(payload, isCompletion: true)
+                return TestUnidirectionalStream()
+            })
+        )
         
         let response = self.expectation(description: "receive response")
         let helloWorld: Payload = "Hello World"
@@ -136,34 +191,48 @@ final class EndToEndTests: XCTestCase {
         _ = requester.requestResponse(payload: helloWorld, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
+    func testRequestResponseError() throws {
+        let request = self.expectation(description: "receive request")
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(requestResponse: { payload, output in
+                request.fulfill()
+                output.onError(.applicationError(message: "I don't like your request"))
+                return TestUnidirectionalStream()
+            })
+        )
+        
+        let response = self.expectation(description: "receive response")
+        let helloWorld: Payload = "Hello World"
+        let input = TestUnidirectionalStream(onError: { error in
+            XCTAssertEqual(error, .applicationError(message: "I don't like your request"))
+            response.fulfill()
+        })
+        _ = requester.requestResponse(payload: helloWorld, responderStream: input)
+        self.wait(for: [request, response], timeout: 1)
+    }
     func testChannelEcho() throws {
         let request = self.expectation(description: "receive request")
         var echo: TestUnidirectionalStream?
-        let server = makeServerBootstrap(responderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
-            request.fulfill()
-            XCTAssertEqual(initialRequestN, .max)
-            XCTAssertFalse(isCompletion)
-            echo = TestUnidirectionalStream.echo(to: output)
-            // just echo back
-            output.onNext(payload, isCompletion: false)
-            return echo!
-        }))
-        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
         
-        let requester = try makeClientBootstrap()
-            .connect(host: host, port: port)
-            .flatMap(\.pipeline.requester)
-            .wait()
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertFalse(isCompletion)
+                echo = TestUnidirectionalStream.echo(to: output)
+                // just echo back
+                output.onNext(payload, isCompletion: false)
+                return echo!
+            })
+        )
         
         let response = self.expectation(description: "receive response")
-        var input: TestUnidirectionalStream!
-        weak var weakInput: TestUnidirectionalStream?
-        input = TestUnidirectionalStream(onComplete: {
+        let input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
-            XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], weakInput?.events)
         })
-        weakInput = input
-        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input!)
+        input.failOnUnexpectedEvent = false
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
         output.onNext(" ", isCompletion: false)
         output.onNext("W", isCompletion: false)
         output.onNext("o", isCompletion: false)
@@ -172,39 +241,88 @@ final class EndToEndTests: XCTestCase {
         output.onNext("d", isCompletion: false)
         output.onComplete()
         self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], input.events)
+    }
+    func testChannelResponderError() throws {
+        let request = self.expectation(description: "receive request")
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertFalse(isCompletion)
+                
+                output.onNext(payload, isCompletion: false)
+                output.onError(.applicationError(message: "enough is enough"))
+                
+                return TestUnidirectionalStream()
+            })
+        )
+        
+        let receivedOnNext = self.expectation(description: "receive onNext")
+        let receivedOnError = self.expectation(description: "receive onError")
+        let input = TestUnidirectionalStream(
+            onNext: { _, _ in receivedOnNext.fulfill() },
+            onError: { _ in receivedOnError.fulfill() })
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
+        self.wait(for: [request, receivedOnNext, receivedOnError], timeout: 1)
+        XCTAssertEqual(input.events, ["Hello", .error(.applicationError(message: "enough is enough"))])
+        
+        output.onComplete() // should not send a late frame (late frames will automatically fail)
     }
     func testStream() throws {
         let request = self.expectation(description: "receive request")
-        let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
-            request.fulfill()
-            XCTAssertEqual(initialRequestN, .max)
-            XCTAssertEqual(payload, "Hello World!")
-            output.onNext("Hello", isCompletion: false)
-            output.onNext(" ", isCompletion: false)
-            output.onNext("W", isCompletion: false)
-            output.onNext("o", isCompletion: false)
-            output.onNext("r", isCompletion: false)
-            output.onNext("l", isCompletion: false)
-            output.onNext("d", isCompletion: true)
-            return TestUnidirectionalStream()
-        }))
-        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
-        
-        let requester = try makeClientBootstrap()
-            .connect(host: host, port: port)
-            .flatMap(\.pipeline.requester)
-            .wait()
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(stream: { payload, initialRequestN, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertEqual(payload, "Hello World!")
+                output.onNext("Hello", isCompletion: false)
+                output.onNext(" ", isCompletion: false)
+                output.onNext("W", isCompletion: false)
+                output.onNext("o", isCompletion: false)
+                output.onNext("r", isCompletion: false)
+                output.onNext("l", isCompletion: false)
+                output.onNext("d", isCompletion: true)
+                return TestUnidirectionalStream()
+            })
+        )
         
         let response = self.expectation(description: "receive response")
-        var input: TestUnidirectionalStream!
-        weak var weakInput: TestUnidirectionalStream?
-        input = TestUnidirectionalStream(onNext: { _, isCompletion in
+        
+        let input = TestUnidirectionalStream(onNext: { _, isCompletion in
             guard isCompletion else { return }
             response.fulfill()
-            XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)], weakInput?.events)
         })
-        weakInput = input
         _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(input.events, ["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)])
+    }
+    func testStreamError() throws {
+        let request = self.expectation(description: "receive request")
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(stream: { payload, initialRequestN, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertEqual(payload, "Hello World!")
+                output.onNext("Hello", isCompletion: false)
+                output.onError(.applicationError(message: "enough for today"))
+                return TestUnidirectionalStream()
+            })
+        )
+        
+        let response = self.expectation(description: "receive response")
+        let responseError = self.expectation(description: "receive error")
+        
+        let input = TestUnidirectionalStream(onNext: { payload, isCompletion in
+            response.fulfill()
+            XCTAssertEqual(payload, "Hello")
+        }, onError: { error in
+            responseError.fulfill()
+            XCTAssertEqual(error, .applicationError(message: "enough for today"))
+        })
+        _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
+        self.wait(for: [request, response, responseError], timeout: 1)
     }
 }

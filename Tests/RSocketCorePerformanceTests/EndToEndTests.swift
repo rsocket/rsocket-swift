@@ -187,6 +187,7 @@ class EndToEndTests: XCTestCase {
                 let input = TestUnidirectionalStream(
                     onNext: { _, _ in },
                     onComplete: {
+                        requestSemaphore.signal()
                         response.fulfill()
                     }
                 )

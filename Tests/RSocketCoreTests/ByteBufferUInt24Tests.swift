@@ -19,7 +19,7 @@ import NIO
 import XCTest
 
 final class ByteBufferUInt24Tests: XCTestCase {
-    func testSetUInt24WithUInt8BigEndian() throws {
+    func testSetUInt24WithUInt8BigEndian() {
         let firstByte: UInt8 = 0b00000000
         let secondByte: UInt8 = 0b00000000
         let thirdByte: UInt8 = 0b00001111
@@ -31,7 +31,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testSetUInt24WithUInt16BigEndian() throws {
+    func testSetUInt24WithUInt16BigEndian() {
         let firstByte: UInt8 = 0b00000000
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -43,7 +43,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testSetUInt24WithUInt32BigEndian() throws {
+    func testSetUInt24WithUInt32BigEndian() {
         let firstByte: UInt8 = 0b00111100
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -55,7 +55,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testSetUInt24WithUInt8LittleEndian() throws {
+    func testSetUInt24WithUInt8LittleEndian() {
         let firstByte: UInt8 = 0b00000000
         let secondByte: UInt8 = 0b00000000
         let thirdByte: UInt8 = 0b00001111
@@ -67,7 +67,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testSetUInt24WithUInt16LittleEndian() throws {
+    func testSetUInt24WithUInt16LittleEndian() {
         let firstByte: UInt8 = 0b00000000
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -79,7 +79,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testSetUInt24WithUInt32LittleEndian() throws {
+    func testSetUInt24WithUInt32LittleEndian() {
         let firstByte: UInt8 = 0b00111100
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -91,14 +91,14 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualBuffer, expectedBuffer)
     }
 
-    func testWriteUInt24IncrementsWriterIndexByThree() throws {
+    func testWriteUInt24IncrementsWriterIndexByThree() {
         let integer: UInt32 = 0
         var buffer = ByteBuffer()
         buffer.writeUInt24(integer)
         XCTAssertEqual(buffer.writerIndex, 3)
     }
 
-    func testGetUInt24BigEndian() throws {
+    func testGetUInt24BigEndian() {
         let firstByte: UInt8 = 0b00111100
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -108,7 +108,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualInteger, expectedInteger)
     }
 
-    func testGetUInt24LittleEndian() throws {
+    func testGetUInt24LittleEndian() {
         let firstByte: UInt8 = 0b00111100
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111
@@ -118,7 +118,7 @@ final class ByteBufferUInt24Tests: XCTestCase {
         XCTAssertEqual(actualInteger, expectedInteger)
     }
 
-    func testReadUInt24IncrementsReaderIndexByThree() throws {
+    func testReadUInt24IncrementsReaderIndexByThree() {
         let firstByte: UInt8 = 0b00111100
         let secondByte: UInt8 = 0b11000011
         let thirdByte: UInt8 = 0b00001111

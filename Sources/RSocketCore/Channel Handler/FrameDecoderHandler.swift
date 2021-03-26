@@ -28,7 +28,6 @@ final class FrameDecoderHandler: ChannelInboundHandler {
             let frame = try frameDecoder.decode(from: &buffer)
             context.fireChannelRead(wrapInboundOut(frame))
         } catch {
-            assertionFailure("decoding frame failed \(error)")
             context.fireErrorCaught(error)
         }
     }

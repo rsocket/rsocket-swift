@@ -26,8 +26,7 @@ internal struct PayloadEncoder: PayloadEncoding {
             guard metadata.count <= FrameBodyConstants.metadataMaximumLength else {
                 throw Error.connectionError(message: "Metadata is too big")
             }
-            let metadataLengthBytes = UInt32(metadata.count).bytes.suffix(FrameBodyConstants.metadataLengthFieldLengthInBytes)
-            buffer.writeBytes(metadataLengthBytes)
+            buffer.writeUInt24(UInt(metadata.count))
             buffer.writeData(metadata)
         }
         buffer.writeData(payload.data)

@@ -19,7 +19,7 @@ import NIO
 extension ByteBuffer {
     @discardableResult
     @inlinable
-    internal mutating func setUInt24<T: FixedWidthInteger>(
+    internal mutating func setUInt24<T: FixedWidthInteger & UnsignedInteger>(
         _ integer: T,
         at index: Int,
         endianness: Endianness = .big,
@@ -47,7 +47,7 @@ extension ByteBuffer {
 
     @discardableResult
     @inlinable
-    internal mutating func writeUInt24<T: FixedWidthInteger>(
+    internal mutating func writeUInt24<T: FixedWidthInteger & UnsignedInteger>(
         _ integer: T,
         endianness: Endianness = .big,
         as: T.Type = T.self

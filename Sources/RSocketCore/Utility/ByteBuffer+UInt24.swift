@@ -25,6 +25,7 @@ extension ByteBuffer {
         endianness: Endianness = .big,
         as: T.Type = T.self
     ) -> Int {
+        precondition(integer >> 24 == 0, "The given unsigned integer does not fit in 24 bit")
         let mostSignificant: UInt16
         let leastSignificant: UInt8
         if T.bitWidth <= UInt8.bitWidth {

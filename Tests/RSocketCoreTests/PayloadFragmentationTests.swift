@@ -280,7 +280,7 @@ class PayloadFragmentationTests: XCTestCase {
         XCTAssertEqual(assembler.process(frame: fragments[safe: 2]), .complete(frame))
     }
     
-    func testLargeFragment() throws {
+    func testManyFragments() throws {
         let payload = Payload(
             metadata: "Some Metadata"  +
                 repeatElement(".", count: 600),

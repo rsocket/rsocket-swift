@@ -466,7 +466,8 @@ class EndToEndTests: XCTestCase {
                 output.onNext("3", isCompletion: false)
                 output.onNext(largePayload, isCompletion: true)
                 return TestUnidirectionalStream()
-            })
+            }),
+            maximumFrameSize: 500
         )
         
         let response = self.expectation(description: "receive response")

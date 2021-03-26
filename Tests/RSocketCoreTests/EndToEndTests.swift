@@ -74,6 +74,16 @@ class EndToEndTests: XCTestCase {
                         responderLateFrameHandler: { XCTFail("server responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
+                // uncomment if you want to see all frames send and received
+//                .flatMap {
+//                    channel.pipeline.handler(type: FrameDecoderHandler.self).flatMap {
+//                        channel.pipeline.addHandler(DebugInboundEventsHandler(), name: "server receiving", position: .after($0))
+//                    }.flatMap {
+//                        channel.pipeline.handler(type: FrameEncoderHandler.self).flatMap {
+//                            channel.pipeline.addHandler(DebugOutboundEventsHandler(), name: "server sending", position: .after($0))
+//                        }
+//                    }
+//                }
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
     }
@@ -100,6 +110,16 @@ class EndToEndTests: XCTestCase {
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
+                // uncomment if you want to see all frames send and received
+//                .flatMap {
+//                    channel.pipeline.handler(type: FrameDecoderHandler.self).flatMap {
+//                        channel.pipeline.addHandler(DebugInboundEventsHandler(), name: "client receiving", position: .after($0))
+//                    }.flatMap {
+//                        channel.pipeline.handler(type: FrameEncoderHandler.self).flatMap {
+//                            channel.pipeline.addHandler(DebugOutboundEventsHandler(), name: "client sending", position: .after($0))
+//                        }
+//                    }
+//                }
             }
     }
     
@@ -298,7 +318,43 @@ class EndToEndTests: XCTestCase {
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], input.events)
     }
-    func testChannelFragmentation() throws {
+    func testChannelFragmentationWithOnePayloadFragmented() throws {
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames",
+            data: "Some data which is just too long to be in a single frame"
+        )
+        let request = self.expectation(description: "receive request")
+        var echo: TestUnidirectionalStream?
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertFalse(isCompletion)
+                echo = TestUnidirectionalStream.echo(to: output)
+                // just echo back
+                output.onNext(payload, isCompletion: false)
+                return echo!
+            }),
+            maximumFrameSize: 50
+        )
+        
+        let response = self.expectation(description: "receive response")
+        let input = TestUnidirectionalStream(onNext: { payload, isComplete in
+            print(isComplete, payload)
+            guard isComplete else { return }
+            response.fulfill()
+        })
+        input.failOnUnexpectedEvent = false
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
+        output.onNext(largePayload, isCompletion: true)
+        self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(
+            ["Hello", .next(largePayload, isCompletion: true)],
+            input.events
+        )
+    }
+    func testChannelFragmentationWithMultipleFragmentations() throws {
         let largePayload = Payload(
             metadata: "Some metadata which is long enough to be split into multiple frames" + repeatElement(".", count: 1500),
             data: "Some data which is just too long to be in a single frame" + repeatElement(".", count: 1500)

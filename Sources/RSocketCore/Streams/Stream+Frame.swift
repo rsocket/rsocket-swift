@@ -69,6 +69,7 @@ extension UnidirectionalStream {
             if body.isNext {
                 onNext(body.payload, isCompletion: body.isCompletion)
             } else if body.isCompletion {
+                assert(body.payload.metadata == nil && body.payload.data.isEmpty, "isNext is false but payload contains data")
                 onComplete()
             }
         case let .error(body):

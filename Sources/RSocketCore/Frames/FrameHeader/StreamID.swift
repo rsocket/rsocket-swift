@@ -25,3 +25,13 @@ extension StreamID {
     /// Stream ID for any operation involving the connection
     internal static let connection = StreamID(rawValue: 0)
 }
+
+extension StreamID: CustomDebugStringConvertible {
+    var debugDescription: String {
+        if self == .connection {
+            return ".connection"
+        } else {
+            return rawValue.description
+        }
+    }
+}

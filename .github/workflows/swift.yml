@@ -40,7 +40,7 @@ jobs:
     - name: Build & Run Performance Tests on macOS
       run: >
         swift test
-        -Xswiftc="-O"
+        --configuration=release
         --enable-test-discovery
         --filter="^.*(Performance).*\..*"
     
@@ -60,6 +60,6 @@ jobs:
     - name: Build & Run Performance Tests on Linux
       run: >
         swift test
-        -Xswiftc="-O"
+        --configuration=release
         --enable-test-discovery
         --filter="^.*(Performance).*\..*"

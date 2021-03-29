@@ -76,13 +76,10 @@ class EndToEndTests: XCTestCase {
                 }
                 // uncomment if you want to see all frames send and received
 //                .flatMap {
-//                    channel.pipeline.handler(type: FrameDecoderHandler.self).flatMap {
-//                        channel.pipeline.addHandler(DebugInboundEventsHandler(), name: "server receiving", position: .after($0))
-//                    }.flatMap {
-//                        channel.pipeline.handler(type: FrameEncoderHandler.self).flatMap {
-//                            channel.pipeline.addHandler(DebugOutboundEventsHandler(), name: "server sending", position: .after($0))
-//                        }
-//                    }
+//                    channel.pipeline.addRSocketDebugEventsHandlers(
+//                        inboundName: "server receiving",
+//                        outboundName: "server sending"
+//                    )
 //                }
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
@@ -112,13 +109,10 @@ class EndToEndTests: XCTestCase {
                 }
                 // uncomment if you want to see all frames send and received
 //                .flatMap {
-//                    channel.pipeline.handler(type: FrameDecoderHandler.self).flatMap {
-//                        channel.pipeline.addHandler(DebugInboundEventsHandler(), name: "client receiving", position: .after($0))
-//                    }.flatMap {
-//                        channel.pipeline.handler(type: FrameEncoderHandler.self).flatMap {
-//                            channel.pipeline.addHandler(DebugOutboundEventsHandler(), name: "client sending", position: .after($0))
-//                        }
-//                    }
+//                    channel.pipeline.addRSocketDebugEventsHandlers(
+//                        inboundName: "client receiving",
+//                        outboundName: "client sending"
+//                    )
 //                }
             }
     }

@@ -77,7 +77,8 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
                         responder: responderSocket,
-                        maximumFrameSize: maximumFrameSize, connectedPromise: connectedPromise,
+                        maximumFrameSize: maximumFrameSize,
+                        connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
                     )

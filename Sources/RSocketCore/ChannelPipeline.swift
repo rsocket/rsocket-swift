@@ -50,6 +50,7 @@ extension ChannelPipeline {
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
+            ConnectionStateHandler(),
             SetupWriter(config: config, connectedPromise: promise),
             DemultiplexerHandler(
                 connectionSide: .client,
@@ -86,6 +87,7 @@ extension ChannelPipeline {
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
+            ConnectionStateHandler(),
             ConnectionEstablishmentHandler(initializeConnection: { [unowned self] (info, channel) in
                 let responder = makeResponder?(info)
                 let sendFrame: (Frame) -> () = { [weak self] frame in

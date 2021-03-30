@@ -40,7 +40,7 @@ extension ChannelPipeline {
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
-        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
+        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.defaultMaximumFrameSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
         }
@@ -83,7 +83,7 @@ extension ChannelPipeline {
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
-        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.minMtuSize
+        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.defaultMaximumFrameSize
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),

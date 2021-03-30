@@ -55,6 +55,11 @@ fileprivate func XCTAssertTrue(
 }
 
 // - MARK: Frame Bodies with Fragmentable Payload
+final class PayloadCompletionFragmentationTests: PayloadFragmentationTests {
+    override func makeFrame(payload: Payload) -> Frame {
+        PayloadFrameBody(isCompletion: true, isNext: true, payload: payload).asFrame(withStreamId: 5)
+    }
+}
 final class RequestResponseFragmentationTests: PayloadFragmentationTests {
     override func makeFrame(payload: Payload) -> Frame {
         RequestResponseFrameBody(payload: payload).asFrame(withStreamId: 6)
@@ -83,6 +88,7 @@ final class ChannelCompletionFragmentationTests: ChannelFragmentationTests {
     }
 }
 
+
 class PayloadFragmentationTests: XCTestCase {
     var initialFragmentBodyHeaderSize: Int32 { 0 }
     private var initialFragmentBodyHeaderSizeWithMetadata: Int32 { initialFragmentBodyHeaderSize + 3 }
@@ -90,7 +96,7 @@ class PayloadFragmentationTests: XCTestCase {
     private var frameHeaderSizeWithMetadata: Int32 { frameHeaderSize + 3 }
     
     func makeFrame(payload: Payload) -> Frame {
-        PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 5)
+        PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 4)
     }
     
     // MARK: Payload without Metadata
@@ -219,6 +225,32 @@ class PayloadFragmentationTests: XCTestCase {
         XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
         XCTAssertEqual(assembler.process(frame: fragments[safe: 1]), .complete(frame))
     }
+    func testSplitPayloadWithMetadataIntoTwoFragmentsIfItFitsExactlyIntoTwoFrames2() {
+        let payload = Payload(
+            metadata: "Some Metadata" +
+                repeatElement(".", count: Int(initialFragmentBodyHeaderSizeWithMetadata)),
+            data: "Payload with metadata which is too large to fit into a single frame" 
+        )
+        XCTAssertEqual(
+            payload.size, 80 + initialFragmentBodyHeaderSizeWithMetadata,
+            """
+            First fragment should include payload and metadata but second only payload.
+            Because the first fragments header needs to include the length of the metadata,
+            it is 3 bytes larger than the second fragment.
+            Because of this difference, we add 3 bytes to the end of the payload to fills the last fragment completely
+            """
+        )
+        
+        let frame = makeFrame(payload: payload)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 40 + frameHeaderSizeWithMetadata
+        )
+        XCTAssertEqual(fragments.count, 2)
+
+        var assembler = FragmentedFrameAssembler()
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 1]), .complete(frame))
+    }
     func testSplitPayloadWithMetadataIntoThreeFragmentsIfItIsOneByteTooLarge() {
         let payload = Payload(
             metadata: "Some Metadata",
@@ -246,6 +278,27 @@ class PayloadFragmentationTests: XCTestCase {
         XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
         XCTAssertEqual(assembler.process(frame: fragments[safe: 1]), .incomplete)
         XCTAssertEqual(assembler.process(frame: fragments[safe: 2]), .complete(frame))
+    }
+    
+    func testManyFragments() throws {
+        let payload = Payload(
+            metadata: "Some Metadata"  +
+                repeatElement(".", count: 600),
+            data: "Payload with metadata which is too large to fit into a single frame!" +
+                repeatElement(".", count: 600)
+        )
+        
+        let frame = makeFrame(payload: payload)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 60
+        )
+
+        var assembler = FragmentedFrameAssembler()
+        
+        for fragment in fragments.dropLast() {
+            XCTAssertEqual(assembler.process(frame: fragment), .incomplete)
+        }
+        XCTAssertEqual(assembler.process(frame: fragments.last), .complete(frame))
     }
     
     // - Incomplete Fragmentation

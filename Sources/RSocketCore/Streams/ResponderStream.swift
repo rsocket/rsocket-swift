@@ -47,12 +47,12 @@ final internal class ResponderStream {
 
     internal func receive(frame: Frame) {
         switch fragmentedFrameAssembler.process(frame: frame) {
-        case let .complete(completeFrame):
+        case let .complete(frame):
             switch state {
             case let .waitingForInitialFragments(socket):
                 let adapter = ThreadSafeStreamAdapter(id: id, eventLoop: eventLoop, delegate: self)
                 let streamKind: StreamKind?
-                switch completeFrame.body {
+                switch frame.body {
                 case let .requestFnf(body):
                     streamKind = nil
                     socket.fireAndForget(payload: body.payload)

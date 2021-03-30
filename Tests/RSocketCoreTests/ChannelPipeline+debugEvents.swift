@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-/// A identifier of a stream.
-internal struct StreamID: RawRepresentable {
-    internal var rawValue: Int32
-}
 
-extension StreamID: Hashable {}
+import NIO
+import NIOExtras
+@testable import RSocketCore
 
-extension StreamID {
-    /// Stream ID for any operation involving the connection
-    internal static let connection = StreamID(rawValue: 0)
-}
-
-extension StreamID: CustomDebugStringConvertible {
-    var debugDescription: String {
-        if self == .connection {
-            return ".connection"
-        } else {
-            return rawValue.description
+extension ChannelPipeline {
+    func addRSocketDebugEventsHandlers(
+        inboundName: String? = nil,
+        outboundName: String? = nil
+    ) -> EventLoopFuture<Void> {
+        handler(type: FrameDecoderHandler.self).flatMap {
+            self.addHandler(DebugInboundEventsHandler(), name: inboundName, position: .after($0))
+        }.flatMap {
+            self.handler(type: FrameEncoderHandler.self).flatMap {
+                self.addHandler(DebugOutboundEventsHandler(), name: outboundName, position: .after($0))
+            }
         }
     }
 }

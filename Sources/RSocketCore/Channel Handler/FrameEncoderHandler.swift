@@ -40,6 +40,7 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
             }
             context.flush()
         } catch {
+            assertionFailure("encoding \(frame) failed \(error)")
             if frame.header.flags.contains(.ignore) {
                 return
             }

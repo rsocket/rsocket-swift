@@ -56,6 +56,7 @@ class EndToEndTests: XCTestCase {
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
+        maximumFrameSize: Int32? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
@@ -68,16 +69,25 @@ class EndToEndTests: XCTestCase {
                     channel.pipeline.addRSocketServerHandlers(
                         shouldAcceptClient: shouldAcceptClient,
                         makeResponder: { _ in responderSocket },
+                        maximumFrameSize: maximumFrameSize,
                         requesterLateFrameHandler: { XCTFail("server requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("server responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
+                // uncomment if you want to see all frames send and received
+//                .flatMap {
+//                    channel.pipeline.addRSocketDebugEventsHandlers(
+//                        inboundName: "server receiving",
+//                        outboundName: "server sending"
+//                    )
+//                }
             }
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
     }
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -91,11 +101,19 @@ class EndToEndTests: XCTestCase {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
                         responder: responderSocket,
+                        maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
                     )
                 }
+                // uncomment if you want to see all frames send and received
+//                .flatMap {
+//                    channel.pipeline.addRSocketDebugEventsHandlers(
+//                        inboundName: "client receiving",
+//                        outboundName: "client sending"
+//                    )
+//                }
             }
     }
     
@@ -106,20 +124,27 @@ class EndToEndTests: XCTestCase {
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         clientResponderSocket: RSocket = TestRSocket(),
         clientConfig: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        maximumFrameSize: Int32? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) throws -> RSocket {
         let server = makeServerBootstrap(
             responderSocket: serverResponderSocket,
-            shouldAcceptClient: shouldAcceptClient
+            shouldAcceptClient: shouldAcceptClient,
+            maximumFrameSize: maximumFrameSize
         )
         let serverChannel = try server.bind(host: host, port: 0).wait()
         let port = try XCTUnwrap(serverChannel.localAddress?.port)
         let clientConnected = clientEventLoopGroup.next().makePromise(of: RSocket.self)
-        return try makeClientBootstrap(responderSocket: clientResponderSocket, config: clientConfig, connectedPromise: clientConnected)
-            .connect(host: host, port: port)
-            .flatMap({ _ in clientConnected.futureResult })
-            .wait()
+        return try makeClientBootstrap(
+            responderSocket: clientResponderSocket,
+            config: clientConfig,
+            maximumFrameSize: maximumFrameSize,
+            connectedPromise: clientConnected
+        )
+        .connect(host: host, port: port)
+        .flatMap({ _ in clientConnected.futureResult })
+        .wait()
     }
     func testClientServerSetup() throws {
         let setup = ClientSetupConfig(
@@ -170,6 +195,23 @@ class EndToEndTests: XCTestCase {
         requester.fireAndForget(payload: "Hello World")
         self.wait(for: [request], timeout: 1)
     }
+    func testFireAndForgetFragmentation() throws {
+        let request = self.expectation(description: "receive request")
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames" + repeatElement(".", count: 1500),
+            data: "Some data which is just too long to be in a single frame" + repeatElement(".", count: 1500)
+        )
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(fireAndForget: { payload in
+                request.fulfill()
+                XCTAssertEqual(payload, largePayload)
+            }),
+            maximumFrameSize: 500
+        )
+        
+        requester.fireAndForget(payload: largePayload)
+        self.wait(for: [request], timeout: 1)
+    }
     func testRequestResponseEcho() throws {
         let request = self.expectation(description: "receive request")
         let requester = try setupAndConnectServerAndClient(
@@ -189,6 +231,33 @@ class EndToEndTests: XCTestCase {
             response.fulfill()
         }
         _ = requester.requestResponse(payload: helloWorld, responderStream: input)
+        self.wait(for: [request, response], timeout: 1)
+    }
+    func testRequestResponseFragmentation() throws {
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames" + repeatElement(".", count: 1500),
+            data: "Some data which is just too long to be in a single frame" + repeatElement(".", count: 1500)
+        )
+        let request = self.expectation(description: "receive request")
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(requestResponse: { payload, output in
+                request.fulfill()
+                XCTAssertEqual(largePayload, payload)
+                // just echo back
+                output.onNext(payload, isCompletion: true)
+                return TestUnidirectionalStream()
+            }),
+            maximumFrameSize: 500
+        )
+        
+        let response = self.expectation(description: "receive response")
+        
+        let input = TestUnidirectionalStream { payload, isCompletion in
+            XCTAssertEqual(payload, largePayload)
+            XCTAssertTrue(isCompletion)
+            response.fulfill()
+        }
+        _ = requester.requestResponse(payload: largePayload, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testRequestResponseError() throws {
@@ -242,6 +311,82 @@ class EndToEndTests: XCTestCase {
         output.onComplete()
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], input.events)
+    }
+    func testChannelFragmentationWithOnePayloadFragmented() throws {
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames",
+            data: "Some data which is just too long to be in a single frame"
+        )
+        let request = self.expectation(description: "receive request")
+        var echo: TestUnidirectionalStream?
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertFalse(isCompletion)
+                echo = TestUnidirectionalStream.echo(to: output)
+                // just echo back
+                output.onNext(payload, isCompletion: false)
+                return echo!
+            }),
+            maximumFrameSize: 50
+        )
+        
+        let response = self.expectation(description: "receive response")
+        let input = TestUnidirectionalStream(onNext: { payload, isComplete in
+            print(isComplete, payload)
+            guard isComplete else { return }
+            response.fulfill()
+        })
+        input.failOnUnexpectedEvent = false
+        let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
+        output.onNext(largePayload, isCompletion: true)
+        self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(
+            ["Hello", .next(largePayload, isCompletion: true)],
+            input.events
+        )
+    }
+    func testChannelFragmentationWithMultipleFragmentations() throws {
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames" + repeatElement(".", count: 1500),
+            data: "Some data which is just too long to be in a single frame" + repeatElement(".", count: 1500)
+        )
+        let request = self.expectation(description: "receive request")
+        var echo: TestUnidirectionalStream?
+        
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(channel: { payload, initialRequestN, isCompletion, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertFalse(isCompletion)
+                echo = TestUnidirectionalStream.echo(to: output)
+                // just echo back
+                output.onNext(payload, isCompletion: false)
+                return echo!
+            }),
+            maximumFrameSize: 500
+        )
+        
+        let response = self.expectation(description: "receive response")
+        let input = TestUnidirectionalStream(onNext: { payload, isComplete in
+            print(isComplete, payload)
+            guard isComplete else { return }
+            response.fulfill()
+        })
+        input.failOnUnexpectedEvent = false
+        let output = requester.channel(payload: largePayload, initialRequestN: .max, isCompleted: false, responderStream: input)
+        output.onNext("1", isCompletion: false)
+        output.onNext("2", isCompletion: false)
+        output.onNext(largePayload, isCompletion: false)
+        output.onNext("3", isCompletion: false)
+        output.onNext(largePayload, isCompletion: true)
+        self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(
+            [.next(largePayload), "1", "2", .next(largePayload), "3", .next(largePayload, isCompletion: true)],
+            input.events
+        )
     }
     func testChannelResponderError() throws {
         let request = self.expectation(description: "receive request")
@@ -297,6 +442,40 @@ class EndToEndTests: XCTestCase {
         _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(input.events, ["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)])
+    }
+    func testStreamFragmentation() throws {
+        let largePayload = Payload(
+            metadata: "Some metadata which is long enough to be split into multiple frames" + repeatElement(".", count: 1500),
+            data: "Some data which is just too long to be in a single frame" + repeatElement(".", count: 1500)
+        )
+        let request = self.expectation(description: "receive request")
+        let requester = try setupAndConnectServerAndClient(
+            serverResponderSocket: TestRSocket(stream: { payload, initialRequestN, output in
+                request.fulfill()
+                XCTAssertEqual(initialRequestN, .max)
+                XCTAssertEqual(payload, largePayload)
+                output.onNext("1", isCompletion: false)
+                output.onNext("2", isCompletion: false)
+                output.onNext(largePayload, isCompletion: false)
+                output.onNext("3", isCompletion: false)
+                output.onNext(largePayload, isCompletion: true)
+                return TestUnidirectionalStream()
+            }),
+            maximumFrameSize: 500
+        )
+        
+        let response = self.expectation(description: "receive response")
+        
+        let input = TestUnidirectionalStream(onNext: { _, isCompletion in
+            guard isCompletion else { return }
+            response.fulfill()
+        })
+        _ = requester.stream(payload: largePayload, initialRequestN: .max, responderStream: input)
+        self.wait(for: [request, response], timeout: 1)
+        XCTAssertEqual(
+            ["1", "2", .next(largePayload), "3", .next(largePayload, isCompletion: true)],
+            input.events
+        )
     }
     func testStreamError() throws {
         let request = self.expectation(description: "receive request")

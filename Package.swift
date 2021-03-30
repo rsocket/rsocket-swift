@@ -5,8 +5,6 @@ import PackageDescription
 let package = Package(
     name: "RSocket",
     products: [
-        .library(name: "UserCode", targets: ["UserCode"]),
-
         // Core
         .library(name: "RSocketCore", targets: ["RSocketCore"]),
 
@@ -30,13 +28,6 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4")
     ],
     targets: [
-        .target(name: "UserCode", dependencies: [
-            "RSocketTSChannel",
-            "RSocketWebSocketTransport",
-            "RSocketReactiveSwift",
-            .product(name: "ReactiveSwift", package: "ReactiveSwift")
-        ]),
-
         // Core
         .target(name: "RSocketCore", dependencies: [
             .product(name: "NIO", package: "swift-nio"),
@@ -96,6 +87,14 @@ let package = Package(
             "RSocketTestUtilities",
             "ReactiveSwift",
             .product(name: "NIO", package: "swift-nio"),
+        ]),
+        .testTarget(name: "Examples", dependencies: [
+            "RSocketTSChannel",
+            "RSocketTestUtilities",
+            "RSocketWebSocketTransport",
+            "RSocketTCPTransport",
+            "RSocketReactiveSwift",
+            .product(name: "ReactiveSwift", package: "ReactiveSwift")
         ]),
     ],
     swiftLanguageVersions: [.v5]

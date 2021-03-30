@@ -71,7 +71,7 @@ public struct SetupInfo {
 }
 
 internal struct SetupValidator {
-    internal var maximumClientVersion = Version.v0_2
+    internal var maximumClientVersion = Version.v1_0
     
     internal func validate(frame: Frame) throws -> SetupInfo {
         try validateSetup(try getSetupBody(frame))

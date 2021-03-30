@@ -24,8 +24,8 @@ public struct Version: Hashable {
 }
 
 public extension Version {
-    static let v0_2 = Version(major: 0, minor: 2)
-    static let current = Version.v0_2
+    static let v1_0 = Version(major: 1, minor: 0)
+    static let current = Version.v1_0
 }
 
 extension Version: Comparable {

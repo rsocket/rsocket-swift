@@ -61,7 +61,39 @@ final class ConnectionEstablishmentTests: XCTestCase {
         self.wait(for: [initializeConnection, shouldAcceptSetup], timeout: 0.1)
     }
     
-    
+    func testKeepAliveRespondBack() throws {
+        let channel = EmbeddedChannel(handler: ConnectionStreamHandler())
+
+
+        let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
+        try channel.writeInbound(frame)
+
+        var keepAliveFrame: RSocketCore.Frame?
+        keepAliveFrame = try channel.readOutbound()
+        if let testFrame = keepAliveFrame {
+            XCTAssertEqual(testFrame.header.type, FrameType.keepalive)
+        } else {
+            XCTFail("Should have received KeepAliveFrame in response")
+        }
+        _ = try channel.finish()
+    }
+
+    func testKeepAliveNoResponseBack() throws {
+        let channel = EmbeddedChannel(handler: ConnectionStreamHandler())
+
+        let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
+        try channel.writeInbound(frame)
+
+        var keepAliveFrame: RSocketCore.Frame?
+        keepAliveFrame = try channel.readOutbound()
+        if keepAliveFrame != nil {
+            XCTFail("Shouldn't have received a KeepAliveFrame in response")
+        } else {
+            XCTAssertNil(keepAliveFrame)
+        }
+        _ = try channel.finish()
+    }
+
     func testDeliveryOfExtraMessagesDuringSetup() throws {
         let loop = EmbeddedEventLoop()
         let connectionInitialization = loop.makePromise(of: Void.self)
@@ -88,6 +120,6 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         connectionInitialization.completeWith(.success(()))
         
-        XCTAssertEqual(try channel.readInbound(as: Frame.self), frame)
+        XCTAssertEqual(try channel.readInbound(as: Frame.self), setupFrame)
     }
 }

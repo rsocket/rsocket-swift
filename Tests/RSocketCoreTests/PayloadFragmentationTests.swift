@@ -346,7 +346,10 @@ class PayloadFragmentationTests: XCTestCase {
     func testWhenOriginalFrameNotHasIsNextNoFragmentHasIsNext() throws {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: false)
-        try XCTSkipIf(frame.header.type != .payload) // request frames always have isNext
+        try XCTSkipUnless(
+            frame.header.type == .payload,
+            "Request frames always have isNext, only payload frame can have the isNext flag empty (=false)"
+        )
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 10 + frameHeaderSize
         )
@@ -366,7 +369,10 @@ class PayloadFragmentationTests: XCTestCase {
     func testWhenOriginalFrameHasIsCompletionOnlyLastFragmentHasIsCompletion() throws {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: true, isNext: true)
-        try XCTSkipUnless(frame.header.type == .payload || frame.header.type == .requestChannel) // only payload and requestChannel frames have isCompletion
+        try XCTSkipUnless(
+            frame.header.type == .payload || frame.header.type == .requestChannel,
+            "Only payload and requestChannel frames have isCompletion"
+        )
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 10 + frameHeaderSize
         )
@@ -390,7 +396,10 @@ class PayloadFragmentationTests: XCTestCase {
     func testWhenOriginalFrameNotHasIsCompletionNoFragmentHasIsCompletion() throws {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
-        try XCTSkipUnless(frame.header.type == .payload || frame.header.type == .requestChannel) // only payload and requestChannel frames have isCompletion
+        try XCTSkipUnless(
+            frame.header.type == .payload || frame.header.type == .requestChannel,
+            "Only payload and requestChannel frames have isCompletion"
+        )
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 10 + frameHeaderSize
         )

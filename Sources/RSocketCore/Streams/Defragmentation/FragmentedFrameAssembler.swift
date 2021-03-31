@@ -31,16 +31,10 @@ internal struct FragmentedFrameAssembler {
             return processInitialFragment(frame: frame)
 
         case let .payload(body):
-            if body.isNext {
-                return processInitialFragment(frame: frame)
-            } else {
+            switch (body.isNext, body.isCompletion) {
+            case (true, _):
                 guard var fragments = fragments else {
-                    // Payload frame is not the next value and there is no set of fragments to extend
-                    // The only valid reason for this can be that its just a completion event without a final payload
-                    if body.isCompletion {
-                        return .complete(frame)
-                    }
-                    return .error(reason: "There is no current set of fragments to extend")
+                    return processInitialFragment(frame: frame)
                 }
                 fragments.additionalFragments.append(body.payload)
                 fragments.isCompletion = body.isCompletion
@@ -55,6 +49,15 @@ internal struct FragmentedFrameAssembler {
                 case let .error(reason: reason):
                     return .error(reason: reason)
                 }
+
+            case (false, true):
+                guard fragments == nil else {
+                    return .error(reason: "Got (C)omplete only frame but there is a current set of fragments to extend")
+                }
+                return .complete(frame)
+
+            case (false, false):
+                return .error(reason: "A payload frame must not have both (C)omplete and (N)ext empty (false)")
             }
 
         case .setup, .lease, .keepalive, .requestN, .cancel, .error, .metadataPush, .resume, .resumeOk, .ext:
@@ -152,7 +155,7 @@ private struct Fragments {
         case .payload:
             let newFrame = PayloadFrameBody(
                 isCompletion: isCompletion,
-                isNext: true,
+                isNext: true, // only frames that have isNext can be fragmented
                 payload: newPayload
             ).asFrame(withStreamId: initialFrame.header.streamId)
             return .success(newFrame)

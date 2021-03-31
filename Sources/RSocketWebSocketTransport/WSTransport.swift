@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIO
 import NIOHTTP1
 import NIOWebSocket
 import RSocketCore
+import NIOExtras
 
 public struct WSTransport {
     public init() { }
@@ -30,11 +32,18 @@ extension WSTransport: TransportChannelHandler {
         port: Int,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        let httpHandler = HTTPInitialRequestHandler(host: host, port: port)
+        let url = URL(string: "ws://demo.rsocket.io/rsocket")
+        let httpHandler = HTTPInitialRequestHandler(host: host, port: port, uri: url?.path ?? "/")
         let websocketUpgrader = NIOWebSocketClientUpgrader(
-            requestKey: "OfS0wDaT5NoxF2gqm7Zj2YtetzM=", // TODO
-            upgradePipelineHandler: { _, _ in
-                upgradeComplete()
+            requestKey: "UTPytHi/fGpvHKUdF9CkRA==", // TODO
+            upgradePipelineHandler: { channel, _ in
+                channel.pipeline.addHandlers([DebugInboundEventsHandler(), DebugOutboundEventsHandler()])
+                    .flatMap {
+                        channel.pipeline.addHandlers([
+                            WebSocketFrameToByteBuffer(),
+                            WebSocketFrameFromByteBuffer(),
+                        ])}
+                .flatMap(upgradeComplete)
             }
         )
         let config: NIOHTTPClientUpgradeConfiguration = (
@@ -43,8 +52,27 @@ extension WSTransport: TransportChannelHandler {
                 channel.pipeline.removeHandler(httpHandler, promise: nil)
             }
         )
-        return channel.pipeline
-            .addHTTPClientHandlers(withClientUpgrade: config)
+        return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config)
+            
             .flatMap { channel.pipeline.addHandler(httpHandler) }
+        }
+}
+
+class WebSocketFrameToByteBuffer: ChannelInboundHandler {
+    typealias InboundIn = WebSocketFrame
+    typealias InboundOut = ByteBuffer
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        let frame = unwrapInboundIn(data)
+        context.fireChannelRead(wrapInboundOut(frame.data))
+    }
+}
+
+class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
+    typealias OutboundIn = ByteBuffer
+    typealias OutboundOut = WebSocketFrame
+    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        let buffer = unwrapOutboundIn(data)
+        let frame = WebSocketFrame(data: buffer)
+        context.write(wrapOutboundOut(frame), promise: promise)
     }
 }

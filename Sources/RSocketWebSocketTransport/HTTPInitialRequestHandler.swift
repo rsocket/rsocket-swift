@@ -24,10 +24,12 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
 
     private let host: String
     private let port: Int
+    private let uri: String
 
-    internal init(host: String, port: Int) {
+    internal init(host: String, port: Int, uri: String) {
         self.host = host
         self.port = port
+        self.uri = uri
     }
 
     internal func channelActive(context: ChannelHandlerContext) {
@@ -41,7 +43,7 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
 
         let requestHead = HTTPRequestHead(version: .http1_1,
                                           method: .GET,
-                                          uri: "/",
+                                          uri: uri,
                                           headers: headers)
 
         context.write(self.wrapOutboundOut(.head(requestHead)), promise: nil)

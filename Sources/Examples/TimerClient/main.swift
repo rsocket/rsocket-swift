@@ -21,7 +21,7 @@ struct TimerClientExample: ParsableCommand {
     )
     
     @Option
-    var host = "demo.rsocket.io/rsocket"
+    var host = "demo.rsocket.io"
     
     @Option
     var port = 80

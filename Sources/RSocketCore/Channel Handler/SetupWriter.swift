@@ -27,8 +27,15 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
         self.setup = config
         self.connectedPromise = connectedPromise
     }
-    
+    func handlerAdded(context: ChannelHandlerContext) {
+        if context.channel.isActive {
+            onActive(context: context)
+        }
+    }
     func channelActive(context: ChannelHandlerContext) {
+        onActive(context: context)
+    }
+    private func onActive(context: ChannelHandlerContext) {
         context.writeAndFlush(self.wrapOutboundOut(SetupFrameBody(
             honorsLease: false,
             version: .current,

@@ -167,6 +167,7 @@ fileprivate final class MessageBufferHandler: ChannelInboundHandler, RemovableCh
 /// `ConnectionEstablishmentHandler` will remove itself after it the returned promise of `initializeConnection` is fulfilled.
 internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
+    typealias InboundOut = Frame
     typealias OutboundOut = Frame
     
     private enum State {
@@ -227,6 +228,7 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
                         // something failed in initializeConnection
                         self.writeErrorAndCloseConnection(context: context, error: error)
                     case .success:
+                        context.fireChannelRead(self.wrapInboundOut(frame))
                         context.pipeline.removeHandler(context: context).whenComplete { _ in
                             /// When we remove `messageBuffer` we'll be delivering any buffered
                             context.pipeline.removeHandler(messageBuffer, promise: nil)

@@ -56,35 +56,35 @@ fileprivate func XCTAssertTrue(
 
 // - MARK: Frame Bodies with Fragmentable Payload
 final class PayloadCompletionFragmentationTests: PayloadFragmentationTests {
-    override func makeFrame(payload: Payload) -> Frame {
-        PayloadFrameBody(isCompletion: true, isNext: true, payload: payload).asFrame(withStreamId: 5)
+    override func makeFrame(payload: Payload, isCompletion: Bool = true, isNext: Bool = true) -> Frame {
+        PayloadFrameBody(isCompletion: isCompletion, isNext: isNext, payload: payload).asFrame(withStreamId: 5)
     }
 }
 final class RequestResponseFragmentationTests: PayloadFragmentationTests {
-    override func makeFrame(payload: Payload) -> Frame {
+    override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestResponseFrameBody(payload: payload).asFrame(withStreamId: 6)
     }
 }
 final class FireAndForgetFragmentationTests: PayloadFragmentationTests {
-    override func makeFrame(payload: Payload) -> Frame {
+    override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestFireAndForgetFrameBody(payload: payload).asFrame(withStreamId: 7)
     }
 }
 final class StreamFragmentationTests: PayloadFragmentationTests {
     override var initialFragmentBodyHeaderSize: Int32 { 4 }
-    override func makeFrame(payload: Payload) -> Frame {
+    override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestStreamFrameBody(initialRequestN: 3, payload: payload).asFrame(withStreamId: 8)
     }
 }
 class ChannelFragmentationTests: PayloadFragmentationTests {
     override var initialFragmentBodyHeaderSize: Int32 { 4 }
-    override func makeFrame(payload: Payload) -> Frame {
-        RequestChannelFrameBody(isCompleted: false, initialRequestN: 4, payload: payload).asFrame(withStreamId: 9)
+    override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
+        RequestChannelFrameBody(isCompleted: isCompletion, initialRequestN: 4, payload: payload).asFrame(withStreamId: 9)
     }
 }
 final class ChannelCompletionFragmentationTests: ChannelFragmentationTests {
-    override func makeFrame(payload: Payload) -> Frame {
-        RequestChannelFrameBody(isCompleted: true, initialRequestN: 5, payload: payload).asFrame(withStreamId: 9)
+    override func makeFrame(payload: Payload, isCompletion: Bool = true, isNext: Bool = true) -> Frame {
+        RequestChannelFrameBody(isCompleted: isCompletion, initialRequestN: 5, payload: payload).asFrame(withStreamId: 9)
     }
 }
 
@@ -95,8 +95,8 @@ class PayloadFragmentationTests: XCTestCase {
     private var frameHeaderSize: Int32 { initialFragmentBodyHeaderSize + 6 }
     private var frameHeaderSizeWithMetadata: Int32 { frameHeaderSize + 3 }
     
-    func makeFrame(payload: Payload) -> Frame {
-        PayloadFrameBody(isCompletion: false, isNext: true, payload: payload).asFrame(withStreamId: 4)
+    func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
+        PayloadFrameBody(isCompletion: isCompletion, isNext: isNext, payload: payload).asFrame(withStreamId: 4)
     }
     
     // MARK: Payload without Metadata
@@ -320,5 +320,90 @@ class PayloadFragmentationTests: XCTestCase {
         var assembler = FragmentedFrameAssembler()
         XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
         XCTAssertTrue(assembler.process(frame: Error.canceled(message: "cancel").asFrame(withStreamId: .connection))?.isError)
+    }
+
+    // MARK: - isNext handling
+
+    func testWhenOriginalFrameHasIsNextAllFragmentsHaveIsNext() {
+        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 10 + frameHeaderSize
+        )
+        XCTAssertEqual(fragments.count, 3)
+        for fragment in fragments {
+            switch fragment.body {
+            case .requestFnf, .requestResponse, .requestStream, .requestChannel:
+                break
+            case let .payload(body):
+                XCTAssert(body.isNext)
+            default:
+                XCTFail("Unexpected fragment type")
+            }
+        }
+    }
+
+    func testWhenOriginalFrameNotHasIsNextNoFragmentHasIsNext() throws {
+        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let frame = makeFrame(payload: payload, isCompletion: false, isNext: false)
+        try XCTSkipIf(frame.header.type != .payload) // request frames always have isNext
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 10 + frameHeaderSize
+        )
+        XCTAssertEqual(fragments.count, 3)
+        for fragment in fragments {
+            switch fragment.body {
+            case let .payload(body):
+                XCTAssertFalse(body.isNext)
+            default:
+                XCTFail("Unexpected fragment type")
+            }
+        }
+    }
+
+    // MARK: - isCompletion handling
+
+    func testWhenOriginalFrameHasIsCompletionOnlyLastFragmentHasIsCompletion() throws {
+        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let frame = makeFrame(payload: payload, isCompletion: true, isNext: true)
+        try XCTSkipUnless(frame.header.type == .payload || frame.header.type == .requestChannel) // only payload and requestChannel frames have isCompletion
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 10 + frameHeaderSize
+        )
+        XCTAssertEqual(fragments.count, 3)
+        for (index, fragment) in fragments.enumerated() {
+            switch fragment.body {
+            case let .requestChannel(body):
+                XCTAssertFalse(body.isCompleted) // requestChannel is first frame and should not be completed
+            case let .payload(body):
+                if index == 2 {
+                    XCTAssert(body.isCompletion)
+                } else {
+                    XCTAssertFalse(body.isCompletion)
+                }
+            default:
+                XCTFail("Unexpected fragment type")
+            }
+        }
+    }
+
+    func testWhenOriginalFrameNotHasIsCompletionNoFragmentHasIsCompletion() throws {
+        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
+        try XCTSkipUnless(frame.header.type == .payload || frame.header.type == .requestChannel) // only payload and requestChannel frames have isCompletion
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 10 + frameHeaderSize
+        )
+        XCTAssertEqual(fragments.count, 3)
+        for fragment in fragments {
+            switch fragment.body {
+            case let .requestChannel(body):
+                XCTAssertFalse(body.isCompleted)
+            case let .payload(body):
+                XCTAssertFalse(body.isCompletion)
+            default:
+                XCTFail("Unexpected fragment type")
+            }
+        }
     }
 }

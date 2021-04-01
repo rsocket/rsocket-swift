@@ -67,12 +67,18 @@ class WebSocketFrameToByteBuffer: ChannelInboundHandler {
     }
 }
 
+fileprivate func randomMaskingKey() -> WebSocketMaskingKey {
+    let mask = UInt32.random(in: UInt32.min...UInt32.max)
+    return withUnsafeBytes(of: mask) { WebSocketMaskingKey($0)! }
+}
+
 class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = WebSocketFrame
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(data: buffer)
+        let maskKey = randomMaskingKey()
+        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: maskKey, data: buffer)
         context.write(wrapOutboundOut(frame), promise: promise)
     }
 }

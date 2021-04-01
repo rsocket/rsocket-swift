@@ -57,7 +57,7 @@ struct TimerClientExample: ParsableCommand {
                     data: Data()
                 ))
             }
-            .map() { $0.data }
+            .map() { String.init(decoding: $0.data, as: UTF8.self) }
             .logEvents(identifier: "route.timer")
             .take(first: limit)
             .on(disposed: { streamSemaphore.signal() })

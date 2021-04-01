@@ -21,10 +21,10 @@ struct TwitterClientExample: ParsableCommand {
     )
     
     @Argument(help: "used to find tweets that match the given string")
-    var searchString = "RSocket"
+    var searchString = "spring"
     
     @Option
-    var host = "demo.rsocket.io/rsocket"
+    var host = "demo.rsocket.io"
     
     @Option
     var port = 80
@@ -52,6 +52,7 @@ struct TwitterClientExample: ParsableCommand {
 
         let streamSemaphore = DispatchSemaphore(value: 0)
         let searchString = self.searchString
+        
         clientProperty.producer
                 .skipNil()
                 .flatMap(.latest) {
@@ -60,6 +61,7 @@ struct TwitterClientExample: ParsableCommand {
                             data: Data(searchString.utf8)
                     ))
                 }
+                .map() { String.init(decoding: $0.data, as: UTF8.self) }
                 .logEvents(identifier: "route.searchTweets")
                 .take(first: limit)
                 .on(disposed: { streamSemaphore.signal() })

@@ -62,8 +62,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
     }
     
     func testKeepAliveRespondBack() throws {
-        let channel = EmbeddedChannel(handler: ConnectionStreamHandler())
-
+        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.server))
 
         let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
@@ -79,7 +78,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
     }
 
     func testKeepAliveNoResponseBack() throws {
-        let channel = EmbeddedChannel(handler: ConnectionStreamHandler())
+        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client))
 
         let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
@@ -93,6 +92,24 @@ final class ConnectionEstablishmentTests: XCTestCase {
         }
         _ = try channel.finish()
     }
+    
+//    func testKeepAliveTimeout() throws {
+//        let loop = EmbeddedEventLoop()
+//        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client, now: { () -> TimeInterval in
+//                                       return ProcessInfo.processInfo.systemUptime - 10
+//        }), loop: loop)
+//        try channel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait()
+//
+//        var errorFrame: RSocketCore.Frame?
+//        errorFrame = try channel.readOutbound()
+//        switch errorFrame?.body {
+//        case .error(_):
+//            print("Done")
+//        default:
+//            XCTFail("Shouldn't have received a KeepAliveFrame in response")
+//        }
+//        _ = try channel.finish()
+//    }
 
     func testDeliveryOfExtraMessagesDuringSetup() throws {
         let loop = EmbeddedEventLoop()
@@ -120,6 +137,6 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         connectionInitialization.completeWith(.success(()))
         
-        XCTAssertEqual(try channel.readInbound(as: Frame.self), setupFrame)
+        XCTAssertEqual(try channel.readInbound(as: Frame.self), frame)
     }
 }

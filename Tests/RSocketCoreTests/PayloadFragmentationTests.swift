@@ -322,6 +322,23 @@ class PayloadFragmentationTests: XCTestCase {
         XCTAssertTrue(assembler.process(frame: Error.canceled(message: "cancel").asFrame(withStreamId: .connection))?.isError)
     }
 
+    func testReceiveNewRequestBeforeReceivingAllFragmentsShouldResultInAnError() throws {
+        let payload = Payload(
+            metadata: "Some Metadata",
+            data: "Payload with metadata which is too large to fit into a single frame"
+        )
+        let frame = makeFrame(payload: payload)
+        try XCTSkipIf(frame.header.type == .payload, "Only request frames should always start a new set of fragments")
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 40 + frameHeaderSizeWithMetadata
+        )
+        XCTAssertEqual(fragments.count, 2)
+
+        var assembler = FragmentedFrameAssembler()
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
+        XCTAssertTrue(assembler.process(frame: fragments[safe: 0])?.isError)
+    }
+
     // MARK: - isNext handling
 
     func testWhenOriginalFrameHasIsNextAllFragmentsHaveIsNext() {

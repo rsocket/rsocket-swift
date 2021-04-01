@@ -44,7 +44,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         try channel.writeInbound(SetupFrameBody(
             honorsLease: false,
-            version: .v0_2,
+            version: .v1_0,
             timeBetweenKeepaliveFrames: 500,
             maxLifetime: 10000,
             resumeIdentificationToken: nil,
@@ -73,7 +73,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         try channel.writeInbound(SetupFrameBody(
             honorsLease: false,
-            version: .v0_2,
+            version: .v1_0,
             timeBetweenKeepaliveFrames: 500,
             maxLifetime: 10000,
             resumeIdentificationToken: nil,

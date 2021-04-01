@@ -37,7 +37,7 @@ fileprivate extension FrameBodyProtocol {
 }
 
 final class SetupValidationTests: XCTestCase {
-    private let validator = SetupValidator(maximumClientVersion: .v0_2)
+    private let validator = SetupValidator(maximumClientVersion: .v1_0)
     func testToOldVersionIsAccepted() {
         XCTAssertNoThrow(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 0, minor: 1)

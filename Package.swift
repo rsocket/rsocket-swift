@@ -5,8 +5,6 @@ import PackageDescription
 let package = Package(
     name: "RSocket",
     products: [
-        .library(name: "UserCode", targets: ["UserCode"]),
-
         // Core
         .library(name: "RSocketCore", targets: ["RSocketCore"]),
 
@@ -20,23 +18,22 @@ let package = Package(
 
         // Transport protocol
         .library(name: "RSocketWebSocketTransport", targets: ["RSocketWebSocketTransport"]),
-        .library(name: "RSocketTCPTransport", targets: ["RSocketTCPTransport"])
+        .library(name: "RSocketTCPTransport", targets: ["RSocketTCPTransport"]),
+        
+        // Examples
+        .executable(name: "timer-client-example", targets: ["TimerClientExample"]),
+        .executable(name: "twitter-client-example", targets: ["TwitterClientExample"]),
+        .executable(name: "vanilla-client-example", targets: ["VanillaClientExample"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
         .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
-        .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4")
+        .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "0.4.0"),
     ],
     targets: [
-        .target(name: "UserCode", dependencies: [
-            "RSocketTSChannel",
-            "RSocketWebSocketTransport",
-            "RSocketReactiveSwift",
-            .product(name: "ReactiveSwift", package: "ReactiveSwift")
-        ]),
-
         // Core
         .target(name: "RSocketCore", dependencies: [
             .product(name: "NIO", package: "swift-nio"),
@@ -97,6 +94,44 @@ let package = Package(
             "ReactiveSwift",
             .product(name: "NIO", package: "swift-nio"),
         ]),
+        
+        // Examples
+        .target(
+            name: "TimerClientExample",
+            dependencies: [
+                "RSocketCore",
+                "RSocketNIOChannel",
+                "RSocketWebSocketTransport",
+                "RSocketReactiveSwift",
+                .product(name: "ReactiveSwift", package: "ReactiveSwift"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "Sources/Examples/TimerClient"
+        ),
+        .target(
+            name: "TwitterClientExample",
+            dependencies: [
+                "RSocketCore",
+                "RSocketNIOChannel",
+                "RSocketWebSocketTransport",
+                "RSocketReactiveSwift",
+                .product(name: "ReactiveSwift", package: "ReactiveSwift"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "Sources/Examples/TwitterClient"
+        ),
+        .target(
+            name: "VanillaClientExample",
+            dependencies: [
+                "RSocketCore",
+                "RSocketNIOChannel",
+                "RSocketTCPTransport",
+                "RSocketReactiveSwift",
+                .product(name: "ReactiveSwift", package: "ReactiveSwift"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "Sources/Examples/VanillaClient"
+        ),
     ],
     swiftLanguageVersions: [.v5]
 )

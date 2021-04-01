@@ -31,10 +31,15 @@ extension FragmentedFrameAssembler {
     }
 }
 
-extension FragmentationResult {
-    fileprivate var isError: Bool {
+private extension FragmentationResult {
+    var isError: Bool {
         guard case .error = self else { return false }
         return true
+    }
+
+    var completedFrame: Frame? {
+        guard case let .complete(frame) = self else { return nil }
+        return frame
     }
 }
 
@@ -337,6 +342,23 @@ class PayloadFragmentationTests: XCTestCase {
         var assembler = FragmentedFrameAssembler()
         XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
         XCTAssertTrue(assembler.process(frame: fragments[safe: 0])?.isError)
+    }
+
+    func testReceiveCancelBeforeReceivingAllFragmentsShouldForwardCancel() throws {
+        let payload = Payload(
+            metadata: "Some Metadata",
+            data: "Payload with metadata which is too large to fit into a single frame"
+        )
+        let frame = makeFrame(payload: payload)
+        let fragments = frame.splitIntoFragmentsIfNeeded(
+            maximumFrameSize: 40 + frameHeaderSizeWithMetadata
+        )
+        XCTAssertEqual(fragments.count, 2)
+
+        var assembler = FragmentedFrameAssembler()
+        XCTAssertEqual(assembler.process(frame: fragments[safe: 0]), .incomplete)
+        let cancelFrame = CancelFrameBody().asFrame(withStreamId: 4)
+        XCTAssertEqual(assembler.process(frame: cancelFrame).completedFrame, cancelFrame)
     }
 
     // MARK: - isNext handling

@@ -60,7 +60,11 @@ internal struct FragmentedFrameAssembler {
                 return .error(reason: "A payload frame must not have both (C)omplete and (N)ext empty (false)")
             }
 
-        case .setup, .lease, .keepalive, .requestN, .cancel, .error, .metadataPush, .resume, .resumeOk, .ext:
+        case .cancel:
+            fragments = nil
+            return .complete(frame)
+
+        case .setup, .lease, .keepalive, .requestN, .error, .metadataPush, .resume, .resumeOk, .ext:
             guard fragments == nil else {
                 return .error(reason: "Current set of fragments is not complete")
             }

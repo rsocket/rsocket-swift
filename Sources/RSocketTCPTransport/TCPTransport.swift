@@ -27,6 +27,7 @@ extension TCPTransport: TransportChannelHandler {
         channel: Channel,
         host: String,
         port: Int,
+        uri: String,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         channel.pipeline.addHandlers([

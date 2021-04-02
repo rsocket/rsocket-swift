@@ -48,13 +48,18 @@ public struct ClientBootstrap {
 }
 
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
-    public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
+    public func connect(
+        host: String,
+        port: Int,
+        uri: String,
+        responder: RSocketCore.RSocket?
+    ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
 
         let connectFuture = bootstrap
             .channelInitializer { channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
-                    transport.addChannelHandler(channel: channel, host: host, port: port) {
+                    transport.addChannelHandler(channel: channel, host: host, port: port, uri: uri) {
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
                             responder: responder,

@@ -29,7 +29,7 @@ struct VanillaClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port)
+        let clientProducer = bootstrap.connect(host: host, port: port, uri: "")
 
         let client: Property<ReactiveSwiftClient?> = Property(initial: nil, then: clientProducer.flatMapError { _ in
             .empty

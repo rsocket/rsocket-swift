@@ -29,6 +29,9 @@ struct TwitterClientExample: ParsableCommand {
     @Option
     var port = 80
     
+    @Option
+    var uri = "/rsocket"
+    
     @Option(help: "maximum number of tweets that are taken before it cancels the stream")
     var limit = 1000
 
@@ -44,7 +47,7 @@ struct TwitterClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port)
+        let clientProducer = bootstrap.connect(host: host, port: port, uri: "/rsocket")
 
         let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
             .empty
@@ -61,7 +64,9 @@ struct TwitterClientExample: ParsableCommand {
                             data: Data(searchString.utf8)
                     ))
                 }
-                .map() { String.init(decoding: $0.data, as: UTF8.self) }
+                .map { value in
+                    try? JSONSerialization.jsonObject(with: value.data, options: [])
+                }
                 .logEvents(identifier: "route.searchTweets")
                 .take(first: limit)
                 .on(disposed: { streamSemaphore.signal() })

@@ -21,6 +21,20 @@ import NIOWebSocket
 import RSocketCore
 import NIOExtras
 
+/// generates 16 bytes randomly and encodes them as a base64 string as defined in RFC6455 https://tools.ietf.org/html/rfc6455#section-4.1
+/// - Returns: base64 encoded string
+fileprivate func randomRequestKey() -> String {
+    /// we may want to use `randomBytes(count:)` once the proposal is accepted: https://forums.swift.org/t/pitch-requesting-larger-amounts-of-randomness-from-systemrandomnumbergenerator/27226
+    let lower = UInt64.random(in: UInt64.min...UInt64.max)
+    let upper = UInt64.random(in: UInt64.min...UInt64.max)
+    let data = withUnsafeBytes(of: lower) { lowerBytes in
+        withUnsafeBytes(of: upper) { upperBytes in
+            Data(lowerBytes) + Data(upperBytes)
+        }
+    }
+    return data.base64EncodedString()
+}
+
 public struct WSTransport {
     public init() { }
 }
@@ -30,19 +44,17 @@ extension WSTransport: TransportChannelHandler {
         channel: Channel,
         host: String,
         port: Int,
+        uri: String,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        let url = URL(string: "ws://demo.rsocket.io/rsocket")
-        let httpHandler = HTTPInitialRequestHandler(host: host, port: port, uri: url?.path ?? "/")
+        let httpHandler = HTTPInitialRequestHandler(host: host, port: port, uri: uri)
         let websocketUpgrader = NIOWebSocketClientUpgrader(
-            requestKey: "UTPytHi/fGpvHKUdF9CkRA==", // TODO
+            requestKey: randomRequestKey(),
             upgradePipelineHandler: { channel, _ in
-                channel.pipeline.addHandlers([DebugInboundEventsHandler(), DebugOutboundEventsHandler()])
-                    .flatMap {
-                        channel.pipeline.addHandlers([
-                            WebSocketFrameToByteBuffer(),
-                            WebSocketFrameFromByteBuffer(),
-                        ])}
+                channel.pipeline.addHandlers([
+                    WebSocketFrameToByteBuffer(),
+                    WebSocketFrameFromByteBuffer(),
+                ])
                 .flatMap(upgradeComplete)
             }
         )

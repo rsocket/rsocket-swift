@@ -53,12 +53,17 @@ public struct ClientBootstrap {
 
 @available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
-    public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
+    public func connect(
+        host: String,
+        port: Int,
+        uri: String,
+        responder: RSocketCore.RSocket?
+    ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
 
         let connectFuture = bootstrap
             .channelInitializer { channel in
-                transport.addChannelHandler(channel: channel, host: host, port: port) {
+                transport.addChannelHandler(channel: channel, host: host, port: port, uri: uri) {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
                         responder: responder,

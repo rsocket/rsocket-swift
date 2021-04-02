@@ -15,12 +15,14 @@
  */
 
 import NIO
+import Foundation
 
 public protocol TransportChannelHandler {
     func addChannelHandler(
         channel: Channel,
         host: String,
         port: Int,
+        uri: String,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void>
 }

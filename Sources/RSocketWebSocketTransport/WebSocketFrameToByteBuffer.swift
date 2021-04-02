@@ -17,7 +17,7 @@
 import NIO
 import NIOWebSocket
 
-class WebSocketFrameToByteBuffer: ChannelInboundHandler {
+final class WebSocketFrameToByteBuffer: ChannelInboundHandler {
     typealias InboundIn = WebSocketFrame
     typealias InboundOut = ByteBuffer
     typealias OutboundOut = WebSocketFrame

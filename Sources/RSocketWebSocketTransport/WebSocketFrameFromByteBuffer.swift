@@ -22,7 +22,7 @@ fileprivate func randomMaskingKey() -> WebSocketMaskingKey {
     return withUnsafeBytes(of: mask) { WebSocketMaskingKey($0)! }
 }
 
-class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
+final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = WebSocketFrame
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {

@@ -29,18 +29,10 @@ struct VanillaClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port, uri: "")
+        let client = try bootstrap.connect(host: host, port: port, uri: "").first()!.get()
 
-        let client: Property<ReactiveSwiftClient?> = Property(initial: nil, then: clientProducer.flatMapError { _ in
-            .empty
-        })
-
-        let streamProducer: SignalProducer<Payload, Swift.Error> = client.producer.skipNil().flatMap(.latest) {
-            $0.requester.requestStream(payload: .empty)
-        }
-        let requestProducer: SignalProducer<Payload, Swift.Error> = client.producer.skipNil().flatMap(.latest) {
-            $0.requester.requestResponse(payload: Payload(data: Data("HelloWorld".utf8)))
-        }
+        let streamProducer = client.requester.requestStream(payload: .empty)
+        let requestProducer = client.requester.requestResponse(payload: Payload(data: Data("HelloWorld".utf8)))
 
         streamProducer.logEvents(identifier: "stream1").take(first: 1).start()
         streamProducer.logEvents(identifier: "stream3").take(first: 10).start()

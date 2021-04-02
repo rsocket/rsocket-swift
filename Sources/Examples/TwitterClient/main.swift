@@ -35,7 +35,7 @@ struct TwitterClientExample: ParsableCommand {
     @Option(help: "maximum number of tweets that are taken before it cancels the stream")
     var limit = 1000
 
-    mutating func run() throws {
+    func run() throws {
         let bootstrap = ClientBootstrap(
                 config: ClientSetupConfig(
                         timeBetweenKeepaliveFrames: 0,
@@ -46,31 +46,23 @@ struct TwitterClientExample: ParsableCommand {
                 transport: WSTransport(),
                 timeout: .seconds(30)
         )
-
         
-        let clientProducer = bootstrap.connect(host: host, port: port, uri: uri)
-        
-        let client = try clientProducer.first()!.get()
+        let client = try bootstrap.connect(host: host, port: port, uri: uri).first()!.get()
 
-        let streamSemaphore = DispatchSemaphore(value: 0)
-        let searchString = self.searchString
-
-        client.requester.requestStream(payload: Payload(
+        try client.requester.requestStream(payload: Payload(
             metadata: route("searchTweets"),
             data: Data(searchString.utf8)
         ))
         .attemptMap { payload -> String in
             // pretty print json
-            let json = try JSONSerialization.jsonObject(with: payload.data, options: [.allowFragments])
+            let json = try JSONSerialization.jsonObject(with: payload.data, options: [])
             let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
             return String(decoding: data, as: UTF8.self)
         }
         .logEvents(identifier: "route.searchTweets")
         .take(first: limit)
-        .on(disposed: { streamSemaphore.signal() })
-        .start()
-
-        streamSemaphore.wait()
+        .wait()
+        .get()
     }
 }
 

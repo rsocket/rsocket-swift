@@ -44,29 +44,17 @@ struct TimerClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port, uri: uri)
+        let client = try bootstrap.connect(host: host, port: port, uri: uri).first()!.get()
 
-        let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
-            .empty
-        })
-
-        let streamSemaphore = DispatchSemaphore(value: 0)
-        clientProperty
-            .producer
-            .skipNil()
-            .flatMap(.latest) {
-                $0.requester.requestStream(payload: Payload(
-                    metadata: route("timer"),
-                    data: Data()
-                ))
-            }
-            .map() { String.init(decoding: $0.data, as: UTF8.self) }
-            .logEvents(identifier: "route.timer")
-            .take(first: limit)
-            .on(disposed: { streamSemaphore.signal() })
-            .start()
-
-        streamSemaphore.wait()
+        try client.requester.requestStream(payload: Payload(
+            metadata: route("timer"),
+            data: Data()
+        ))
+        .map() { String.init(decoding: $0.data, as: UTF8.self) }
+        .logEvents(identifier: "route.timer")
+        .take(first: limit)
+        .wait()
+        .get()
     }
 }
 

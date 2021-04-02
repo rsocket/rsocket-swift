@@ -25,9 +25,9 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     private let host: String
     private let port: Int
     private let uri: String
-    private let additionalHTTPHeaders: [String:String]
+    private let additionalHTTPHeaders: [String: String]
 
-    internal init(host: String, port: Int, uri: String, additionalHTTPHeaders: [String : String]) {
+    internal init(host: String, port: Int, uri: String, additionalHTTPHeaders: [String: String]) {
         self.host = host
         self.port = port
         self.uri = uri
@@ -35,13 +35,11 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     }
 
     internal func channelActive(context: ChannelHandlerContext) {
-        print("Client connected to \(context.remoteAddress!)")
-
         // We are connected. It's time to send the message to the server to initialize the upgrade dance.
         var headers = HTTPHeaders()
-        headers.add(name: "Host", value: "\(host):\(port)")
-        headers.add(name: "Content-Type", value: "text/plain; charset=utf-8")
-        headers.add(name: "Content-Length", value: "\(0)")
+        headers.add(name: "host", value: "\(host):\(port)")
+        headers.add(name: "content-type", value: "text/plain; charset=utf-8")
+        headers.add(name: "content-length", value: "0")
         headers.add(contentsOf: additionalHTTPHeaders.map({ $0 }))
 
         let requestHead = HTTPRequestHead(version: .http1_1,
@@ -58,29 +56,11 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     }
 
     internal func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let clientResponse = self.unwrapInboundIn(data)
-
-        print("Upgrade failed")
-
-        switch clientResponse {
-        case .head(let responseHead):
-            print("Received status: \(responseHead.status)")
-        case .body(let byteBuffer):
-            let string = String(buffer: byteBuffer)
-            print("Received: '\(string)' back from the server.")
-        case .end:
-            print("Closing channel.")
-            context.close(promise: nil)
-        }
-    }
-
-    internal func handlerRemoved(context: ChannelHandlerContext) {
-        print("HTTP handler removed.")
+        // if we receive anything the upgrade failed
+        context.close(promise: nil)
     }
 
     internal func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("error: ", error)
-
         // As we are not really interested getting notified on success or failure
         // we just pass nil as promise to reduce allocations.
         context.close(promise: nil)

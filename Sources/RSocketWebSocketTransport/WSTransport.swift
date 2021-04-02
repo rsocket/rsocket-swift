@@ -73,9 +73,35 @@ extension WSTransport: TransportChannelHandler {
 class WebSocketFrameToByteBuffer: ChannelInboundHandler {
     typealias InboundIn = WebSocketFrame
     typealias InboundOut = ByteBuffer
+    typealias OutboundOut = WebSocketFrame
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        context.fireChannelRead(wrapInboundOut(frame.data))
+        switch frame.opcode {
+        case .continuation:
+            /// we currently do not support WebSocket fragmentation
+            break
+        case .connectionClose:
+            /// TODO: We probably want to handle it the same as if an RSocket close frame and close the connection gracefully
+            break
+        case .ping:
+            pong(context: context, frame: frame)
+        case .pong:
+            /// we never send ping frames, therefore should not receive pong frames
+            break
+        case .text:
+            /// we only support binary frames
+            break
+        case .binary:
+            context.fireChannelRead(wrapInboundOut(frame.unmaskedData))
+        default:
+            /// We handle all opcodes which are defined by WebSocket.
+            /// This should never be reached but WebSocketOpcode is a struct and not an enum and we never no for sure
+            break
+        }
+    }
+    private func pong(context: ChannelHandlerContext, frame: WebSocketFrame) {
+        let responseFrame = WebSocketFrame(fin: true, opcode: .pong, data: frame.unmaskedData)
+        context.write(self.wrapOutboundOut(responseFrame), promise: nil)
     }
 }
 

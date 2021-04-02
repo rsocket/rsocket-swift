@@ -27,6 +27,7 @@ extension Frame {
             return initialBody.createFrames(
                 withFollowingFragments: followingFragments,
                 streamId: header.streamId,
+                isNext: true, // all fragments of a request frame should have `isNext`
                 lastFragmentShouldCompleteStream: false
             )
 
@@ -40,6 +41,7 @@ extension Frame {
             return initialBody.createFrames(
                 withFollowingFragments: followingFragments,
                 streamId: header.streamId,
+                isNext: true, // all fragments of a request frame should have `isNext`
                 lastFragmentShouldCompleteStream: false
             )
 
@@ -56,6 +58,7 @@ extension Frame {
             return initialBody.createFrames(
                 withFollowingFragments: followingFragments,
                 streamId: header.streamId,
+                isNext: true, // all fragments of a request frame should have `isNext`
                 lastFragmentShouldCompleteStream: false
             )
 
@@ -73,6 +76,7 @@ extension Frame {
             return initialBody.createFrames(
                 withFollowingFragments: followingFragments,
                 streamId: header.streamId,
+                isNext: true, // all fragments of a request frame should have `isNext`
                 lastFragmentShouldCompleteStream: body.isCompleted
             )
 
@@ -84,12 +88,13 @@ extension Frame {
             guard !followingFragments.isEmpty else { return [self] }
             let initialBody = PayloadFrameBody(
                 isCompletion: false, // if the payload completes the stream it is sent on the last fragment
-                isNext: true,
+                isNext: body.isNext,
                 payload: initialFragment
             )
             return initialBody.createFrames(
                 withFollowingFragments: followingFragments,
                 streamId: header.streamId,
+                isNext: body.isNext,
                 lastFragmentShouldCompleteStream: body.isCompletion
             )
 
@@ -103,6 +108,7 @@ private extension FrameBodyBoundToStream {
     func createFrames(
         withFollowingFragments fragments: [Payload],
         streamId: StreamID,
+        isNext: Bool,
         lastFragmentShouldCompleteStream: Bool
     ) -> [Frame] {
         precondition(!fragments.isEmpty)
@@ -112,7 +118,7 @@ private extension FrameBodyBoundToStream {
                 let isFragmentCompletion = lastFragmentShouldCompleteStream && isLastFragment
                 let fragmentBody = PayloadFrameBody(
                     isCompletion: isFragmentCompletion,
-                    isNext: false,
+                    isNext: isNext,
                     payload: fragment
                 )
                 return fragmentBody.asFrame(

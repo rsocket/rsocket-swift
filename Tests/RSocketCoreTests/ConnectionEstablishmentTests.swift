@@ -24,6 +24,19 @@ extension StreamID: ExpressibleByIntegerLiteral {
     }
 }
 
+fileprivate final class TestClock {
+    var time: TimeInterval = 0
+    func getTime() -> TimeInterval {
+        return time
+    }
+    func advance(by incrementTime: TimeInterval) {
+        self.time += incrementTime
+    }
+    func reset() {
+        self.time = 0
+    }
+}
+
 final class ConnectionEstablishmentTests: XCTestCase {
     func testSuccessfulEstablishment() throws {
         let initializeConnection = self.expectation(description: "should initialize connection")
@@ -67,14 +80,11 @@ final class ConnectionEstablishmentTests: XCTestCase {
         let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
 
-        var keepAliveFrame: RSocketCore.Frame?
-        keepAliveFrame = try channel.readOutbound()
-        if let testFrame = keepAliveFrame {
-            XCTAssertEqual(testFrame.header.type, FrameType.keepalive)
-        } else {
-            XCTFail("Should have received KeepAliveFrame in response")
-        }
-        _ = try channel.finish()
+        XCTAssertEqual(
+            try channel.readOutbound(as: Frame.self)?.header.type, .keepalive,
+            "Should have received KeepAliveFrame in response"
+        )
+        XCTAssertTrue(try channel.finish().isClean)
     }
 
     func testKeepAliveNoResponseBack() throws {
@@ -83,33 +93,43 @@ final class ConnectionEstablishmentTests: XCTestCase {
         let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
 
-        var keepAliveFrame: RSocketCore.Frame?
-        keepAliveFrame = try channel.readOutbound()
-        if keepAliveFrame != nil {
-            XCTFail("Shouldn't have received a KeepAliveFrame in response")
-        } else {
-            XCTAssertNil(keepAliveFrame)
-        }
-        _ = try channel.finish()
+        XCTAssertNil(try channel.readOutbound(as: Frame.self), "Shouldn't have received a KeepAliveFrame in response")
+        XCTAssertTrue(try channel.finish().isClean)
     }
     
-//    func testKeepAliveTimeout() throws {
-//        let loop = EmbeddedEventLoop()
-//        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client, now: { () -> TimeInterval in
-//                                       return ProcessInfo.processInfo.systemUptime - 10
-//        }), loop: loop)
-//        try channel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait()
-//
-//        var errorFrame: RSocketCore.Frame?
-//        errorFrame = try channel.readOutbound()
-//        switch errorFrame?.body {
-//        case .error(_):
-//            print("Done")
-//        default:
-//            XCTFail("Shouldn't have received a KeepAliveFrame in response")
-//        }
-//        _ = try channel.finish()
-//    }
+    func testKeepAliveTimeout() throws {
+        let clock = TestClock()
+        let loop = EmbeddedEventLoop()
+        let channel = EmbeddedChannel(
+            handler: ConnectionStreamHandler(
+                timeBetweenKeepaliveFrames: 10,
+                maxLifetime: 10,
+                connectionSide: ConnectionRole.client,
+                now: clock.getTime
+            ),
+            loop: loop
+        )
+        
+        try channel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait()
+        
+        XCTAssertNil(try channel.readOutbound(as: Frame.self), "should not timeout immediately")
+        
+        clock.advance(by: 0.009)
+        loop.advanceTime(by: .milliseconds(9))
+        XCTAssertNil(try channel.readOutbound(as: Frame.self), "should not timeout right before timeout")
+        
+        clock.advance(by: 0.001)
+        loop.advanceTime(by: .milliseconds(1))
+        let frame = try XCTUnwrap(try channel.readOutbound(as: Frame.self))
+        switch frame.body {
+        case let .error(body):
+            XCTAssertEqual(body.error.kind, .connectionClose)
+        default:
+            XCTFail("connection should be closed but \(frame) was send")
+        }
+        
+        XCTAssertTrue(try channel.finish().isClean)
+    }
 
     func testDeliveryOfExtraMessagesDuringSetup() throws {
         let loop = EmbeddedEventLoop()

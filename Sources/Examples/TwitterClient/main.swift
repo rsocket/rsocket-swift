@@ -47,32 +47,30 @@ struct TwitterClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
+        
         let clientProducer = bootstrap.connect(host: host, port: port, uri: uri)
-
-        let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
-            .empty
-        })
+        
+        let client = try clientProducer.first()!.get()
 
         let streamSemaphore = DispatchSemaphore(value: 0)
         let searchString = self.searchString
-        
-        clientProperty.producer
-                .skipNil()
-                .flatMap(.latest) {
-                    $0.requester.requestStream(payload: Payload(
-                            metadata: route("searchTweets"),
-                            data: Data(searchString.utf8)
-                    ))
-                }
-                .map { value in
-                    try? JSONSerialization.jsonObject(with: value.data, options: [])
-                }
-                .logEvents(identifier: "route.searchTweets")
-                .take(first: limit)
-                .on(disposed: { streamSemaphore.signal() })
-                .start()
 
-        streamSemaphore.wait();
+        client.requester.requestStream(payload: Payload(
+            metadata: route("searchTweets"),
+            data: Data(searchString.utf8)
+        ))
+        .attemptMap { payload -> String in
+            // pretty print json
+            let json = try JSONSerialization.jsonObject(with: payload.data, options: [.allowFragments])
+            let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
+            return String(decoding: data, as: UTF8.self)
+        }
+        .logEvents(identifier: "route.searchTweets")
+        .take(first: limit)
+        .on(disposed: { streamSemaphore.signal() })
+        .start()
+
+        streamSemaphore.wait()
     }
 }
 

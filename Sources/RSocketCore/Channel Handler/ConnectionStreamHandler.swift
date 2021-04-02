@@ -19,7 +19,7 @@ import NIO
 
 final class ConnectionStreamHandler {
     private var keepAliveHandle: RepeatedTask?
-    private var lastReceivedTime = ProcessInfo.processInfo.systemUptime
+    private var lastReceivedTime: TimeInterval
     private var timeBetweenKeepaliveFrames: Int32
     private var maxLifetime: Int32
     private let connectionSide: ConnectionRole
@@ -34,6 +34,7 @@ final class ConnectionStreamHandler {
         self.maxLifetime = maxLifetime
         self.connectionSide = connectionSide
         self.now = now
+        self.lastReceivedTime = now()
     }
 }
 
@@ -45,7 +46,7 @@ extension ConnectionStreamHandler: ChannelInboundHandler {
         let frame = unwrapInboundIn(data)
         switch frame.body {
         case let .keepalive(body):
-            lastReceivedTime = ProcessInfo.processInfo.systemUptime
+            lastReceivedTime = now()
             if body.respondWithKeepalive {
                 let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
                 context.channel.writeAndFlush(keepAliveFrame, promise: nil)
@@ -57,19 +58,19 @@ extension ConnectionStreamHandler: ChannelInboundHandler {
 
     func channelActive(context: ChannelHandlerContext) {
         guard timeBetweenKeepaliveFrames > 0 else { return }
-        lastReceivedTime = ProcessInfo.processInfo.systemUptime
+        lastReceivedTime = now()
         switch connectionSide {
         case .client:
             keepAliveHandle = context.eventLoop.scheduleRepeatedAsyncTask(initialDelay: .milliseconds(Int64(timeBetweenKeepaliveFrames)), delay: .milliseconds(Int64(timeBetweenKeepaliveFrames))) { task in
-                if Int32((self.lastReceivedTime - self.now()) * 1000) > self.maxLifetime {
+                let elapsedTimeSinceLastKeepalive = Int32((self.now() * 1000 - self.lastReceivedTime).rounded(.up))
+                if elapsedTimeSinceLastKeepalive >= self.maxLifetime {
                     let errorFrame = Error.connectionClose(message: "KeepAlive timeout exceeded").asFrame(withStreamId: .connection)
-                    context.channel.writeAndFlush(errorFrame, promise: nil)
+                    context.writeAndFlush(self.wrapOutboundOut(errorFrame), promise: nil)
                     task.cancel()
                     return context.eventLoop.makeFailedFuture(Error.applicationError(message: "KeepAliveHandler Shutdown"))
                 } else {
                     let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
-                    context.channel.writeAndFlush(keepAliveFrame, promise: nil)
-                    return context.eventLoop.makeSucceededFuture(())
+                    return context.writeAndFlush(self.wrapOutboundOut(keepAliveFrame))
                 }
             }
         default:

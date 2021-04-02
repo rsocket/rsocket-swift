@@ -25,11 +25,13 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     private let host: String
     private let port: Int
     private let uri: String
+    private let additionalHTTPHeaders: [String:String]
 
-    internal init(host: String, port: Int, uri: String) {
+    internal init(host: String, port: Int, uri: String, additionalHTTPHeaders: [String : String]) {
         self.host = host
         self.port = port
         self.uri = uri
+        self.additionalHTTPHeaders = additionalHTTPHeaders
     }
 
     internal func channelActive(context: ChannelHandlerContext) {
@@ -40,6 +42,7 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
         headers.add(name: "Host", value: "\(host):\(port)")
         headers.add(name: "Content-Type", value: "text/plain; charset=utf-8")
         headers.add(name: "Content-Length", value: "\(0)")
+        headers.add(contentsOf: additionalHTTPHeaders.map({ $0 }))
 
         let requestHead = HTTPRequestHead(version: .http1_1,
                                           method: .GET,

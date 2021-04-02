@@ -35,7 +35,10 @@ fileprivate func randomRequestKey() -> String {
 }
 
 public struct WSTransport {
-    public init() { }
+    private let httpHeader: [String:String]
+    public init(httpHeader: [String : String] = [:]) {
+        self.httpHeader = httpHeader
+    }
 }
 
 extension WSTransport: TransportChannelHandler {
@@ -46,7 +49,12 @@ extension WSTransport: TransportChannelHandler {
         uri: String,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
-        let httpHandler = HTTPInitialRequestHandler(host: host, port: port, uri: uri)
+        let httpHandler = HTTPInitialRequestHandler(
+            host: host,
+            port: port,
+            uri: uri,
+            additionalHTTPHeaders: httpHeader
+        )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
             requestKey: randomRequestKey(),
             upgradePipelineHandler: { channel, _ in

@@ -53,7 +53,7 @@ extension WSTransport: TransportChannelHandler {
             host: host,
             port: port,
             uri: uri,
-            additionalHTTPHeaders: httpHeader
+            additionalHTTPHeader: httpHeader
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
             requestKey: randomRequestKey(),

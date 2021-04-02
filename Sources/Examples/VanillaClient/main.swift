@@ -17,7 +17,7 @@ struct VanillaClientExample: ParsableCommand {
     @Option
     var port = 7000
 
-    mutating func run() throws {
+    func run() throws {
         let bootstrap = ClientBootstrap(
                 config: ClientSetupConfig(
                         timeBetweenKeepaliveFrames: 0,

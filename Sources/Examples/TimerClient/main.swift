@@ -32,7 +32,7 @@ struct TimerClientExample: ParsableCommand {
     @Option(help: "maximum number of responses that are taken before it cancels the stream")
     var limit = 10000
 
-    mutating func run() throws {
+    func run() throws {
         let bootstrap = ClientBootstrap(
                 config: ClientSetupConfig(
                         timeBetweenKeepaliveFrames: 0,

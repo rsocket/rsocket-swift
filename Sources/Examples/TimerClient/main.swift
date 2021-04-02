@@ -26,6 +26,9 @@ struct TimerClientExample: ParsableCommand {
     @Option
     var port = 80
     
+    @Option
+    var uri = "/rsocket"
+    
     @Option(help: "maximum number of responses that are taken before it cancels the stream")
     var limit = 10000
 
@@ -41,7 +44,7 @@ struct TimerClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port, uri: "/rsocket")
+        let clientProducer = bootstrap.connect(host: host, port: port, uri: uri)
 
         let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
             .empty

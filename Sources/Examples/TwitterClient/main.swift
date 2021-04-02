@@ -47,7 +47,7 @@ struct TwitterClientExample: ParsableCommand {
                 timeout: .seconds(30)
         )
 
-        let clientProducer = bootstrap.connect(host: host, port: port, uri: "/rsocket")
+        let clientProducer = bootstrap.connect(host: host, port: port, uri: uri)
 
         let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
             .empty

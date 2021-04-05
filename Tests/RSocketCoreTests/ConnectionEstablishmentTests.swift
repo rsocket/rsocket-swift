@@ -137,12 +137,13 @@ final class ConnectionEstablishmentTests: XCTestCase {
         let channel = EmbeddedChannel(
             handler: ConnectionStreamHandler(
                 timeBetweenKeepaliveFrames: 500,
-                maxLifetime: 500,
+                maxLifetime: 2000,
                 connectionSide: ConnectionRole.client,
                 now: clock.getTime
             ),
             loop: loop
         )
+        try channel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait()
         
         clock.advance(by: 0.5)
         loop.advanceTime(by: .milliseconds(500))

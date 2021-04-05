@@ -52,7 +52,7 @@ extension ConnectionStreamHandler: ChannelInboundHandler {
             lastReceivedTime = now()
             if body.respondWithKeepalive {
                 let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
-                context.channel.writeAndFlush(keepAliveFrame, promise: nil)
+                context.writeAndFlush(self.wrapOutboundOut(keepAliveFrame), promise: nil)
             }
         default:
             break

@@ -25,7 +25,7 @@ extension StreamID: ExpressibleByIntegerLiteral {
 }
 
 fileprivate final class TestClock {
-    var time: TimeInterval = 0
+    var time: TimeInterval = 7000
     func getTime() -> TimeInterval {
         return time
     }
@@ -33,7 +33,7 @@ fileprivate final class TestClock {
         self.time += incrementTime
     }
     func reset() {
-        self.time = 0
+        self.time = 7000
     }
 }
 
@@ -102,8 +102,8 @@ final class ConnectionEstablishmentTests: XCTestCase {
         let loop = EmbeddedEventLoop()
         let channel = EmbeddedChannel(
             handler: ConnectionStreamHandler(
-                timeBetweenKeepaliveFrames: 10,
-                maxLifetime: 10,
+                timeBetweenKeepaliveFrames: 1_000,
+                maxLifetime: 4_000,
                 connectionSide: ConnectionRole.client,
                 now: clock.getTime
             ),
@@ -114,12 +114,20 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         XCTAssertNil(try channel.readOutbound(as: Frame.self), "should not timeout immediately")
         
-        clock.advance(by: 0.009)
-        loop.advanceTime(by: .milliseconds(9))
-        XCTAssertNil(try channel.readOutbound(as: Frame.self), "should not timeout right before timeout")
+        clock.advance(by: 1)
+        loop.advanceTime(by: .seconds(1))
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
         
-        clock.advance(by: 0.001)
-        loop.advanceTime(by: .milliseconds(1))
+        clock.advance(by: 1)
+        loop.advanceTime(by: .seconds(1))
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
+        
+        clock.advance(by: 1)
+        loop.advanceTime(by: .seconds(1))
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
+        
+        clock.advance(by: 1)
+        loop.advanceTime(by: .seconds(1))
         let frame = try XCTUnwrap(try channel.readOutbound(as: Frame.self))
         switch frame.body {
         case let .error(body):

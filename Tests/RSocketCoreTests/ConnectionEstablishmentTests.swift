@@ -130,6 +130,30 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         XCTAssertTrue(try channel.finish().isClean)
     }
+    
+    func testSendingOfKeepAliveFrameAfterTimeBetweenKeepaliveFrames() throws {
+        let clock = TestClock()
+        let loop = EmbeddedEventLoop()
+        let channel = EmbeddedChannel(
+            handler: ConnectionStreamHandler(
+                timeBetweenKeepaliveFrames: 500,
+                maxLifetime: 500,
+                connectionSide: ConnectionRole.client,
+                now: clock.getTime
+            ),
+            loop: loop
+        )
+        
+        clock.advance(by: 0.5)
+        loop.advanceTime(by: .milliseconds(500))
+        
+        XCTAssertEqual(
+            try channel.readOutbound(as: Frame.self),
+            KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame(),
+            "Should send KeepAliveFrame"
+        )
+        XCTAssertTrue(try channel.finish().isClean)
+    }
 
     func testDeliveryOfExtraMessagesDuringSetup() throws {
         let loop = EmbeddedEventLoop()

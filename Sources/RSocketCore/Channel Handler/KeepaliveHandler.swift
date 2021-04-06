@@ -23,9 +23,9 @@ final class KeepaliveHandler {
     /// receive time in **seconds** of the last keepalive frame
     private var lastReceivedTime: TimeInterval
     /// time is in **milliseconds**
-    private var timeBetweenKeepaliveFrames: Int32
+    private let timeBetweenKeepaliveFrames: Int32
     /// time is in **milliseconds**
-    private var maxLifetime: Int32
+    private let maxLifetime: Int32
     private let connectionSide: ConnectionRole
     /// returns the current time in **seconds**
     private let now: () -> TimeInterval

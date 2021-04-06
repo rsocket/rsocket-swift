@@ -22,7 +22,9 @@ final class ConnectionStreamHandler {
     
     /// receive time in **seconds** of the last keepalive frame
     private var lastReceivedTime: TimeInterval
+    /// time is in **milliseconds**
     private var timeBetweenKeepaliveFrames: Int32
+    /// time is in **milliseconds**
     private var maxLifetime: Int32
     private let connectionSide: ConnectionRole
     /// returns the current time in **seconds**

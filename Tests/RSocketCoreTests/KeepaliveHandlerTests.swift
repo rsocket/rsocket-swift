@@ -32,9 +32,9 @@ fileprivate final class TestClock {
     }
 }
 
-final class ConnectionStreamHandlerTests: XCTestCase {
+final class KeepaliveHandlerTests: XCTestCase {
     func testKeepAliveRespondBack() throws {
-        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.server))
+        let channel = EmbeddedChannel(handler: KeepaliveHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.server))
 
         let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
@@ -47,7 +47,7 @@ final class ConnectionStreamHandlerTests: XCTestCase {
     }
 
     func testKeepAliveNoResponseBack() throws {
-        let channel = EmbeddedChannel(handler: ConnectionStreamHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client))
+        let channel = EmbeddedChannel(handler: KeepaliveHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client))
 
         let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
         try channel.writeInbound(frame)
@@ -60,7 +60,7 @@ final class ConnectionStreamHandlerTests: XCTestCase {
         let clock = TestClock()
         let loop = EmbeddedEventLoop()
         let channel = EmbeddedChannel(
-            handler: ConnectionStreamHandler(
+            handler: KeepaliveHandler(
                 timeBetweenKeepaliveFrames: 1_000,
                 maxLifetime: 4_000,
                 connectionSide: ConnectionRole.client,
@@ -102,7 +102,7 @@ final class ConnectionStreamHandlerTests: XCTestCase {
         let clock = TestClock()
         let loop = EmbeddedEventLoop()
         let channel = EmbeddedChannel(
-            handler: ConnectionStreamHandler(
+            handler: KeepaliveHandler(
                 timeBetweenKeepaliveFrames: 500,
                 maxLifetime: 2000,
                 connectionSide: ConnectionRole.client,

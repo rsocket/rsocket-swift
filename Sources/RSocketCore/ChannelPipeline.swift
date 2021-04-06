@@ -59,7 +59,7 @@ extension ChannelPipeline {
                 requester: requester,
                 responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
             ),
-            ConnectionStreamHandler(timeBetweenKeepaliveFrames: config.timeBetweenKeepaliveFrames, maxLifetime: config.maxLifetime, connectionSide: ConnectionRole.client),
+            KeepaliveHandler(timeBetweenKeepaliveFrames: config.timeBetweenKeepaliveFrames, maxLifetime: config.maxLifetime, connectionSide: ConnectionRole.client),
         ])
     }
 }
@@ -101,7 +101,7 @@ extension ChannelPipeline {
                         requester: Requester(streamIdGenerator: .server, eventLoop: eventLoop, sendFrame: sendFrame),
                         responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
                     ),
-                    ConnectionStreamHandler(timeBetweenKeepaliveFrames: info.timeBetweenKeepaliveFrames, maxLifetime: info.maxLifetime, connectionSide: ConnectionRole.server),
+                    KeepaliveHandler(timeBetweenKeepaliveFrames: info.timeBetweenKeepaliveFrames, maxLifetime: info.maxLifetime, connectionSide: ConnectionRole.server),
                 ])
             }, shouldAcceptClient: shouldAcceptClient)
         ])

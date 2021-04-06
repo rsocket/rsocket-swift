@@ -17,7 +17,7 @@
 import Foundation
 import NIO
 
-final class ConnectionStreamHandler {
+final class KeepaliveHandler {
     private var keepAliveHandle: RepeatedTask?
     
     /// receive time in **seconds** of the last keepalive frame
@@ -43,7 +43,7 @@ final class ConnectionStreamHandler {
     }
 }
 
-extension ConnectionStreamHandler: ChannelInboundHandler {
+extension KeepaliveHandler: ChannelInboundHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
 

@@ -29,11 +29,12 @@ final class KeepaliveHandler {
     private let connectionSide: ConnectionRole
     /// returns the current time in **seconds**
     private let now: () -> TimeInterval
-
-    init(timeBetweenKeepaliveFrames: Int32,
-         maxLifetime: Int32,
-         connectionSide: ConnectionRole,
-         now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+    
+    init(
+        timeBetweenKeepaliveFrames: Int32,
+        maxLifetime: Int32,
+        connectionSide: ConnectionRole,
+        now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) {
         self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames
         self.maxLifetime = maxLifetime
@@ -71,6 +72,7 @@ extension KeepaliveHandler: ChannelInboundHandler {
     func channelActive(context: ChannelHandlerContext) {
         onActive(context: context)
     }
+    
     func onActive(context: ChannelHandlerContext) {
         guard timeBetweenKeepaliveFrames > 0 else { return }
         lastReceivedTime = now()

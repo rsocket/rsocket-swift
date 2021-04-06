@@ -76,7 +76,12 @@ extension ConnectionStreamHandler: ChannelInboundHandler {
                 task.cancel()
                 return context.eventLoop.makeFailedFuture(Error.applicationError(message: "KeepAliveHandler Shutdown"))
             } else {
-                let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
+                let keepAliveFrame = KeepAliveFrameBody(
+                    respondWithKeepalive: true,
+                    /// we do not support resumability yet, thus do not keep track of `lastReceivedPosition` and just always send 0
+                    lastReceivedPosition: 0,
+                    data: Data()
+                ).asFrame()
                 return context.writeAndFlush(self.wrapOutboundOut(keepAliveFrame))
             }
         }

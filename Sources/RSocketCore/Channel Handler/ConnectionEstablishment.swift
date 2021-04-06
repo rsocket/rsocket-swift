@@ -226,7 +226,6 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
                         // something failed in initializeConnection
                         self.writeErrorAndCloseConnection(context: context, error: error)
                     case .success:
-                        context.fireChannelActive()
                         context.pipeline.removeHandler(context: context).whenComplete { _ in
                             /// When we remove `messageBuffer` we'll be delivering any buffered
                             context.pipeline.removeHandler(messageBuffer, promise: nil)

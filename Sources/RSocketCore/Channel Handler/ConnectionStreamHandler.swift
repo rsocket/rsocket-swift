@@ -58,8 +58,18 @@ extension ConnectionStreamHandler: ChannelInboundHandler {
             break
         }
     }
+    
+    func handlerAdded(context: ChannelHandlerContext) {
+        if context.channel.isActive {
+            /// this handler may get added to the pipeline after the channel is already active and `channelActive` is then not called
+            onActive(context: context)
+        }
+    }
 
     func channelActive(context: ChannelHandlerContext) {
+        onActive(context: context)
+    }
+    func onActive(context: ChannelHandlerContext) {
         guard timeBetweenKeepaliveFrames > 0 else { return }
         lastReceivedTime = now()
         guard connectionSide == .client else { return }

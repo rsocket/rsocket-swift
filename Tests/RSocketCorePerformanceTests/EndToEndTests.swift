@@ -33,8 +33,8 @@ extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
     static let defaultClientSetup = ClientSetupConfig(
-        timeBetweenKeepaliveFrames: 500,
-        maxLifetime: 5000,
+        timeBetweenKeepaliveFrames: 100,
+        maxLifetime: 1000,
         metadataEncodingMimeType: "utf8",
         dataEncodingMimeType: "utf8"
     )

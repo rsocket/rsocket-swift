@@ -60,8 +60,7 @@ final class ConnectionEstablishmentTests: XCTestCase {
         
         self.wait(for: [initializeConnection, shouldAcceptSetup], timeout: 0.1)
     }
-    
-    
+
     func testDeliveryOfExtraMessagesDuringSetup() throws {
         let loop = EmbeddedEventLoop()
         let connectionInitialization = loop.makePromise(of: Void.self)

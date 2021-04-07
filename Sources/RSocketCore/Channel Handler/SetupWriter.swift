@@ -22,12 +22,12 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
     typealias OutboundOut = Frame
     private let setup: ClientSetupConfig
     private let connectedPromise: EventLoopPromise<Void>?
-    
+
     internal init(config: ClientSetupConfig, connectedPromise: EventLoopPromise<Void>? = nil) {
         self.setup = config
         self.connectedPromise = connectedPromise
     }
-    
+
     func channelActive(context: ChannelHandlerContext) {
         context.writeAndFlush(self.wrapOutboundOut(SetupFrameBody(
             honorsLease: false,
@@ -39,10 +39,11 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             dataEncodingMimeType: setup.dataEncodingMimeType,
             payload: setup.payload
         ).asFrame()), promise: nil)
+        context.fireChannelActive()
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
         connectedPromise?.succeed(())
     }
-    
+
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         assertionFailure("should never receive data because we remove this handler right after the channel becomes active")
         /// We need to conform to `ChannelInboundHandler` to get called when the channel becomes active and we remove ourself immediately after the channel becomes active
@@ -50,4 +51,3 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
         context.fireChannelRead(data)
     }
 }
-

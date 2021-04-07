@@ -15,7 +15,7 @@
  */
 
 import XCTest
-@testable import RSocketWebSocketTransport
+@testable import RSocketWSTransport
 
 fileprivate typealias Endpoint = WSTransport.Endpoint
 

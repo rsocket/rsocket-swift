@@ -4,7 +4,7 @@ import ReactiveSwift
 import RSocketCore
 import RSocketNIOChannel
 import RSocketReactiveSwift
-import RSocketWebSocketTransport
+import RSocketWSTransport
 
 func route(_ route: String) -> Data {
     let encodedRoute = Data(route.utf8)

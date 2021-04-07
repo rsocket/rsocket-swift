@@ -17,12 +17,16 @@
 import NIO
 import Foundation
 
+public protocol Endpoint {
+    var host: String { get }
+    var port: Int { get }
+}
+
 public protocol TransportChannelHandler {
+    associatedtype Endpoint: RSocketCore.Endpoint
     func addChannelHandler(
         channel: Channel,
-        host: String,
-        port: Int,
-        uri: String,
+        endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void>
 }

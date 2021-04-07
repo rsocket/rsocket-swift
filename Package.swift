@@ -94,6 +94,9 @@ let package = Package(
             "ReactiveSwift",
             .product(name: "NIO", package: "swift-nio"),
         ]),
+        .testTarget(name: "RSocketWebSocketTransportTests", dependencies: [
+            "RSocketWebSocketTransport"
+        ]),
         
         // Examples
         .target(

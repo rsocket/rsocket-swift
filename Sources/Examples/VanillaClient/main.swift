@@ -19,17 +19,17 @@ struct VanillaClientExample: ParsableCommand {
 
     func run() throws {
         let bootstrap = ClientBootstrap(
-                config: ClientSetupConfig(
-                        timeBetweenKeepaliveFrames: 0,
-                        maxLifetime: 30_000,
-                        metadataEncodingMimeType: "application/octet-stream",
-                        dataEncodingMimeType: "application/octet-stream"
-                ),
-                transport: TCPTransport(),
-                timeout: .seconds(30)
+            config: ClientSetupConfig(
+                timeBetweenKeepaliveFrames: 0,
+                maxLifetime: 30_000,
+                metadataEncodingMimeType: "application/octet-stream",
+                dataEncodingMimeType: "application/octet-stream"
+            ),
+            transport: TCPTransport(),
+            timeout: .seconds(30)
         )
-
-        let client = try bootstrap.connect(host: host, port: port, uri: "").first()!.get()
+        
+        let client = try bootstrap.connect(to: .init(host: host, port: port)).first()!.get()
 
         let streamProducer = client.requester.requestStream(payload: .empty)
         let requestProducer = client.requester.requestResponse(payload: Payload(data: Data("HelloWorld".utf8)))

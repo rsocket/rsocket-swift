@@ -28,9 +28,9 @@ public struct ReactiveSwiftClient: Client {
 }
 
 extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.RSocket  {
-    public func connect(host: String, port: Int, uri: String, responder: RSocketReactiveSwift.RSocket? = nil) -> SignalProducer<ReactiveSwiftClient, Swift.Error> {
+    public func connect(to endpoint: Transport.Endpoint, responder: RSocketReactiveSwift.RSocket? = nil) -> SignalProducer<ReactiveSwiftClient, Swift.Error> {
         SignalProducer { observer, lifetime in
-            let future = connect(host: host, port: port, uri: uri, responder: responder?.coreAdapter)
+            let future = connect(to: endpoint, responder: responder?.coreAdapter)
                 .map(ReactiveSwiftClient.init)
             future.whenComplete { result in
                 switch result {

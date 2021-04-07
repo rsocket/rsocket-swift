@@ -35,25 +35,48 @@ fileprivate func randomRequestKey() -> String {
 }
 
 public struct WSTransport {
-    private let httpHeader: [String:String]
-    public init(httpHeader: [String : String] = [:]) {
-        self.httpHeader = httpHeader
+    public struct Endpoint {
+        public var url: URL
+        public var additionalHTTPHeader: [String: String]
+        public init(url: URL, additionalHTTPHeader: [String : String] = [:]) {
+            self.url = url
+            self.additionalHTTPHeader = additionalHTTPHeader
+        }
+    }
+    public init() {}
+}
+
+extension WSTransport.Endpoint: Endpoint {
+    public var host: String { url.host ?? "" }
+    public var port: Int { url.port ?? defaultPort }
+    private var defaultPort: Int {
+        url.scheme?.lowercased() == "wss" ? 443 : 80
+    }
+    
+    internal var uri: String {
+        var uri = url.path
+        /// URI is not allowed to be empty according to RFC 2616 Section 5.1.2 Request-URI https://tools.ietf.org/html/rfc2616#page-36
+        if uri.isEmpty {
+            uri = "/"
+        }
+        if let query = url.query, !query.isEmpty {
+            uri += "?" + query
+        }
+        return uri
     }
 }
 
 extension WSTransport: TransportChannelHandler {
     public func addChannelHandler(
         channel: Channel,
-        host: String,
-        port: Int,
-        uri: String,
+        endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         let httpHandler = HTTPInitialRequestHandler(
-            host: host,
-            port: port,
-            uri: uri,
-            additionalHTTPHeader: httpHeader
+            host: endpoint.host,
+            port: endpoint.port,
+            uri: endpoint.uri,
+            additionalHTTPHeader: endpoint.additionalHTTPHeader
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
             requestKey: randomRequestKey(),

@@ -18,16 +18,16 @@ import NIO
 import NIOSSL
 import RSocketCore
 
-public struct ClientBootstrap {
+public struct ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
     private let config: ClientSetupConfig
-    private let transport: TransportChannelHandler
+    private let transport: Transport
     private let sslContext: NIOSSLContext?
 
     public init(
         config: ClientSetupConfig,
-        transport: TransportChannelHandler,
+        transport: Transport,
         timeout: TimeAmount = .seconds(30),
         sslContext: NIOSSLContext? = nil
     ) {
@@ -49,9 +49,7 @@ public struct ClientBootstrap {
 
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
     public func connect(
-        host: String,
-        port: Int,
-        uri: String,
+        to endpoint: Transport.Endpoint,
         responder: RSocketCore.RSocket?
     ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
@@ -59,7 +57,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
         let connectFuture = bootstrap
             .channelInitializer { channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
-                    transport.addChannelHandler(channel: channel, host: host, port: port, uri: uri) {
+                    transport.addChannelHandler(channel: channel, endpoint: endpoint) {
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
                             responder: responder,
@@ -69,7 +67,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 }
                 if let sslContext = sslContext {
                     do {
-                        let sslHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: host)
+                        let sslHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: endpoint.host)
                         return channel.pipeline.addHandler(sslHandler).flatMap(otherHandlersBlock)
                     } catch {
                         return channel.eventLoop.makeFailedFuture(error)
@@ -78,7 +76,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                     return otherHandlersBlock()
                 }
             }
-            .connect(host: host, port: port)
+            .connect(host: endpoint.host, port: endpoint.port)
 
         return connectFuture
             .flatMap { _ in requesterPromise.futureResult }

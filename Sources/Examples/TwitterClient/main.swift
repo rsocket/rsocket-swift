@@ -14,6 +14,14 @@ func route(_ route: String) -> Data {
     return encodedRouteLength + encodedRoute
 }
 
+extension URL: ExpressibleByArgument {
+    public init?(argument: String) {
+        guard let url = URL(string: argument) else { return nil }
+        self = url
+    }
+    public var defaultValueDescription: String { description }
+}
+
 /// the server-side code can be found here -> https://github.com/rsocket/rsocket-demo/tree/master/src/main/kotlin/io/rsocket/demo/twitter
 struct TwitterClientExample: ParsableCommand {
     static var configuration = CommandConfiguration(
@@ -24,30 +32,24 @@ struct TwitterClientExample: ParsableCommand {
     var searchString = "spring"
     
     @Option
-    var host = "demo.rsocket.io"
-    
-    @Option
-    var port = 80
-    
-    @Option
-    var uri = "/rsocket"
+    var url = URL(string: "ws://demo.rsocket.io/rsocket")!
     
     @Option(help: "maximum number of tweets that are taken before it cancels the stream")
     var limit = 1000
 
     func run() throws {
         let bootstrap = ClientBootstrap(
-                config: ClientSetupConfig(
-                        timeBetweenKeepaliveFrames: 0,
-                        maxLifetime: 30_000,
-                        metadataEncodingMimeType: "message/x.rsocket.routing.v0",
-                        dataEncodingMimeType: "application/json"
-                ),
-                transport: WSTransport(),
-                timeout: .seconds(30)
+            config: ClientSetupConfig(
+                timeBetweenKeepaliveFrames: 0,
+                maxLifetime: 30_000,
+                metadataEncodingMimeType: "message/x.rsocket.routing.v0",
+                dataEncodingMimeType: "application/json"
+            ),
+            transport: WSTransport(),
+            timeout: .seconds(30)
         )
         
-        let client = try bootstrap.connect(host: host, port: port, uri: uri).first()!.get()
+        let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
 
         try client.requester.requestStream(payload: Payload(
             metadata: route("searchTweets"),

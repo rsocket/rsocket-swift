@@ -22,12 +22,12 @@ import NIOTransportServices
 import RSocketCore
 
 @available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
-public struct ClientBootstrap<Transport: TransportChannelHandler> {
+final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group = NIOTSEventLoopGroup()
     private let bootstrap: NIOTSConnectionBootstrap
     private let config: ClientSetupConfig
     private let transport: Transport
-
+    private let tlsOptions: NWProtocolTLS.Options?
     public init(
         config: ClientSetupConfig,
         transport: Transport,
@@ -38,10 +38,8 @@ public struct ClientBootstrap<Transport: TransportChannelHandler> {
         bootstrap = NIOTSConnectionBootstrap(group: group)
             .connectTimeout(timeout)
             .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
-        if let tlsOptions = tlsOptions {
-            _ = bootstrap.tlsOptions(tlsOptions)
-        }
         self.transport = transport
+        self.tlsOptions = tlsOptions
     }
 
     @discardableResult
@@ -53,14 +51,22 @@ public struct ClientBootstrap<Transport: TransportChannelHandler> {
 
 @available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
+    static func makeDefaultTLSOptions() -> NWProtocolTLS.Options {
+        .init()
+    }
     public func connect(
         to endpoint: Transport.Endpoint,
         responder: RSocketCore.RSocket?
     ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
+        
+        if tlsOptions != nil || endpoint.requiresTLS {
+            let options = tlsOptions ?? Self.makeDefaultTLSOptions()
+            _ = bootstrap.tlsOptions(options)
+        }
 
         let connectFuture = bootstrap
-            .channelInitializer { channel in
+            .channelInitializer { [config, transport] channel in
                 transport.addChannelHandler(channel: channel, endpoint: endpoint) {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,

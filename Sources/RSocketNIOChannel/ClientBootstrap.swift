@@ -18,7 +18,7 @@ import NIO
 import NIOSSL
 import RSocketCore
 
-public struct ClientBootstrap<Transport: TransportChannelHandler> {
+final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
     private let config: ClientSetupConfig
@@ -48,14 +48,17 @@ public struct ClientBootstrap<Transport: TransportChannelHandler> {
 }
 
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
+    static func makeDefaultSSLContext() throws -> NIOSSLContext {
+        try .init(configuration: .clientDefault)
+    }
     public func connect(
         to endpoint: Transport.Endpoint,
         responder: RSocketCore.RSocket?
     ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
-
+        
         let connectFuture = bootstrap
-            .channelInitializer { channel in
+            .channelInitializer { [transport, config, sslContext] channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
                     transport.addChannelHandler(channel: channel, endpoint: endpoint) {
                         channel.pipeline.addRSocketClientHandlers(
@@ -65,9 +68,10 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                         )
                     }
                 }
-                if let sslContext = sslContext {
+                if sslContext != nil || endpoint.requiresTLS {
                     do {
-                        let sslHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: endpoint.host)
+                        let context = try sslContext ?? Self.makeDefaultSSLContext()
+                        let sslHandler = try NIOSSLClientHandler(context: context, serverHostname: endpoint.host)
                         return channel.pipeline.addHandler(sslHandler).flatMap(otherHandlersBlock)
                     } catch {
                         return channel.eventLoop.makeFailedFuture(error)

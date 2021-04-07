@@ -22,6 +22,7 @@ public struct TCPTransport {
     public struct Endpoint: RSocketCore.Endpoint {
         public var host: String
         public var port: Int
+        public var requiresTLS: Bool { false }
         public init(host: String, port: Int) {
             self.host = host
             self.port = port

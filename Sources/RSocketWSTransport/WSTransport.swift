@@ -47,10 +47,14 @@ public struct WSTransport {
 }
 
 extension WSTransport.Endpoint: Endpoint {
+    private static let secureScheme = "wss"
+    private static let insecureDefaultPort = 80
+    private static let secureDefaultPort = 443
     public var host: String { url.host ?? "" }
     public var port: Int { url.port ?? defaultPort }
+    public var requiresTLS: Bool { url.scheme?.lowercased() == Self.secureScheme }
     private var defaultPort: Int {
-        url.scheme?.lowercased() == "wss" ? 443 : 80
+        url.scheme?.lowercased() == Self.secureScheme ? Self.secureDefaultPort : Self.insecureDefaultPort
     }
     
     internal var uri: String {

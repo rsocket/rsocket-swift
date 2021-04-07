@@ -16,6 +16,32 @@
 
 import NIO
 
+
+/// This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
+/// Many are registered with IANA such as CBOR.
+public struct MIMEType: RawRepresentable, Hashable {
+    public private(set) var rawValue: String
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+}
+
+extension MIMEType {
+    
+    /// default is currently `MIMEType.octetStream`
+    static let `default` = octetStream
+    
+    /// application/json
+    static let json = MIMEType(rawValue: "application/json")
+    
+    /// application/octet-stream
+    static let octetStream = MIMEType(rawValue: "application/octet-stream")
+    
+    
+    /// message/x.rsocket.routing.v0
+    static let rsocketRoutingV0 = MIMEType(rawValue: "message/x.rsocket.routing.v0")
+}
+
 public struct ClientSetupConfig {
     /**
      Time (in milliseconds) between `KEEPALIVE` frames that the client will send

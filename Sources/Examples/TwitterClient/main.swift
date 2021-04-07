@@ -45,8 +45,7 @@ struct TwitterClientExample: ParsableCommand {
                 metadataEncodingMimeType: "message/x.rsocket.routing.v0",
                 dataEncodingMimeType: "application/json"
             ),
-            transport: WSTransport(),
-            timeout: .seconds(30)
+            transport: WSTransport()
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()

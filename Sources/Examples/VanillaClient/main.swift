@@ -25,8 +25,7 @@ struct VanillaClientExample: ParsableCommand {
                 metadataEncodingMimeType: "application/octet-stream",
                 dataEncodingMimeType: "application/octet-stream"
             ),
-            transport: TCPTransport(),
-            timeout: .seconds(30)
+            transport: TCPTransport()
         )
         
         let client = try bootstrap.connect(to: .init(host: host, port: port)).first()!.get()

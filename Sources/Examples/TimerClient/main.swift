@@ -29,7 +29,7 @@ struct TimerClientExample: ParsableCommand {
     )
     
     @Option
-    var url = URL(string: "ws://demo.rsocket.io/rsocket")!
+    var url = URL(string: "wss://demo.rsocket.io/rsocket")!
     
     @Option(help: "maximum number of responses that are taken before it cancels the stream")
     var limit = 10000

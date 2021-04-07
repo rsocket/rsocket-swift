@@ -32,7 +32,7 @@ struct TwitterClientExample: ParsableCommand {
     var searchString = "spring"
     
     @Option
-    var url = URL(string: "ws://demo.rsocket.io/rsocket")!
+    var url = URL(string: "wss://demo.rsocket.io/rsocket")!
     
     @Option(help: "maximum number of tweets that are taken before it cancels the stream")
     var limit = 1000

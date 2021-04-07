@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIO
 
 extension ChannelPipeline {
@@ -32,6 +33,7 @@ extension ChannelPipeline {
             responderLateFrameHandler: nil
         )
     }
+
     internal func addRSocketClientHandlers(
         config: ClientSetupConfig,
         responder: RSocket? = nil,
@@ -57,7 +59,7 @@ extension ChannelPipeline {
                 requester: requester,
                 responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
             ),
-            ConnectionStreamHandler(),
+            KeepaliveHandler(timeBetweenKeepaliveFrames: config.timeBetweenKeepaliveFrames, maxLifetime: config.maxLifetime, connectionSide: ConnectionRole.client),
         ])
     }
 }
@@ -99,7 +101,7 @@ extension ChannelPipeline {
                         requester: Requester(streamIdGenerator: .server, eventLoop: eventLoop, sendFrame: sendFrame),
                         responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
                     ),
-                    ConnectionStreamHandler(),
+                    KeepaliveHandler(timeBetweenKeepaliveFrames: info.timeBetweenKeepaliveFrames, maxLifetime: info.maxLifetime, connectionSide: ConnectionRole.server),
                 ])
             }, shouldAcceptClient: shouldAcceptClient)
         ])

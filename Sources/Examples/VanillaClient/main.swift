@@ -20,8 +20,8 @@ struct VanillaClientExample: ParsableCommand {
     func run() throws {
         let bootstrap = ClientBootstrap(
             config: ClientSetupConfig(
-                timeBetweenKeepaliveFrames: 0,
-                maxLifetime: 30_000,
+                timeBetweenKeepaliveFrames: 30_000,
+                maxLifetime: 60_000,
                 metadataEncodingMimeType: "application/octet-stream",
                 dataEncodingMimeType: "application/octet-stream"
             ),

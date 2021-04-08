@@ -53,7 +53,7 @@ class EndToEndTests: XCTestCase {
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
-        maximumFrameSize: Int32? = nil,
+        maximumFrameSize: Int? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
@@ -85,7 +85,6 @@ class EndToEndTests: XCTestCase {
         responderSocket: RSocket = TestRSocket(),
         config: ClientConfiguration = EndToEndTests.defaultClientSetup,
         setupPayload: Payload = .empty,
-        maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -100,7 +99,6 @@ class EndToEndTests: XCTestCase {
                         config: config,
                         setupPayload: setupPayload,
                         responder: responderSocket,
-                        maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
@@ -123,7 +121,7 @@ class EndToEndTests: XCTestCase {
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         clientResponderSocket: RSocket = TestRSocket(),
         clientConfig: ClientConfiguration = EndToEndTests.defaultClientSetup,
-        maximumFrameSize: Int32? = nil,
+        maximumFrameSize: Int? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) throws -> RSocket {
@@ -138,7 +136,6 @@ class EndToEndTests: XCTestCase {
         return try makeClientBootstrap(
             responderSocket: clientResponderSocket,
             config: clientConfig,
-            maximumFrameSize: maximumFrameSize,
             connectedPromise: clientConnected
         )
         .connect(host: host, port: port)

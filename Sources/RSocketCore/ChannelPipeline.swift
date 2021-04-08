@@ -22,14 +22,12 @@ extension ChannelPipeline {
         config: ClientConfiguration,
         setupPayload: Payload,
         responder: RSocket? = nil,
-        maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil
     ) -> EventLoopFuture<Void> {
         addRSocketClientHandlers(
             config: config,
             setupPayload: setupPayload,
             responder: responder,
-            maximumFrameSize: maximumFrameSize,
             connectedPromise: connectedPromise,
             requesterLateFrameHandler: nil,
             responderLateFrameHandler: nil
@@ -40,12 +38,10 @@ extension ChannelPipeline {
         config: ClientConfiguration,
         setupPayload: Payload,
         responder: RSocket? = nil,
-        maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
-        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.defaultMaximumFrameSize
         let sendFrame: (Frame) -> () = { [weak self] frame in
             self?.writeAndFlush(NIOAny(frame), promise: nil)
         }
@@ -61,7 +57,7 @@ extension ChannelPipeline {
         }
         return addHandlers([
             FrameDecoderHandler(),
-            FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
+            FrameEncoderHandler(maximumFrameSize: config.limits.maximumOutgoingFragmentSize),
             ConnectionStateHandler(),
             SetupWriter(
                 timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
@@ -89,7 +85,7 @@ extension ChannelPipeline {
     public func addRSocketServerHandlers(
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         makeResponder: ((SetupInfo) -> RSocket?)? = nil,
-        maximumFrameSize: Int32? = nil
+        maximumFrameSize: Int? = nil
     ) -> EventLoopFuture<Void> {
         addRSocketServerHandlers(
             shouldAcceptClient: shouldAcceptClient,
@@ -102,11 +98,11 @@ extension ChannelPipeline {
     internal func addRSocketServerHandlers(
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         makeResponder: ((SetupInfo) -> RSocket?)? = nil,
-        maximumFrameSize: Int32? = nil,
+        maximumFrameSize: Int? = nil,
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
-        let maximumFrameSize = maximumFrameSize ?? Payload.Constants.defaultMaximumFrameSize
+        let maximumFrameSize = maximumFrameSize ?? ClientConfiguration.Limits.default.maximumIncomingFragmentSize
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),

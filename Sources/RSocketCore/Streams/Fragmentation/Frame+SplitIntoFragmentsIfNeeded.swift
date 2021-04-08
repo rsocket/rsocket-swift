@@ -15,7 +15,7 @@
  */
 
 extension Frame {
-    internal func splitIntoFragmentsIfNeeded(maximumFrameSize: Int32) -> [Frame] {
+    internal func splitIntoFragmentsIfNeeded(maximumFrameSize: Int) -> [Frame] {
         switch body {
         case let .requestResponse(body):
             let (initialFragment, followingFragments) = body.payload.splitIntoFragmentsIfNeeded(

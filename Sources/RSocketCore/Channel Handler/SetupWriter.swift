@@ -43,7 +43,17 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
         self.connectedPromise = connectedPromise
     }
     
+    func handlerAdded(context: ChannelHandlerContext) {
+        if context.channel.isActive {
+            onActive(context: context)
+        }
+    }
+    
     func channelActive(context: ChannelHandlerContext) {
+        onActive(context: context)
+    }
+    
+    private func onActive(context: ChannelHandlerContext) {
         let setup = SetupFrameBody(
             honorsLease: false,
             version: .current,
@@ -55,7 +65,6 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
             payload: payload
         )
         context.writeAndFlush(self.wrapOutboundOut(setup.asFrame()), promise: nil)
-        context.fireChannelActive()
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
         connectedPromise?.succeed(())
     }

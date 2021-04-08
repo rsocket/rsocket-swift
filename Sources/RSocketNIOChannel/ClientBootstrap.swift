@@ -18,16 +18,16 @@ import NIO
 import NIOSSL
 import RSocketCore
 
-public struct ClientBootstrap {
+final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
     private let config: ClientSetupConfig
-    private let transport: TransportChannelHandler
+    private let transport: Transport
     private let sslContext: NIOSSLContext?
 
     public init(
         config: ClientSetupConfig,
-        transport: TransportChannelHandler,
+        transport: Transport,
         timeout: TimeAmount = .seconds(30),
         sslContext: NIOSSLContext? = nil
     ) {
@@ -48,13 +48,19 @@ public struct ClientBootstrap {
 }
 
 extension ClientBootstrap: RSocketCore.ClientBootstrap {
-    public func connect(host: String, port: Int, responder: RSocketCore.RSocket?) -> EventLoopFuture<CoreClient> {
+    static func makeDefaultSSLContext() throws -> NIOSSLContext {
+        try .init(configuration: .clientDefault)
+    }
+    public func connect(
+        to endpoint: Transport.Endpoint,
+        responder: RSocketCore.RSocket?
+    ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
-
+        
         let connectFuture = bootstrap
-            .channelInitializer { channel in
+            .channelInitializer { [transport, config, sslContext] channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
-                    transport.addChannelHandler(channel: channel, host: host, port: port) {
+                    transport.addChannelHandler(channel: channel, endpoint: endpoint) {
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
                             responder: responder,
@@ -62,9 +68,10 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                         )
                     }
                 }
-                if let sslContext = sslContext {
+                if sslContext != nil || endpoint.requiresTLS {
                     do {
-                        let sslHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: host)
+                        let context = try sslContext ?? Self.makeDefaultSSLContext()
+                        let sslHandler = try NIOSSLClientHandler(context: context, serverHostname: endpoint.host)
                         return channel.pipeline.addHandler(sslHandler).flatMap(otherHandlersBlock)
                     } catch {
                         return channel.eventLoop.makeFailedFuture(error)
@@ -73,7 +80,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                     return otherHandlersBlock()
                 }
             }
-            .connect(host: host, port: port)
+            .connect(host: endpoint.host, port: endpoint.port)
 
         return connectFuture
             .flatMap { _ in requesterPromise.futureResult }

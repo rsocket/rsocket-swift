@@ -4,7 +4,7 @@ import ReactiveSwift
 import RSocketCore
 import RSocketNIOChannel
 import RSocketReactiveSwift
-import RSocketWebSocketTransport
+import RSocketWSTransport
 
 func route(_ route: String) -> Data {
     let encodedRoute = Data(route.utf8)
@@ -14,6 +14,14 @@ func route(_ route: String) -> Data {
     return encodedRouteLength + encodedRoute
 }
 
+extension URL: ExpressibleByArgument {
+    public init?(argument: String) {
+        guard let url = URL(string: argument) else { return nil }
+        self = url
+    }
+    public var defaultValueDescription: String { description }
+}
+
 /// the server-side code can be found here -> https://github.com/rsocket/rsocket-demo/tree/master/src/main/kotlin/io/rsocket/demo/timer
 struct TimerClientExample: ParsableCommand {
     static var configuration = CommandConfiguration(
@@ -21,49 +29,33 @@ struct TimerClientExample: ParsableCommand {
     )
     
     @Option
-    var host = "demo.rsocket.io/rsocket"
-    
-    @Option
-    var port = 80
+    var url = URL(string: "wss://demo.rsocket.io/rsocket")!
     
     @Option(help: "maximum number of responses that are taken before it cancels the stream")
     var limit = 10000
 
-    mutating func run() throws {
+    func run() throws {
         let bootstrap = ClientBootstrap(
-                config: ClientSetupConfig(
-                        timeBetweenKeepaliveFrames: 0,
-                        maxLifetime: 30_000,
-                        metadataEncodingMimeType: "message/x.rsocket.routing.v0",
-                        dataEncodingMimeType: "application/json"
-                ),
-                transport: WSTransport(),
-                timeout: .seconds(30)
+            config: ClientSetupConfig(
+                timeBetweenKeepaliveFrames: 30_000,
+                maxLifetime: 60_000,
+                metadataEncodingMimeType: "message/x.rsocket.routing.v0",
+                dataEncodingMimeType: "application/json"
+            ),
+            transport: WSTransport()
         )
+        
+        let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
 
-        let clientProducer = bootstrap.connect(host: host, port: port)
-
-        let clientProperty = Property<ReactiveSwiftClient?>(initial: nil, then: clientProducer.flatMapError { _ in
-            .empty
-        })
-
-        let streamSemaphore = DispatchSemaphore(value: 0)
-        clientProperty
-            .producer
-            .skipNil()
-            .flatMap(.latest) {
-                $0.requester.requestStream(payload: Payload(
-                    metadata: route("timer"),
-                    data: Data()
-                ))
-            }
-            .map() { $0.data }
-            .logEvents(identifier: "route.timer")
-            .take(first: limit)
-            .on(disposed: { streamSemaphore.signal() })
-            .start()
-
-        streamSemaphore.wait()
+        try client.requester.requestStream(payload: Payload(
+            metadata: route("timer"),
+            data: Data()
+        ))
+        .map() { String.init(decoding: $0.data, as: UTF8.self) }
+        .logEvents(identifier: "route.timer")
+        .take(first: limit)
+        .wait()
+        .get()
     }
 }
 

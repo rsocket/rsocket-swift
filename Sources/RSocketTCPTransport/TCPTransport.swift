@@ -34,11 +34,15 @@ public struct TCPTransport {
 extension TCPTransport: TransportChannelHandler {
     public func addChannelHandler(
         channel: Channel,
+        maximumIncomingFragmentSize: Int,
         endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         channel.pipeline.addHandlers([
-            ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
+            ByteToMessageHandler(
+                LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes),
+                maximumBufferSize: maximumIncomingFragmentSize
+            ),
             LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
         ]).flatMap(upgradeComplete)
     }

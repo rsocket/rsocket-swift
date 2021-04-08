@@ -61,7 +61,11 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
         let connectFuture = bootstrap
             .channelInitializer { [transport, config, sslContext] channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
-                    transport.addChannelHandler(channel: channel, endpoint: endpoint) {
+                    transport.addChannelHandler(
+                        channel: channel,
+                        maximumIncomingFragmentSize: config.limits.maximumIncomingFragmentSize,
+                        endpoint: endpoint
+                    ) {
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
                             setupPayload: payload,

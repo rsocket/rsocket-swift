@@ -19,13 +19,15 @@ import NIO
 
 extension ChannelPipeline {
     public func addRSocketClientHandlers(
-        config: ClientSetupConfig,
+        config: ClientConfiguration,
+        setupPayload: Payload,
         responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil
     ) -> EventLoopFuture<Void> {
         addRSocketClientHandlers(
             config: config,
+            setupPayload: setupPayload,
             responder: responder,
             maximumFrameSize: maximumFrameSize,
             connectedPromise: connectedPromise,
@@ -35,7 +37,8 @@ extension ChannelPipeline {
     }
 
     internal func addRSocketClientHandlers(
-        config: ClientSetupConfig,
+        config: ClientConfiguration,
+        setupPayload: Payload,
         responder: RSocket? = nil,
         maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
@@ -49,17 +52,35 @@ extension ChannelPipeline {
         let promise = eventLoop.makePromise(of: Void.self)
         let requester = Requester(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: sendFrame)
         promise.futureResult.map { requester as RSocket }.cascade(to: connectedPromise)
+        let (timeBetweenKeepaliveFrames, maxLifetime): (Int32, Int32)
+        do {
+            (timeBetweenKeepaliveFrames, maxLifetime) = try config.validateKeepalive()
+        } catch {
+            promise.fail(error)
+            return promise.futureResult
+        }
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
             ConnectionStateHandler(),
-            SetupWriter(config: config, connectedPromise: promise),
+            SetupWriter(
+                timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                maxLifetime: maxLifetime,
+                metadataEncodingMimeType: config.encoding.metadata.rawValue,
+                dataEncodingMimeType: config.encoding.data.rawValue,
+                payload: setupPayload,
+                connectedPromise: promise
+            ),
             DemultiplexerHandler(
                 connectionSide: .client,
                 requester: requester,
                 responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
             ),
-            KeepaliveHandler(timeBetweenKeepaliveFrames: config.timeBetweenKeepaliveFrames, maxLifetime: config.maxLifetime, connectionSide: ConnectionRole.client),
+            KeepaliveHandler(
+                timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                maxLifetime: maxLifetime,
+                connectionSide: ConnectionRole.client
+            ),
         ])
     }
 }

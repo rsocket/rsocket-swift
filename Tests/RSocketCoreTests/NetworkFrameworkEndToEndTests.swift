@@ -62,7 +62,8 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     }
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
@@ -76,6 +77,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                 ]).flatMap {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
+                        setupPayload: setupPayload,
                         responder: responderSocket,
                         maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,

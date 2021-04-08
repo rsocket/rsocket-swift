@@ -57,7 +57,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     }
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOClientTCPBootstrapProtocol {

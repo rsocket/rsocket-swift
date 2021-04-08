@@ -32,12 +32,9 @@ protocol NIOServerTCPBootstrapProtocol {
 extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
-    static let defaultClientSetup = ClientSetupConfig(
-        timeBetweenKeepaliveFrames: 500,
-        maxLifetime: 5000,
-        metadataEncodingMimeType: "utf8",
-        dataEncodingMimeType: "utf8"
-    )
+    static let defaultClientSetup = ClientConfiguration()
+        .set(\.timeout.timeBetweenKeepaliveFrames, to: 100)
+        .set(\.timeout.maxLifetime, to: 1000)
 
     let host = "127.0.0.1"
     var clientEventLoopGroup: EventLoopGroup { clientMultiThreadedEventLoopGroup as EventLoopGroup }
@@ -86,7 +83,8 @@ class EndToEndTests: XCTestCase {
     }
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         maximumFrameSize: Int32? = nil,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
@@ -100,6 +98,7 @@ class EndToEndTests: XCTestCase {
                 ]).flatMap {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
+                        setupPayload: setupPayload,
                         responder: responderSocket,
                         maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,
@@ -123,7 +122,7 @@ class EndToEndTests: XCTestCase {
         serverResponderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         clientResponderSocket: RSocket = TestRSocket(),
-        clientConfig: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        clientConfig: ClientConfiguration = EndToEndTests.defaultClientSetup,
         maximumFrameSize: Int32? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -147,19 +146,22 @@ class EndToEndTests: XCTestCase {
         .wait()
     }
     func testClientServerSetup() throws {
-        let setup = ClientSetupConfig(
-            timeBetweenKeepaliveFrames: 500,
-            maxLifetime: 5000,
-            metadataEncodingMimeType: "utf8",
-            dataEncodingMimeType: "utf8")
-        
+        let setup = ClientConfiguration(
+            timeout: .init(
+                timeBetweenKeepaliveFrames: 500,
+                maxLifetime: 5000
+            ), encoding: .init(
+                metadata: .json,
+                data: .rsocketRoutingV0
+            )
+        )
         let clientDidConnect = self.expectation(description: "client did connect to server")
         
         let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
-            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, setup.timeBetweenKeepaliveFrames)
-            XCTAssertEqual(clientInfo.maxLifetime, setup.maxLifetime)
-            XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.metadataEncodingMimeType)
-            XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.dataEncodingMimeType)
+            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int32(setup.timeout.timeBetweenKeepaliveFrames))
+            XCTAssertEqual(clientInfo.maxLifetime, Int32(setup.timeout.maxLifetime))
+            XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.encoding.metadata.rawValue)
+            XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.encoding.data.rawValue)
             clientDidConnect.fulfill()
             return .accept
         })

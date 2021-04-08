@@ -58,6 +58,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
         config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOClientTCPBootstrapProtocol {
@@ -67,7 +68,11 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                 ]).flatMap {
-                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                    channel.pipeline.addRSocketClientHandlers(
+                        config: config,
+                        setupPayload: setupPayload,
+                        responder: responderSocket
+                    )
                 }
             }
     }

@@ -22,6 +22,7 @@ public protocol ClientBootstrap {
     associatedtype Transport: TransportChannelHandler
     func connect(
         to endpoint: Transport.Endpoint,
+        payload: Payload,
         responder: Responder?
     ) -> EventLoopFuture<Client>
 }

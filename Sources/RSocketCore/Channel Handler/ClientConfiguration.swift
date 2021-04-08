@@ -56,17 +56,28 @@ public struct ClientConfiguration {
         public var maxLifetime: Int
     }
     public struct Encoding {
-        public static let `default` = Encoding(metadata: .octetStream, data: .octetStream)
+        public static let `default` = Encoding()
         public var metadata: MIMEType
         public var data: MIMEType
+        public init(
+            metadata: MIMEType = .octetStream,
+            data: MIMEType = .octetStream
+        ) {
+            self.metadata = metadata
+            self.data = data
+        }
     }
     public struct Limits {
-        public static let `default` = Limits(
-            maximumIncomingFragmentSize: 1 << 14,
-            maximumOutgoingFragmentSize: 1 << 14
-        )
+        public static let `default` = Limits()
         public var maximumIncomingFragmentSize: Int
         public var maximumOutgoingFragmentSize: Int
+        public init(
+            maximumIncomingFragmentSize: Int = 1 << 14,
+            maximumOutgoingFragmentSize: Int = 1 << 14
+        ) {
+            self.maximumIncomingFragmentSize = maximumIncomingFragmentSize
+            self.maximumOutgoingFragmentSize = maximumOutgoingFragmentSize
+        }
     }
     public var timeout: Timeout
     public var encoding: Encoding

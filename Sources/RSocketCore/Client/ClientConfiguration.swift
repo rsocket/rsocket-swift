@@ -42,23 +42,61 @@ extension MIMEType {
 }
 
 public struct ClientConfiguration {
-    public static let `default` = ClientConfiguration()
+    
+    /// recommended configuration for mobile-to-server connections (i.e. potential high jitter and high latency connections)
+    public static let mobileToServer = ClientConfiguration(timeout: .mobileToServer)
+    
+    /// recommended configuration for server-to-server connections (i.e. low jitter and low latency connections)
+    public static let serverToServer = ClientConfiguration(timeout: .serverToServer)
+    
+    /// timeout configuration which is used locally to detect a dead connection, but also send to the server during setup
     public struct Timeout {
-        public static let defaultMobileToServer = Timeout(
+        
+        /// disables keepalive frame sending and timeout
+        public static let disabled = Timeout(
+            timeBetweenKeepaliveFrames: 0,
+            maxLifetime: 1
+        )
+        
+        /// recommended configuration for mobile-to-server connections (i.e. potential high jitter and high latency connections)
+        public static let mobileToServer = Timeout(
             timeBetweenKeepaliveFrames: 30_000,
             maxLifetime: 60_000
         )
-        public static let defaultServerToServer = Timeout(
+        
+        /// recommended configuration for server-to-server connections (i.e. low jitter and low latency connections)
+        public static let serverToServer = Timeout(
             timeBetweenKeepaliveFrames: 500,
             maxLifetime: 2_000
         )
+        
+        /// interval in **milliseconds** between sending keepalive frame
         public var timeBetweenKeepaliveFrames: Int
+        
+        /// total time interval in **milliseconds** after which we close the connection if we did not receive any keepalive frame from the server back
         public var maxLifetime: Int
+        
+        public init(
+            timeBetweenKeepaliveFrames: Int,
+            maxLifetime: Int
+        ) {
+            self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames
+            self.maxLifetime = maxLifetime
+        }
     }
+    
+    /// encoding configuration of metadata and data which is send to the server during setup
     public struct Encoding {
+        
+        /// default encoding uses `.octetStream` for metadata and data
         public static let `default` = Encoding()
+        
+        /// MIME Type for encoding of Metadata
         public var metadata: MIMEType
+        
+        /// MIME Type for encoding of Data
         public var data: MIMEType
+        
         public init(
             metadata: MIMEType = .octetStream,
             data: MIMEType = .octetStream
@@ -67,10 +105,24 @@ public struct ClientConfiguration {
             self.data = data
         }
     }
+    
+    /// local limits configuration which are **not** send to the server
     public struct Limits {
+        
+        /// limits incoming and outgoing frames to *2 to the power of 14* (16.384) bytes
         public static let `default` = Limits()
+        
+        /// Maximum size of incoming RSocket frames in **bytes**.
+        /// This limit is does not effect the maximum size of a frame after reassembly.
+        /// It just limits the size of a single incoming fragment which can potential be part of a much larger frame.
+        /// - note: This limits only the size of an RSocket frame. The transport protocol will add another couple of bytes overhead per frame. E.g. `TCPTransport` does prefix all frames with 3 bytes which encode the size of the frame in the byte-stream.
         public var maximumIncomingFragmentSize: Int
+        
+        /// Maximum size of outgoing RSocket frames in **bytes**.
+        /// Larger frames are fragmented into multiple frames of up to this this size.
+        /// - note: This limits only the size of an RSocket frame. The transport protocol will add another couple of bytes overhead per frame. E.g. `TCPTransport` does prefix all frames with 3 bytes which encode the size of the frame in the byte-stream.
         public var maximumOutgoingFragmentSize: Int
+        
         public init(
             maximumIncomingFragmentSize: Int = 1 << 14,
             maximumOutgoingFragmentSize: Int = 1 << 14
@@ -79,11 +131,19 @@ public struct ClientConfiguration {
             self.maximumOutgoingFragmentSize = maximumOutgoingFragmentSize
         }
     }
+    
+    
+    /// timeout configuration which is used locally to detect a dead connection, but also send to the server during setup
     public var timeout: Timeout
+    
+    /// encoding configuration of metadata and data which is send to the server during setup
     public var encoding: Encoding
+    
+    /// local limits configuration which are **not** send to the server
     public var limits: Limits
+    
     public init(
-        timeout: Timeout = .defaultMobileToServer,
+        timeout: Timeout,
         encoding: Encoding = .default,
         limits: Limits = .default
     ) {

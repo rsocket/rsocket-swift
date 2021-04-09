@@ -18,7 +18,7 @@ struct VanillaClientExample: ParsableCommand {
     var port = 7000
 
     func run() throws {
-        let bootstrap = ClientBootstrap(transport: TCPTransport())
+        let bootstrap = ClientBootstrap(transport: TCPTransport(), config: .mobileToServer)
         
         let client = try bootstrap.connect(to: .init(host: host, port: port)).first()!.get()
 

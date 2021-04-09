@@ -27,7 +27,7 @@ final public class ClientBootstrap<Transport: TransportChannelHandler> {
 
     public init(
         transport: Transport,
-        config: ClientConfiguration = .default,
+        config: ClientConfiguration,
         timeout: TimeAmount = .seconds(30),
         sslContext: NIOSSLContext? = nil
     ) {

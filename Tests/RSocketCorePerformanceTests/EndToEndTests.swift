@@ -32,9 +32,9 @@ protocol NIOServerTCPBootstrapProtocol {
 extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
-    static let defaultClientSetup = ClientConfiguration()
-        .set(\.timeout.timeBetweenKeepaliveFrames, to: 100)
-        .set(\.timeout.maxLifetime, to: 1000)
+    static let defaultClientSetup = ClientConfiguration(
+        timeout: .init(timeBetweenKeepaliveFrames: 100, maxLifetime: 1000)
+    )
     
     let host = "127.0.0.1"
     

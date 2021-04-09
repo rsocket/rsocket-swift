@@ -40,7 +40,7 @@ struct TwitterClientExample: ParsableCommand {
     func run() throws {
         let bootstrap = ClientBootstrap(
             transport: WSTransport(),
-            config: ClientConfiguration()
+            config: ClientConfiguration.mobileToServer
                 .set(\.encoding.metadata, to: .rsocketRoutingV0)
                 .set(\.encoding.data, to: .json)
         )

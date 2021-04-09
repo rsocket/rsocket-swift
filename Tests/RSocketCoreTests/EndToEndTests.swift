@@ -32,7 +32,7 @@ protocol NIOServerTCPBootstrapProtocol {
 extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
-    static let defaultClientSetup = ClientConfiguration()
+    static let defaultClientSetup = ClientConfiguration.mobileToServer
         .set(\.timeout.timeBetweenKeepaliveFrames, to: 100)
         .set(\.timeout.maxLifetime, to: 1000)
 

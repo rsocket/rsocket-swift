@@ -30,7 +30,7 @@ final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let tlsOptions: NWProtocolTLS.Options?
     public init(
         transport: Transport,
-        config: ClientConfiguration = .default,
+        config: ClientConfiguration,
         timeout: TimeAmount = .seconds(30),
         tlsOptions: NWProtocolTLS.Options? = nil
     ) {

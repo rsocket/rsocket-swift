@@ -35,12 +35,22 @@ struct TimerClientExample: ParsableCommand {
     var limit = 10000
 
     func run() throws {
+        #if swift(>=5.4)
+        /// small but nice improvement https://github.com/apple/swift-evolution/blob/main/proposals/0287-implicit-member-chains.md
         let bootstrap = ClientBootstrap(
             transport: WSTransport(),
-            config: ClientConfiguration()
+            config: .mobileToServer
                 .set(\.encoding.metadata, to: .rsocketRoutingV0)
                 .set(\.encoding.data, to: .json)
         )
+        #else
+        let bootstrap = ClientBootstrap(
+            transport: WSTransport(),
+            config: .mobileToServer
+                .set(\.encoding.metadata, to: .rsocketRoutingV0)
+                .set(\.encoding.data, to: .json)
+        )
+        #endif
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
 

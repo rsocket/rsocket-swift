@@ -51,7 +51,3 @@ extension MIMEType {
     /// message/x.rsocket.routing.v0
     public static let rsocketRoutingV0 = MIMEType(rawValue: "message/x.rsocket.routing.v0")
 }
-
-let config = ClientConfiguration
-    .mobileToServer
-    .set(\.encoding.data, to: .png)

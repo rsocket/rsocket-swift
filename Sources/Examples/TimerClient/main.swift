@@ -46,7 +46,7 @@ struct TimerClientExample: ParsableCommand {
         #else
         let bootstrap = ClientBootstrap(
             transport: WSTransport(),
-            config: .mobileToServer
+            config: ClientConfiguration.mobileToServer
                 .set(\.encoding.metadata, to: .rsocketRoutingV0)
                 .set(\.encoding.data, to: .json)
         )

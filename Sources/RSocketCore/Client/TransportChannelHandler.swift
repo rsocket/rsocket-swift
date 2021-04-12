@@ -15,12 +15,21 @@
  */
 
 import NIO
+import Foundation
+
+public protocol Endpoint {
+    var host: String { get }
+    var port: Int { get }
+    
+    /// if true but TLS is not configured, connecting to this endpoint will fail
+    var requiresTLS: Bool { get }
+}
 
 public protocol TransportChannelHandler {
+    associatedtype Endpoint: RSocketCore.Endpoint
     func addChannelHandler(
         channel: Channel,
-        host: String,
-        port: Int,
+        endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void>
 }

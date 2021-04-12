@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import NIO
 import Foundation
+import NIO
 
 /// Information about a client which is about to connect or is connected.
 public struct SetupInfo {
     /// If the connection should honor `LEASE`
     public let honorsLease: Bool
-    
+
     /// version of the client protocol implementation
     public let version: Version
     /**
@@ -72,11 +72,11 @@ public struct SetupInfo {
 
 internal struct SetupValidator {
     internal var maximumClientVersion = Version.v1_0
-    
+
     internal func validate(frame: Frame) throws -> SetupInfo {
         try validateSetup(try getSetupBody(frame))
     }
-    
+
     private func getSetupBody(_ frame: Frame) throws -> SetupFrameBody {
         guard frame.streamId == .connection else {
             throw Error.invalidSetup(message: "connection needs to be setup on stream 0")
@@ -89,7 +89,7 @@ internal struct SetupValidator {
         }
         return setup
     }
-    
+
     private func validateSetup(_ setup: SetupFrameBody) throws -> SetupInfo {
         guard setup.version <= maximumClientVersion else {
             throw Error.unsupportedSetup(message: "only version \(maximumClientVersion) and lower are supported")
@@ -183,7 +183,6 @@ internal final class ConnectionEstablishmentHandler: ChannelInboundHandler, Remo
     private var state: State = .idle
     
     private let setupValidator = SetupValidator()
-    
     
     /// Configure `ConnectionEstablishmentHandler`.  If `shouldAcceptClient` is nil, valid clients are always accepted.
     /// - Parameters:

@@ -100,7 +100,7 @@ extension ClientSetupConfig {
     public static var defaultMobileToServer: ClientSetupConfig {
         ClientSetupConfig(
             timeBetweenKeepaliveFrames: 30_000,
-            maxLifetime: 30_000,
+            maxLifetime: 60_000,
             metadataEncodingMimeType: "application/octet-stream",
             dataEncodingMimeType: "application/octet-stream"
         )
@@ -109,7 +109,7 @@ extension ClientSetupConfig {
     public static var defaultServerToServer: ClientSetupConfig {
         ClientSetupConfig(
             timeBetweenKeepaliveFrames: 500,
-            maxLifetime: 500,
+            maxLifetime: 2_000,
             metadataEncodingMimeType: "application/octet-stream",
             dataEncodingMimeType: "application/octet-stream"
         )

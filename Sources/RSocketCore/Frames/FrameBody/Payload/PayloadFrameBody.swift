@@ -21,7 +21,7 @@
  */
 internal struct PayloadFrameBody: Hashable, FragmentableFrameBody {
     /// If true, this is a fragment and at least another payload frame will follow
-    internal var fragmentsFollows: Bool = false
+    internal var fragmentFollows: Bool = false
     
     /// If this frame marks the completion of the stream
     internal let isCompletion: Bool
@@ -45,6 +45,9 @@ extension PayloadFrameBody: FrameBodyBoundToStream {
         }
         if isNext {
             flags.insert(.payloadNext)
+        }
+        if fragmentFollows {
+            flags.insert(.fragmentFollows)
         }
         return FrameHeader(streamId: streamId, type: .payload, flags: flags)
     }

@@ -17,7 +17,7 @@
 /// Request a completable stream
 internal struct RequestStreamFrameBody: Hashable, FragmentableFrameBody {
     /// If true, this is a fragment and at least another payload frame will follow
-    internal var fragmentsFollows: Bool = false
+    internal var fragmentFollows: Bool = false
     
     /**
      The initial number of items to request
@@ -36,6 +36,9 @@ extension RequestStreamFrameBody: FrameBodyBoundToStream {
         var flags = FrameFlags()
         if payload.metadata != nil {
             flags.insert(.metadata)
+        }
+        if fragmentFollows {
+            flags.insert(.fragmentFollows)
         }
         return FrameHeader(streamId: streamId, type: .requestStream, flags: flags)
     }

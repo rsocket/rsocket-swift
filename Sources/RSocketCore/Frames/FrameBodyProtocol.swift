@@ -22,7 +22,7 @@ internal protocol FrameBodyProtocol {
 }
 
 internal protocol FragmentableFrameBody: FrameBodyProtocol {
-    var fragmentsFollows: Bool { get set }
+    var fragmentFollows: Bool { get set }
 }
 
 /// a frame body that can be send or received on different streams and not only on `.connection`  (stream 0)

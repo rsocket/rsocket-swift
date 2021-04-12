@@ -112,12 +112,12 @@ private extension FrameBodyBoundToStream where Self: FragmentableFrameBody {
         lastFragmentShouldCompleteStream: Bool
     ) -> [Frame] {
         precondition(!fragments.isEmpty)
-        return [self.set(\.fragmentsFollows, to: true).asFrame(withStreamId: streamId)]
+        return [self.set(\.fragmentFollows, to: true).asFrame(withStreamId: streamId)]
             + fragments.enumerated().map { index, fragment in
                 let isLastFragment = index == fragments.count - 1
                 let isFragmentCompletion = lastFragmentShouldCompleteStream && isLastFragment
                 let fragmentBody = PayloadFrameBody(
-                    fragmentsFollows: !isLastFragment,
+                    fragmentFollows: !isLastFragment,
                     isCompletion: isFragmentCompletion,
                     isNext: isNext,
                     payload: fragment

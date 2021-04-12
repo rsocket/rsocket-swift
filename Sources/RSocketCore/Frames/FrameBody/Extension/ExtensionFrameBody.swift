@@ -32,8 +32,8 @@ internal struct ExtensionFrameBody: Hashable {
 
 extension ExtensionFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .ext(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        var flags = FrameFlags()
         if canBeIgnored {
             flags.insert(.ignore)
         }

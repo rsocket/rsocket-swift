@@ -25,7 +25,7 @@ internal struct ErrorFrameBody: Hashable {
 
 extension ErrorFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .error(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        FrameHeader(streamId: streamId, type: .error, flags: additionalFlags)
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .error, flags: [])
     }
 }

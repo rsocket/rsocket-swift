@@ -16,12 +16,12 @@
 
 extension Frame {
     internal func validate() throws {
-        guard header.streamId.rawValue >= 0 else {
+        guard streamId.rawValue >= 0 else {
             throw Error.connectionError(message: "streamId has to be equal or bigger than 0")
         }
         switch body {
         case let .error(body):
-            if header.streamId == .connection {
+            if streamId == .connection {
                 switch body.error {
                 case .invalidSetup, .unsupportedSetup, .rejectedSetup, .connectionError, .connectionClose:
                     break
@@ -48,7 +48,7 @@ extension Frame {
             }
 
         case let .keepalive(body):
-            guard header.streamId == .connection else {
+            guard streamId == .connection else {
                 throw Error.connectionError(message: "streamId has to be 0")
             }
             guard body.lastReceivedPosition >= 0 else {
@@ -56,7 +56,7 @@ extension Frame {
             }
 
         case let .lease(body):
-            guard header.streamId == .connection else {
+            guard streamId == .connection else {
                 throw Error.connectionError(message: "streamId has to be 0")
             }
             guard body.timeToLive >= 0 else {
@@ -67,7 +67,7 @@ extension Frame {
             }
 
         case .metadataPush:
-            guard header.streamId == .connection else {
+            guard streamId == .connection else {
                 throw Error.connectionError(message: "streamId has to be 0")
             }
 
@@ -100,7 +100,7 @@ extension Frame {
             }
 
         case let .setup(body):
-            guard header.streamId == .connection else {
+            guard streamId == .connection else {
                 throw Error.connectionError(message: "streamId has to be 0")
             }
             guard body.timeBetweenKeepaliveFrames > 0 else {

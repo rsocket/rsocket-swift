@@ -44,8 +44,8 @@ internal struct LeaseFrameBody: Hashable {
 
 extension LeaseFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .lease(self) }
-    func header(additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
+    func header() -> FrameHeader {
+        var flags = FrameFlags()
         if metadata != nil {
             flags.insert(.metadata)
         }

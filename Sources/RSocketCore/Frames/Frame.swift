@@ -15,6 +15,13 @@
  */
 
 internal struct Frame: Hashable {
-    internal let header: FrameHeader
+    internal let streamId: StreamID
     internal let body: FrameBody
+}
+
+extension Frame {
+    // TODO: should we make this a method because we need to generate the header?
+    internal var header: FrameHeader {
+        body.header(withStreamId: streamId)
+    }
 }

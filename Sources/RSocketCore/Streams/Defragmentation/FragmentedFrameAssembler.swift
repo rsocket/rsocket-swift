@@ -133,19 +133,19 @@ private struct Fragments {
         switch initialFrame.body {
         case .requestResponse:
             let newFrame = RequestResponseFrameBody(payload: newPayload)
-                .asFrame(withStreamId: initialFrame.header.streamId)
+                .asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case .requestFnf:
             let newFrame = RequestFireAndForgetFrameBody(payload: newPayload)
-                .asFrame(withStreamId: initialFrame.header.streamId)
+                .asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case let .requestStream(body):
             let newFrame = RequestStreamFrameBody(
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case let .requestChannel(body):
@@ -153,7 +153,7 @@ private struct Fragments {
                 isCompleted: isCompletion,
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case .payload:
@@ -161,7 +161,7 @@ private struct Fragments {
                 isCompletion: isCompletion,
                 isNext: true, // only frames that have isNext can be fragmented
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         default:

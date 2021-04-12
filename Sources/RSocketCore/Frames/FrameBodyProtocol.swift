@@ -21,21 +21,8 @@ internal protocol FrameBodyProtocol {
     func body() -> FrameBody
 }
 
-
-/// a frame body that can only be send or received on stream `.connection` (stream 0)
-internal protocol FrameBodyBoundToConnection: FrameBodyProtocol {
-    /// returns a header for `self` by inferring the flags from the given body.
-    /// The stream id will always be `.connection`.
-    /// - Parameter additionalFlags: additional flags which should be enabled
-    func header(additionalFlags: FrameFlags) -> FrameHeader
-}
-
-extension FrameBodyBoundToConnection {
-    /// returns a header for `self` by inferring the flags from the given body.
-    /// The stream id will always be `.connection`.
-    internal func header() -> FrameHeader {
-        header(additionalFlags: [])
-    }
+internal protocol FragmentableFrameBody: FrameBodyProtocol {
+    var fragmentsFollows: Bool { get set }
 }
 
 /// a frame body that can be send or received on different streams and not only on `.connection`  (stream 0)
@@ -43,30 +30,43 @@ internal protocol FrameBodyBoundToStream: FrameBodyProtocol {
     /// returns a header for `self` by inferring the flags from the given body.
     /// - Parameter streamId: stream id for the header
     /// - Parameter additionalFlags: additional flags which should be enabled
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader
+    func header(withStreamId streamId: StreamID) -> FrameHeader
 }
 
-extension FrameBodyBoundToStream {
+/// a frame body that can only be send or received on stream `.connection` (stream 0)
+internal protocol FrameBodyBoundToConnection: FrameBodyBoundToStream {
     /// returns a header for `self` by inferring the flags from the given body.
-    /// - Parameter streamId: stream id for the header
-    internal func header(withStreamId streamId: StreamID) -> FrameHeader {
-        header(withStreamId: streamId, additionalFlags: [])
+    /// The stream id will always be `.connection`.
+    func header() -> FrameHeader
+}
+
+extension FrameBodyBoundToConnection {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        assert(streamId == .connection, "\(Self.self) should only be send on stream .connection (stream id 0)")
+        return header()
     }
 }
-
 
 extension FrameBodyBoundToConnection {
     /// returns complete frame for `self`.
     /// The stream id will always be `.connection`.
-    func asFrame(additionalFlags: FrameFlags = []) -> Frame {
-        Frame(header: header(additionalFlags: additionalFlags), body: body())
+    func asFrame() -> Frame {
+        Frame(streamId: .connection, body: body())
     }
 }
 
 extension FrameBodyBoundToStream {
     /// returns complete frame for `self`.
     /// - Parameter streamId: stream id for the header
-    func asFrame(withStreamId streamId: StreamID, additionalFlags: FrameFlags = []) -> Frame {
-        Frame(header: header(withStreamId: streamId, additionalFlags: additionalFlags), body: body())
+    func asFrame(withStreamId streamId: StreamID) -> Frame {
+        Frame(streamId: streamId, body: body())
+    }
+}
+
+extension FrameBodyProtocol {
+    func set<Value>(_ keyPath: WritableKeyPath<Self, Value>, to newValue: Value) -> Self {
+        var copy = self
+        copy[keyPath: keyPath] = newValue
+        return copy
     }
 }

@@ -86,3 +86,25 @@ extension FrameBody {
         }
     }
 }
+
+extension FrameBody {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        switch self {
+        case let .setup(body): return body.header(withStreamId: streamId)
+        case let .lease(body): return body.header(withStreamId: streamId)
+        case let .keepalive(body): return body.header(withStreamId: streamId)
+        case let .requestResponse(body): return body.header(withStreamId: streamId)
+        case let .requestFnf(body): return body.header(withStreamId: streamId)
+        case let .requestStream(body): return body.header(withStreamId: streamId)
+        case let .requestChannel(body): return body.header(withStreamId: streamId)
+        case let .requestN(body): return body.header(withStreamId: streamId)
+        case let .cancel(body): return body.header(withStreamId: streamId)
+        case let .payload(body): return body.header(withStreamId: streamId)
+        case let .error(body): return body.header(withStreamId: streamId)
+        case let .metadataPush(body): return body.header(withStreamId: streamId)
+        case let .resume(body): return body.header(withStreamId: streamId)
+        case let .resumeOk(body): return body.header(withStreamId: streamId)
+        case let .ext(body): return body.header(withStreamId: streamId)
+        }
+    }
+}

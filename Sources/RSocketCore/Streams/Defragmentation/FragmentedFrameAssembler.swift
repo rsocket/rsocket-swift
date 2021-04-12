@@ -38,7 +38,7 @@ internal struct FragmentedFrameAssembler {
                 }
                 fragments.additionalFragments.append(body.payload)
                 fragments.isCompletion = body.isCompletion
-                guard body.isCompletion || !frame.header.flags.contains(.fragmentFollows) else {
+                guard body.isCompletion || !body.fragmentFollows else {
                     self.fragments = fragments
                     return .incomplete
                 }
@@ -76,7 +76,7 @@ internal struct FragmentedFrameAssembler {
         guard fragments == nil else {
             return .error(reason: "Current set of fragments is not complete")
         }
-        if frame.header.flags.contains(.fragmentFollows) {
+        if frame.makeHeader().flags.contains(.fragmentFollows) {
             fragments = Fragments(initialFrame: frame)
             return .incomplete
         } else {

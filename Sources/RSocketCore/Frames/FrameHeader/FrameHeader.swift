@@ -24,5 +24,5 @@ internal struct FrameHeader: Hashable {
     internal let type: FrameType
 
     /// The flags that are set on the frame
-    internal let flags: FrameFlags
+    internal var flags: FrameFlags
 }

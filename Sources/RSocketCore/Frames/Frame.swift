@@ -20,8 +20,7 @@ internal struct Frame: Hashable {
 }
 
 extension Frame {
-    // TODO: should we make this a method because we need to generate the header?
-    internal var header: FrameHeader {
+    internal func makeHeader() -> FrameHeader {
         body.header(withStreamId: streamId)
     }
 }

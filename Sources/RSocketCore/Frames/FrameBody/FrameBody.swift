@@ -108,3 +108,11 @@ extension FrameBody {
         }
     }
 }
+
+extension FrameBody {
+    /// If the frame can be ignored
+    var canBeIgnored: Bool {
+        guard case let .ext(body) = self else { return false }
+        return body.canBeIgnored
+    }
+}

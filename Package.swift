@@ -17,7 +17,7 @@ let package = Package(
         .library(name: "RSocketNIOChannel", targets: ["RSocketNIOChannel"]),
 
         // Transport protocol
-        .library(name: "RSocketWebSocketTransport", targets: ["RSocketWebSocketTransport"]),
+        .library(name: "RSocketWSTransport", targets: ["RSocketWSTransport"]),
         .library(name: "RSocketTCPTransport", targets: ["RSocketTCPTransport"]),
         
         // Examples
@@ -60,7 +60,7 @@ let package = Package(
         ]),
 
         // Transport protocol
-        .target(name: "RSocketWebSocketTransport", dependencies: [
+        .target(name: "RSocketWSTransport", dependencies: [
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "NIOHTTP1", package: "swift-nio"),
@@ -94,6 +94,9 @@ let package = Package(
             "ReactiveSwift",
             .product(name: "NIO", package: "swift-nio"),
         ]),
+        .testTarget(name: "RSocketWSTransportTests", dependencies: [
+            "RSocketWSTransport"
+        ]),
         
         // Examples
         .target(
@@ -101,7 +104,7 @@ let package = Package(
             dependencies: [
                 "RSocketCore",
                 "RSocketNIOChannel",
-                "RSocketWebSocketTransport",
+                "RSocketWSTransport",
                 "RSocketReactiveSwift",
                 .product(name: "ReactiveSwift", package: "ReactiveSwift"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
@@ -113,7 +116,7 @@ let package = Package(
             dependencies: [
                 "RSocketCore",
                 "RSocketNIOChannel",
-                "RSocketWebSocketTransport",
+                "RSocketWSTransport",
                 "RSocketReactiveSwift",
                 .product(name: "ReactiveSwift", package: "ReactiveSwift"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),

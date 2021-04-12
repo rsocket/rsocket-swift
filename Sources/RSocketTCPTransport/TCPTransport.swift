@@ -19,14 +19,22 @@ import NIOExtras
 import RSocketCore
 
 public struct TCPTransport {
+    public struct Endpoint: RSocketCore.Endpoint {
+        public var host: String
+        public var port: Int
+        public var requiresTLS: Bool { false }
+        public init(host: String, port: Int) {
+            self.host = host
+            self.port = port
+        }
+    }
     public init() { }
 }
 
 extension TCPTransport: TransportChannelHandler {
     public func addChannelHandler(
         channel: Channel,
-        host: String,
-        port: Int,
+        endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         channel.pipeline.addHandlers([

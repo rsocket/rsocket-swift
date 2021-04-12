@@ -19,5 +19,9 @@ import NIO
 public protocol ClientBootstrap {
     associatedtype Client
     associatedtype Responder
-    func connect(host: String, port: Int, responder: Responder?) -> EventLoopFuture<Client>
+    associatedtype Transport: TransportChannelHandler
+    func connect(
+        to endpoint: Transport.Endpoint,
+        responder: Responder?
+    ) -> EventLoopFuture<Client>
 }

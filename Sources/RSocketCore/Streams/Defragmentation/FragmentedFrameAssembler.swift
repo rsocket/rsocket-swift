@@ -76,7 +76,7 @@ internal struct FragmentedFrameAssembler {
         guard fragments == nil else {
             return .error(reason: "Current set of fragments is not complete")
         }
-        if frame.makeHeader().flags.contains(.fragmentFollows) {
+        if frame.body.fragmentsFollows {
             fragments = Fragments(initialFrame: frame)
             return .incomplete
         } else {

@@ -116,3 +116,17 @@ extension FrameBody {
         return body.canBeIgnored
     }
 }
+
+extension FrameBody {
+    /// If true, this is a fragment and at least another payload frame will follow
+    var fragmentsFollows: Bool {
+        switch self {
+        case let .requestResponse(body): return body.fragmentFollows
+        case let .requestFnf(body): return body.fragmentFollows
+        case let .requestStream(body): return body.fragmentFollows
+        case let .requestChannel(body): return body.fragmentFollows
+        case let .payload(body): return body.fragmentFollows
+        default: return false
+        }
+    }
+}

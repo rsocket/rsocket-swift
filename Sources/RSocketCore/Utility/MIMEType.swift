@@ -38,7 +38,6 @@ public struct MIMEType: RawRepresentable, Hashable {
 }
 
 extension MIMEType {
-    
     /// default is currently `MIMEType.octetStream`
     public static let `default` = octetStream
     

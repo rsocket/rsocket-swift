@@ -15,7 +15,6 @@
  */
 
 public struct ClientConfiguration {
-    
     /// recommended configuration for mobile-to-server connections (i.e. potential high jitter and high latency connections)
     public static let mobileToServer = ClientConfiguration(timeout: .mobileToServer)
     
@@ -127,7 +126,6 @@ public struct ClientConfiguration {
 }
 
 extension ClientConfiguration {
-    
     /// Creates a copy and updates the property described by `keyPath` with the given `newValue`
     /// - Returns: updated configuration
     public func set<Value>(_ keyPath: WritableKeyPath<Self, Value>, to newValue: Value) -> Self {

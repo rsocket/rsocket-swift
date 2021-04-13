@@ -42,6 +42,6 @@ extension Payload: CustomDebugStringConvertible {
         if metadata == nil && data.isEmpty {
             return ".empty"
         }
-        return "Payload(metadata: \(metadata?.debugDescription ?? "nil"), data: \(data))"
+        return "Payload(metadata: \(metadata?.debugDescription ?? "nil"), data: \(data.debugDescription))"
     }
 }

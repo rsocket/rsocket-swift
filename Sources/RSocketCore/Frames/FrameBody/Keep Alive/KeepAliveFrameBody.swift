@@ -19,17 +19,17 @@ import Foundation
 /// Indicates to the receiver that the sender is alive
 internal struct KeepAliveFrameBody: Hashable {
     /// If the receiver should respond with a `KEEPALIVE`
-    internal let respondWithKeepalive: Bool
+    internal var respondWithKeepalive: Bool
 
     /**
      Resume Last Received Position
 
      Value MUST be > `0`. (optional. Set to all `0`s when not supported.)
      */
-    internal let lastReceivedPosition: Int64
+    internal var lastReceivedPosition: Int64
 
     /// Data attached to a `KEEPALIVE`
-    internal let data: Data
+    internal var data: Data
 }
 
 extension KeepAliveFrameBody: FrameBodyBoundToConnection {

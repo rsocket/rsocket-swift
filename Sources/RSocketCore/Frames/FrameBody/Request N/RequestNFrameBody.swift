@@ -21,7 +21,7 @@ internal struct RequestNFrameBody: Hashable {
 
      Value MUST be > `0`.
      */
-    internal let requestN: Int32
+    internal var requestN: Int32
 }
 
 extension RequestNFrameBody: FrameBodyBoundToStream {

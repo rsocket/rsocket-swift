@@ -24,10 +24,10 @@ internal struct RequestStreamFrameBody: Hashable, FragmentableFrameBody {
 
      Value MUST be > `0`.
      */
-    internal let initialRequestN: Int32
+    internal var initialRequestN: Int32
 
     /// Identification of the service being requested along with parameters for the request
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension RequestStreamFrameBody: FrameBodyBoundToStream {

@@ -24,13 +24,13 @@ internal struct PayloadFrameBody: Hashable, FragmentableFrameBody {
     internal var fragmentFollows: Bool = false
     
     /// If this frame marks the completion of the stream
-    internal let isCompletion: Bool
+    internal var isCompletion: Bool
 
     /// If this is a new payload
-    internal let isNext: Bool
+    internal var isNext: Bool
 
     /// Payload for Reactive Streams `onNext`
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension PayloadFrameBody: FrameBodyBoundToStream {

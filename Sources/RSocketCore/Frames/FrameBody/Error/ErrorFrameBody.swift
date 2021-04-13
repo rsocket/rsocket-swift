@@ -20,7 +20,7 @@
  */
 internal struct ErrorFrameBody: Hashable {
     /// The error that occurred
-    internal let error: Error
+    internal var error: Error
 }
 
 extension ErrorFrameBody: FrameBodyBoundToStream {

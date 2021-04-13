@@ -20,17 +20,17 @@ internal struct RequestChannelFrameBody: Hashable, FragmentableFrameBody {
     internal var fragmentFollows: Bool = false
     
     /// If the channel is already completed
-    internal let isCompleted: Bool
+    internal var isCompleted: Bool
 
     /**
      The initial number of items to request
 
      Value MUST be > `0`.
      */
-    internal let initialRequestN: Int32
+    internal var initialRequestN: Int32
 
     /// Identification of the service being requested along with parameters for the request
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension RequestChannelFrameBody: FrameBodyBoundToStream {

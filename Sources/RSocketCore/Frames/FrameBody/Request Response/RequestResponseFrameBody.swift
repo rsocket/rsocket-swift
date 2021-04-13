@@ -20,7 +20,7 @@ internal struct RequestResponseFrameBody: Hashable, FragmentableFrameBody {
     internal var fragmentFollows: Bool = false
     
     /// Identification of the service being requested along with parameters for the request
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension RequestResponseFrameBody: FrameBodyBoundToStream {

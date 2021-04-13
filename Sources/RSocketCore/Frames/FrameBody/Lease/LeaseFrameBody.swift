@@ -29,17 +29,17 @@ internal struct LeaseFrameBody: Hashable {
 
      Value MUST be > `0`.
      */
-    internal let timeToLive: Int32
+    internal var timeToLive: Int32
 
     /**
      Number of Requests that may be sent until next `LEASE`
 
      Value MUST be > `0`.
      */
-    internal let numberOfRequests: Int32
+    internal var numberOfRequests: Int32
 
     /// Optional metadata of this frame
-    internal let metadata: Data?
+    internal var metadata: Data?
 }
 
 extension LeaseFrameBody: FrameBodyBoundToConnection {

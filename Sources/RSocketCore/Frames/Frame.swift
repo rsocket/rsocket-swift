@@ -15,8 +15,8 @@
  */
 
 internal struct Frame: Hashable {
-    internal let streamId: StreamID
-    internal let body: FrameBody
+    internal var streamId: StreamID
+    internal var body: FrameBody
 }
 
 extension Frame {

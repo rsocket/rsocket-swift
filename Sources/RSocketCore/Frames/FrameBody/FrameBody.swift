@@ -152,8 +152,12 @@ fileprivate func normalizeFrameBodyTypeName<T>(_ type: T.Type) -> String {
 fileprivate func descriptionsOfProperties<T>(_ body: T) -> String {
     Mirror(reflecting: body).children.compactMap({
         guard let label = $0.label else { return nil }
-        return "\(label): \($0.value)"
+        return "\(label): \(debugDescription(of: $0.value))"
     }).joined(separator: ", ")
+}
+
+fileprivate func debugDescription(of value: Any) -> String {
+    (value as? CustomDebugStringConvertible)?.debugDescription ?? String(describing: value)
 }
 
 extension FrameBody: CustomDebugStringConvertible {

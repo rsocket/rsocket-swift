@@ -36,3 +36,12 @@ public struct Payload: Hashable {
         self.data = data
     }
 }
+
+extension Payload: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        if metadata == nil && data.isEmpty {
+            return ".empty"
+        }
+        return "Payload(metadata: \(metadata?.debugDescription ?? "nil"), data: \(data))"
+    }
+}

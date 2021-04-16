@@ -10,11 +10,12 @@ Key Features:
 * binary, multiplexed use of a single connection
 * support resumption of long-lived subscriptions across transport connections
 
-More Information about RSocket can be found at [rsocket.io](https://rsocket.io/) and a greate presentation from @OlegDokuka is available on [YouTube](https://www.youtube.com/watch?v=KapSjhUYSz4). 
+More Information about RSocket can be found at [rsocket.io](https://rsocket.io/) and a great presentation from @OlegDokuka is available on [YouTube](https://www.youtube.com/watch?v=KapSjhUYSz4). 
 
 ### Modules
 The implementation is split into multiple modules. This allows a user of this package to only include what is really needed.
-![Module Overview](Resources/Module Overview.png) 
+
+![Module Overview](Resources/ModuleOverview.png) 
 
 `RSocketCore`, as the name implies, contains the core logic which every other module depends on.
 The other modules are grouped in one of three categories:
@@ -33,14 +34,14 @@ Working examples can be found under [Sources/Examples](https://github.com/rsocke
 The Client API has currently a lot more convenience API's and is a lot simpler than the Server API. If you want to create an RSocket Server you need to create you own SwiftNIO pipeline and setup SSL/TLS yourself. But this should improve in the future as we implement [some RSocket extensions](https://github.com/rsocket/rsocket/tree/master/Extensions) like [Routing](https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md).
 
 ### Transport
-- [x] WebSocket
-- [x] TCP
+- - [x] WebSocket
+- - [x] TCP
 
 ### Reactive Streams
-- [] [async/await & AsyncSeqence](https://github.com/rsocket/rsocket-swift/pull/44)
-- [] Combine
-- [x] ReactiveSwift
-- [] RxSwift
+- - [] [async/await & AsyncSeqence](https://github.com/rsocket/rsocket-swift/pull/44)
+- - [] Combine
+- - [x] ReactiveSwift
+- - [] RxSwift
 
 ## What is planned
 * Automatic reconnect for Clients

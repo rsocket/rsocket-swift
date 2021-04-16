@@ -34,14 +34,14 @@ Working examples can be found under [Sources/Examples](https://github.com/rsocke
 The Client API has currently a lot more convenience API's and is a lot simpler than the Server API. If you want to create an RSocket Server you need to create you own SwiftNIO pipeline and setup SSL/TLS yourself. But this should improve in the future as we implement [some RSocket extensions](https://github.com/rsocket/rsocket/tree/master/Extensions) like [Routing](https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md).
 
 ### Transport
-- - [x] WebSocket
-- - [x] TCP
+- [x] WebSocket
+- [x] TCP
 
 ### Reactive Streams
-- - [] [async/await & AsyncSeqence](https://github.com/rsocket/rsocket-swift/pull/44)
-- - [] Combine
-- - [x] ReactiveSwift
-- - [] RxSwift
+- [ ] [async/await & AsyncSeqence](https://github.com/rsocket/rsocket-swift/pull/44)
+- [ ] Combine
+- [x] ReactiveSwift
+- [ ] RxSwift
 
 ## What is planned
 * Automatic reconnect for Clients

@@ -52,6 +52,11 @@ let package = Package(
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "_NIOConcurrency", package: "swift-nio"),
+        ], swiftSettings: [
+            .unsafeFlags([
+                "-Xfrontend",
+                "-enable-experimental-concurrency",
+            ])
         ]),
 
         // Channel
@@ -153,7 +158,13 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "_NIOConcurrency", package: "swift-nio"),
             ],
-            path: "Sources/Examples/AsyncTwitterClient"
+            path: "Sources/Examples/AsyncTwitterClient",
+            swiftSettings: [
+                .unsafeFlags([
+                    "-Xfrontend",
+                    "-enable-experimental-concurrency",
+                ])
+            ]
         ),
     ],
     swiftLanguageVersions: [.v5]

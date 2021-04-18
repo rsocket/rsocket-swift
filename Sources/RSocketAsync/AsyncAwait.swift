@@ -1,11 +1,14 @@
-#if compiler(>=5.4) && $AsyncAwait
+#if compiler(>=5.5) && $AsyncAwait
+import Foundation
+import NIO
 import RSocketCore
 import _Concurrency
-import NIO
 import _NIOConcurrency
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public protocol RSocket {
+    func metadataPush(metadata: Data)
+    func fireAndForget(payload: Payload)
     func requestResponse(payload: Payload) async throws -> Payload
     func requestStream(payload: Payload) -> AsyncStreamSequence
 }
@@ -15,6 +18,12 @@ public struct RequesterAdapter: RSocket {
     private let requester: RSocketCore.RSocket
     public init(requester: RSocketCore.RSocket) {
         self.requester = requester
+    }
+    public func metadataPush(metadata: Data) {
+        requester.metadataPush(metadata: metadata)
+    }
+    public func fireAndForget(payload: Payload) {
+        requester.fireAndForget(payload: payload)
     }
     public func requestResponse(payload: Payload) async throws -> Payload {
         struct RequestResponseOperator: UnidirectionalStream {
@@ -77,19 +86,56 @@ public struct AsyncStreamSequence: AsyncSequence {
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+actor BufferedContinuation<Element, Error: Swift.Error> {
+    typealias Item = Result<Element, Error>
+    let continuation = YieldingContinuation(yielding: Item.self)
+    var buffer = [Item]()
+    
+    public func push(result: Item) async {
+        if !continuation.yield(result) {
+            buffer.append(result)
+        }
+    }
+    public func push(_ element: Element) async {
+        await push(result: .success(element))
+    }
+    public func push(throwing error: Error) async {
+        await push(result: .failure(error))
+    }
+    
+    public func pop() async throws -> Element {
+        if buffer.count > 0 {
+            return try buffer.removeFirst().get()
+        }
+        return try await continuation.next().get()
+    }
+    
+    public func popAsResult() async -> Item {
+        if buffer.count > 0 {
+            return buffer.removeFirst()
+        }
+        return await continuation.next()
+    }
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStream {
     fileprivate var subscription: Subscription! = nil
-    private var yieldingContinuation = YieldingContinuation<Payload?, Swift.Error>()
-    
+    private var yieldingContinuation = BufferedContinuation<Payload?, Swift.Error>()
+    private var isCompleted = false
     public func onNext(_ payload: Payload, isCompletion: Bool) {
-        _ = yieldingContinuation.yield(payload)
-        if isCompletion {
-            _ = yieldingContinuation.yield(nil)
+        detach { [self] in
+            await yieldingContinuation.push(payload)
+            if isCompletion {
+                await yieldingContinuation.push(nil)
+            }
         }
     }
     
     public func onComplete() {
-        _ = yieldingContinuation.yield(nil)
+        detach { [self] in
+            await yieldingContinuation.push(nil)
+        }
     }
     
     public func onRequestN(_ requestN: Int32) {
@@ -97,19 +143,30 @@ public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStr
     }
     
     public func onCancel() {
-        _ = yieldingContinuation.yield(nil)
+        detach { [self] in
+            await yieldingContinuation.push(nil)
+        }
     }
     
     public func onError(_ error: Error) {
-        _ = yieldingContinuation.yield(throwing: error)
+        detach { [self] in
+            await yieldingContinuation.push(throwing: error)
+        }
     }
     
     public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         assertionFailure("request stream does not support \(#function)")
     }
     public func next() async throws -> Payload? {
+        guard !isCompleted else { return nil }
         subscription.onRequestN(1)
-        return try await yieldingContinuation.next()
+        let value = await yieldingContinuation.popAsResult()
+        switch value {
+        case .failure, .success(.none):
+            isCompleted = true
+        default: break
+        }
+        return try value.get()
     }
     deinit {
         subscription.onCancel()

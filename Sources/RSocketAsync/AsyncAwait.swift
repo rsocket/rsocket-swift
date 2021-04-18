@@ -13,16 +13,15 @@ public protocol RSocket {
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public struct RequesterAdapter: RSocket {
     private let requester: RSocketCore.RSocket
-    private let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     public init(requester: RSocketCore.RSocket) {
         self.requester = requester
     }
     public func requestResponse(payload: Payload) async throws -> Payload {
         struct RequestResponseOperator: UnidirectionalStream {
-            var promise: EventLoopPromise<Payload>
+            var continuation: UnsafeContinuation<Payload, Swift.Error>
             func onNext(_ payload: Payload, isCompletion: Bool) {
                 assert(isCompletion)
-                promise.succeed(payload)
+                continuation.resume(returning: payload)
             }
             
             func onComplete() {
@@ -34,25 +33,27 @@ public struct RequesterAdapter: RSocket {
             }
             
             func onCancel() {
-                promise.fail(Error.canceled(message: "onCancel"))
+                continuation.resume(throwing: Error.canceled(message: "onCancel"))
             }
             
             func onError(_ error: Error) {
-                promise.fail(error)
+                continuation.resume(throwing: error)
             }
             
             func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
                 assertionFailure("request response does not support \(#function)")
             }
         }
-        let promise = eventLoop.next().makePromise(of: Payload.self)
-        let stream = RequestResponseOperator(promise: promise)
-        _ = requester.requestResponse(payload: payload, responderStream: stream)
-        return try await promise.futureResult.get()
+        var cancelable: Cancellable?
+        defer { cancelable?.onCancel() }
+        return try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Payload, Swift.Error>) in
+            let stream = RequestResponseOperator(continuation: continuation)
+            cancelable = requester.requestResponse(payload: payload, responderStream: stream)
+        }
     }
     
     public func requestStream(payload: Payload) -> AsyncStreamSequence {
-        AsyncStreamSequence(payload: payload, requester: requester, eventLoop: eventLoop.next())
+        AsyncStreamSequence(payload: payload, requester: requester)
     }
 }
 
@@ -62,16 +63,14 @@ public struct AsyncStreamSequence: AsyncSequence {
     
     public typealias Element = Payload
     
-    fileprivate init(payload: Payload, requester: RSocketCore.RSocket, eventLoop: EventLoop) {
+    fileprivate init(payload: Payload, requester: RSocketCore.RSocket) {
         self.payload = payload
         self.requester = requester
-        self.eventLoop = eventLoop
     }
     private var payload: Payload
     private var requester: RSocketCore.RSocket
-    private var eventLoop: EventLoop
     public func makeAsyncIterator() -> AsyncStreamIterator {
-        let stream = AsyncStreamIterator(eventLoop: eventLoop)
+        let stream = AsyncStreamIterator()
         stream.subscription = requester.stream(payload: payload, initialRequestN: 0, responderStream: stream)
         return stream
     }
@@ -79,84 +78,38 @@ public struct AsyncStreamSequence: AsyncSequence {
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStream {
-    fileprivate init(
-        eventLoop: EventLoop
-    ) {
-        self.eventLoop = eventLoop
-    }
-    
-    private enum Event {
-        case next(Payload, isCompletion: Bool)
-        case error(Error)
-        case complete
-        case cancel
-    }
-    private var eventLoop: EventLoop
-    private var event: EventLoopPromise<Event>? = nil
-    private var isCompleted: Bool = false
     fileprivate var subscription: Subscription! = nil
+    private var yieldingContinuation = YieldingContinuation<Payload?, Swift.Error>()
+    
     public func onNext(_ payload: Payload, isCompletion: Bool) {
-        eventLoop.execute { [self] in
-            assert(event != nil)
-            event?.succeed(.next(payload, isCompletion: isCompletion))
+        _ = yieldingContinuation.yield(payload)
+        if isCompletion {
+            _ = yieldingContinuation.yield(nil)
         }
-        
     }
     
     public func onComplete() {
-        eventLoop.execute {  [self] in
-            assert(event != nil)
-            event?.succeed(.complete)
-        }
+        _ = yieldingContinuation.yield(nil)
     }
     
     public func onRequestN(_ requestN: Int32) {
-        assertionFailure("request response does not support \(#function)")
+        assertionFailure("request stream does not support \(#function)")
     }
     
     public func onCancel() {
-        eventLoop.execute {  [self] in
-            assert(event != nil)
-            event?.succeed(.cancel)
-        }
+        _ = yieldingContinuation.yield(nil)
     }
     
     public func onError(_ error: Error) {
-        eventLoop.execute { [self] in
-            assert(event != nil)
-            event?.succeed(.error(error))
-        }
+        _ = yieldingContinuation.yield(throwing: error)
     }
     
     public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
-        assertionFailure("request response does not support \(#function)")
+        assertionFailure("request stream does not support \(#function)")
     }
     public func next() async throws -> Payload? {
-        let p = eventLoop.makePromise(of: Optional<Payload>.self)
-        p.completeWithAsync { [self] in
-            guard !isCompleted else { return nil }
-            assert(event == nil)
-            let promise = eventLoop.makePromise(of: Event.self)
-            event = promise
-            subscription.onRequestN(1)
-            let result = try await promise.futureResult.get()
-            event = nil
-            switch result {
-            case let .next(payload, isCompletion):
-                self.isCompleted = isCompletion
-                return payload
-            case .complete:
-                self.isCompleted = true
-                return nil
-            case .cancel:
-                self.isCompleted = true
-                return nil
-            case let .error(error):
-                self.isCompleted = true
-                throw error
-            }
-        }
-        return try await p.futureResult.get()
+        subscription.onRequestN(1)
+        return try await yieldingContinuation.next()
     }
     deinit {
         subscription.onCancel()

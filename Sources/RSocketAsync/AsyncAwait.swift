@@ -4,11 +4,13 @@ import _Concurrency
 import NIO
 import _NIOConcurrency
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public protocol RSocket {
     func requestResponse(payload: Payload) async throws -> Payload
     func requestStream(payload: Payload) -> AsyncStreamSequence
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public struct RequesterAdapter: RSocket {
     private let requester: RSocketCore.RSocket
     private let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -54,6 +56,7 @@ public struct RequesterAdapter: RSocket {
     }
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public struct AsyncStreamSequence: AsyncSequence {
     public typealias AsyncIterator = AsyncStreamIterator
     
@@ -74,6 +77,7 @@ public struct AsyncStreamSequence: AsyncSequence {
     }
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStream {
     fileprivate init(
         eventLoop: EventLoop
@@ -159,6 +163,7 @@ public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStr
     }
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public struct AsyncClient {
     private let coreClient: RSocketCore.CoreClient
 
@@ -169,6 +174,7 @@ public struct AsyncClient {
     }
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension RSocketCore.ClientBootstrap where Client == CoreClient, Responder == RSocketCore.RSocket  {
     public func connect(to endpoint: Transport.Endpoint) async throws -> AsyncClient {
         AsyncClient(try await connect(to: endpoint, responder: nil).get())

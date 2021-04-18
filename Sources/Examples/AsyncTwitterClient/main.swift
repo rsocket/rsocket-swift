@@ -25,6 +25,7 @@ extension URL: ExpressibleByArgument {
 }
 
 /// the server-side code can be found here -> https://github.com/rsocket/rsocket-demo/tree/master/src/main/kotlin/io/rsocket/demo/twitter
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 struct TwitterClientExample: ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "connects to an RSocket endpoint using WebSocket transport, requests a stream at the route `searchTweets` to search for tweets that match the `searchString` and logs all events."
@@ -74,6 +75,7 @@ struct TwitterClientExample: ParsableCommand {
         }
     }
 }
-
-TwitterClientExample.main()
+if #available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *) {
+    TwitterClientExample.main()
+}
 #endif

@@ -29,7 +29,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
-        .package(url: "https://github.com/apple/swift-nio", .revision("4220c7a16a5ee0abb7da150bd3d4444940a20cc2")),
+        .package(url: "https://github.com/adam-fowler/swift-nio", .branch("async-available")),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
         .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4"),
@@ -157,7 +157,7 @@ let package = Package(
             swiftSettings: [
                 .unsafeFlags([
                     "-Xfrontend",
-                    "-enable-experimental-concurrency"
+                    "-enable-experimental-concurrency",
                 ])
             ]
         ),

@@ -87,6 +87,15 @@ struct CompositeMetadataEncoder: MetadataEncoder {
     }
 }
 
+// Swift 5.5 does support static member lookup in a generic context: https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md
+extension MetadataEncoder where Self == CompositeMetadataEncoder {
+    static var compositeMetadata: Self { .init() }
+}
+
+extension MetadataDecoder where Self == CompositeMetadataDecoder {
+    static var compositeMetadata: Self { .init() }
+}
+
 extension RangeReplaceableCollection where Element == CompositeMetadata {
     func encoded<Encoder>(
         _ metadata: Encoder.Metadata,
@@ -135,6 +144,14 @@ struct RoutingDecoder: MetadataDecoder {
     }
 }
 
+extension MetadataEncoder where Self == RoutingEncoder {
+    static var routing: Self { .init() }
+}
+
+extension MetadataDecoder where Self == RoutingDecoder {
+    static var routing: Self { .init() }
+}
+
 // MARK: - Data MIME Type Encoder
 
 struct DataMIMETypeEncoder: MetadataEncoder {
@@ -155,6 +172,14 @@ struct DataMIMETypeDecoder: MetadataDecoder {
     }
 }
 
+extension MetadataEncoder where Self == DataMIMETypeEncoder {
+    static var dataMIMEType: Self { .init() }
+}
+
+extension MetadataDecoder where Self == DataMIMETypeDecoder {
+    static var dataMIMEType: Self { .init() }
+}
+
 // MARK: - Acceptable Data MIME Type
 
 struct AcceptableDataMIMETypeEncoder: MetadataEncoder {
@@ -173,6 +198,14 @@ struct AcceptableDataMIMETypeDecoder: MetadataDecoder {
     func decode(from buffer: inout ByteBuffer) throws -> Metadata {
         fatalError("not implemented")
     }
+}
+
+extension MetadataEncoder where Self == AcceptableDataMIMETypeEncoder {
+    static var acceptableDataMIMEType: Self { .init() }
+}
+
+extension MetadataDecoder where Self == AcceptableDataMIMETypeDecoder {
+    static var acceptableDataMIMEType: Self { .init() }
 }
 
 
@@ -319,35 +352,15 @@ extension Request where InputMetadata == [CompositeMetadata] {
     }
 }
 
-extension Request where InputMetadata == [CompositeMetadata] {
-    func encodeRoute(_ tags: [String], using encoder: RoutingEncoder = .init()) -> Self {
-        encode(tags, using: encoder)
-    }
-    func encodeRoute(_ tag: String, using encoder: RoutingEncoder = .init()) -> Self {
-        encode([tag], using: encoder)
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata] {
-    func encodeDataMIMEType(_ mimeType: MIMEType, using encoder: DataMIMETypeEncoder = .init()) -> Self {
-        encode(mimeType, using: encoder)
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata] {
-    func encodeAcceptableDataMIMEType(_ mimeTypes: [MIMEType], using encoder: AcceptableDataMIMETypeEncoder = .init()) -> Self {
-        encode(mimeTypes, using: encoder)
-    }
-}
-
 // MARK: - Data Encoder
 
 extension Request where InputMetadata == [CompositeMetadata], InputData == Data {
     func encodeAsJSON<NewInputData>(
         type: NewInputData.Type = NewInputData.self,
-        using encoder: JSONEncoder = .init()
+        using encoder: JSONEncoder = .init(),
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
     ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> where NewInputData: Encodable {
-        encodeDataMIMEType(.applicationJson)
+        encode(.applicationJson, using: dataMIMETypeEncoder)
             .mapInputData(transformInputData: encoder.encode)
     }
 }
@@ -381,10 +394,11 @@ extension DataDecoder {
 
 extension Request where OutputData == Data, InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
     func decodeData<NewOutputValue>(
-        using decoder: [DataDecoder<NewOutputValue>]
+        using decoder: [DataDecoder<NewOutputValue>],
+        acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init()
     ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputValue> {
         let supportedEncodings = decoder.map(\.mimeType)
-        return encodeAcceptableDataMIMEType(supportedEncodings)
+        return encode(supportedEncodings, using: acceptableDataMIMETypeEncoder)
             .mapOutput { metadata, data in
                 guard let dataEncoding = try metadata.decodeFirst(using: DataMIMETypeDecoder()) else {
                     throw Error.invalid(message: "Data MIME Type not found in metadata")
@@ -413,7 +427,7 @@ extension Request where OutputData == Data {
 
 extension Request {
     func finalizeInputMetadata(_ metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
-        eraseInputMetadataToVoid(metadata)
+        mapInputMetadata { metadata }
     }
 }
 
@@ -459,6 +473,8 @@ func example() {
         // .decodeMetadata(using: CompositeMetadataDecoder())
         // .mapOutputMetadata { $0 ?? [] }
         .encode(["stock.isin"], using: RoutingEncoder())
+        // With Swift 5.5 we can write it like this:
+        // .encode(["stock.isin"], using: .routing)
         .decodeData(using: [DataDecoder.json(type: Price.self)])
         .encodeAsJSON(type: ISIN.self)
         .finalizeOutputMetadata()

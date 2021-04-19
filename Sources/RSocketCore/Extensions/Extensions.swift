@@ -547,40 +547,14 @@ func example() {
         .eraseMetadata()
 }
 
-extension Request where InputMetadata == Void, InputData == Void {
-    func payload() throws -> Payload {
-        try self.transformInput((), ())
+extension Request where InputMetadata == Void {
+    func payload(for data: InputData) throws -> Payload {
+        try self.transformInput((), data)
     }
 }
 
 extension Request where OutputMetadata == Void {
-    func decodeOutput(from payload: Payload) throws -> OutputData {
+    func output(from payload: Payload) throws -> OutputData {
         try transformOutput(payload).1
-    }
-}
-
-struct NoOpCancelable: Cancellable {
-    func onCancel() {}
-    func onError(_ error: Error) {}
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {}
-}
-
-extension RSocket {
-    func requestResponse<OutputData>(
-        _ request: Request<Void, Void, Void, OutputData>,
-        responderStream: UnidirectionalStream
-    ) -> Cancellable {
-        do {
-            return requestResponse(payload: try request.payload(), responderStream: responderStream)
-        } catch {
-            responderStream.onError(.fromGenericApplicationError(error))
-            return NoOpCancelable()
-        }
-    }
-}
-
-extension Error {
-    static func fromGenericApplicationError(_ error: Swift.Error) -> Self {
-        error as? Error ?? Error.applicationError(message: error.localizedDescription)
     }
 }

@@ -96,13 +96,24 @@ extension MetadataDecoder where Self == CompositeMetadataDecoder {
     static var compositeMetadata: Self { .init() }
 }
 
+extension CompositeMetadata {
+    static func encoded<Encoder>(
+        _ metadata: Encoder.Metadata,
+        using encoder: Encoder
+    ) throws -> Self where Encoder: MetadataEncoder {
+        CompositeMetadata(
+            mimeType: encoder.mimeType,
+            data: try encoder.encode(metadata)
+        )
+    }
+}
+
 extension RangeReplaceableCollection where Element == CompositeMetadata {
     func encoded<Encoder>(
         _ metadata: Encoder.Metadata,
         using encoder: Encoder
     ) throws -> Self where Encoder: MetadataEncoder {
-        let data = try encoder.encode(metadata)
-        return self + CollectionOfOne(CompositeMetadata(mimeType: encoder.mimeType, data: data))
+        self + CollectionOfOne(try CompositeMetadata.encoded(metadata, using: encoder))
     }
 }
 
@@ -228,6 +239,18 @@ struct Request<InputMetadata, InputData, OutputMetadata, OutputData> {
 
 extension Request {
     func map<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData>(
+        transformInput: @escaping (NewInputMetadata, NewInputData) throws -> (InputMetadata, InputData),
+        transformOutput: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
+    ) -> Request<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData> {
+        .init { newMetadata, newData in
+            let (metadata, data) = try transformInput(newMetadata, newData)
+            return try self.transformInput(metadata, data)
+        } transformOutput: { payload in
+            let (metadata, data) = try self.transformOutput(payload)
+            return try transformOutput(metadata, data)
+        }
+    }
+    func map<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData>(
         transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata,
         transformInputData: @escaping (NewInputData) throws -> InputData,
         transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata,
@@ -244,6 +267,14 @@ extension Request {
         }
     }
     func mapOutput<NewOutputMetadata, NewOutputData>(
+        _ transform: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
+    ) -> Request<InputMetadata, InputData, NewOutputMetadata, NewOutputData> {
+        .init(transformInput: self.transformInput) { payload in
+            let (metadata, data) = try self.transformOutput(payload)
+            return try transform(metadata, data)
+        }
+    }
+    func mapInput<NewOutputMetadata, NewOutputData>(
         _ transform: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
     ) -> Request<InputMetadata, InputData, NewOutputMetadata, NewOutputData> {
         .init(transformInput: self.transformInput) { payload in
@@ -348,6 +379,16 @@ extension Request where InputMetadata == [CompositeMetadata] {
     ) -> Self where Encoder: MetadataEncoder {
         mapInputMetadata { compositeMetadata in
             try compositeMetadata.encoded(metadata, using: encoder)
+        }
+    }
+}
+
+extension Request where InputMetadata == [CompositeMetadata] {
+    func encodeMetadata<Encoder>(
+        using encoder: Encoder
+    ) -> Request<Encoder.Metadata, InputData, OutputMetadata, OutputData> where Encoder: MetadataEncoder {
+        mapInputMetadata { metadata in
+            [try CompositeMetadata.encoded(metadata, using: encoder)]
         }
     }
 }
@@ -472,13 +513,15 @@ func example() {
         // .encodeMetadata(using: CompositeMetadataEncoder())
         // .decodeMetadata(using: CompositeMetadataDecoder())
         // .mapOutputMetadata { $0 ?? [] }
-        .encode(["stock.isin"], using: RoutingEncoder())
+        //.encode(["stock.isin"], using: RoutingEncoder())
         // With Swift 5.5 we can write it like this:
-        // .encode(["stock.isin"], using: .routing)
+        .encode(["stock.isin"], using: .routing)
+        //.encodeMetadata(using: .routing)
+        //.finalizeInputMetadata(["stock.isin"])
         .decodeData(using: [DataDecoder.json(type: Price.self)])
         .encodeAsJSON(type: ISIN.self)
+        
         .finalizeOutputMetadata()
-        .finalizeInputMetadata()
         .mapInputData{ (stock: Stock) in stock.isin }
     
     let request = priceRequest.finalizeInputData(.init(isin: .init(isin: "CA0585861085")))

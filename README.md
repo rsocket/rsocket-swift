@@ -20,18 +20,18 @@ The implementation is split into multiple modules. This allows a user of this pa
 `RSocketCore`, as the name implies, contains the core logic which every other module depends on.
 The other modules are grouped in one of three categories:
 
-* **Channel** - convenience client bootstrap implementation which configures a SwiftNIO Channel Pipeline and takes care of TLS/SSL, EventLoopGroup creation and shutdown. Either `RSocketTSChannel` which uses swift-nio-transport-services (i.e. Network.framework) or `RSocketNIOChanel` which uses `swift-nio-ssl` for TLS/SSL and the default channel implementation for a TCP connection.
+* **Channel** - convenience client bootstrap implementation which configures a SwiftNIO Channel Pipeline and takes care of TLS/SSL, EventLoopGroup creation and shutdown. Either `RSocketTSChannel` which uses swift-nio-transport-services (i.e. Network.framework) or `RSocketNIOChannel` which uses `swift-nio-ssl` for TLS/SSL and the default channel implementation for a TCP connection.
 
-* **Transport Protocol** - RSocket can run on top of any message oriented transport protocol. `RSocketWSTransport` contains channel handlers which allow RSocket to run over WebSocket. `RSocketTCPTransport` is the equivalent for a plain TCP connection.
+* **Transport Protocol** - RSocket can run on top of any message-stream oriented transport protocol. `RSocketWSTransport` contains channel handlers which allow RSocket to run over WebSocket. `RSocketTCPTransport` is the equivalent for a plain TCP connection.
 
 * **Reactive Streams** - RSocket Swift lets you choose which implementation of Reactive Streams you want to use. ReactiveSwift is implemented, Combine and [async/await/AsyncSequence](https://github.com/rsocket/rsocket-swift/pull/44) are work in progress. You can also mix two reactive stream libraries and do some requests with Combine and some with async/await over the same connection.
 
 A User will usually only chose one from each category. 
 
 ## Current State
-All [Mandatory Core Protocol Features](https://rsocket.io/docs/implementations) have been implemented and tested agains the Java and Kotlin implementation.
+All [Mandatory Core Protocol Features](https://rsocket.io/docs/implementations) have been implemented and tested against the Java and Kotlin implementation.
 Working examples can be found under [Sources/Examples](https://github.com/rsocket/rsocket-swift/tree/main/Sources/Examples). [TimerClient](https://github.com/rsocket/rsocket-swift/blob/main/Sources/Examples/TimerClient/main.swift) and [TwitterClient](https://github.com/rsocket/rsocket-swift/blob/main/Sources/Examples/TwitterClient/main.swift) connect to [demo.rsocket.io/rsocket](http://demo.rsocket.io/) where a [Kotlin Server is running](https://github.com/rsocket/rsocket-demo/tree/master/src/main/kotlin/io/rsocket/demo/) and work without running a server locally.
-The Client API has currently a lot more convenience API's and is a lot simpler than the Server API. If you want to create an RSocket Server you need to create you own SwiftNIO pipeline and setup SSL/TLS yourself. But this should improve in the future as we implement [some RSocket extensions](https://github.com/rsocket/rsocket/tree/master/Extensions) like [Routing](https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md).
+The Client API has currently a lot more convenience API's and is a lot simpler than the Server API. If you want to create an RSocket Server you need to create you own SwiftNIO pipeline and setup SSL/TLS yourself. This will be improved in the future as we implement [some RSocket extensions](https://github.com/rsocket/rsocket/tree/master/Extensions) like [Routing](https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md).
 
 ### Transport
 - [x] WebSocket

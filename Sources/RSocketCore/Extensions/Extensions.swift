@@ -308,7 +308,7 @@ extension Request {
         )
     }
     func mapInputMetadata<NewInputMetadata>(
-        transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata
+        _ transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata
     ) -> Request<NewInputMetadata, InputData, OutputMetadata, OutputData> {
         mapMetadata(
             transformInputMetadata: transformInputMetadata,
@@ -316,7 +316,7 @@ extension Request {
         )
     }
     func mapOutputMetadata<NewOutputMetadata>(
-        transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata
+        _ transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata
     ) -> Request<InputMetadata, InputData, NewOutputMetadata, OutputData> {
         mapMetadata(
             transformInputMetadata: { $0 },
@@ -324,7 +324,7 @@ extension Request {
         )
     }
     func mapInputData<NewInputData>(
-        transformInputData: @escaping (NewInputData) throws -> InputData
+        _ transformInputData: @escaping (NewInputData) throws -> InputData
     ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> {
         mapData(
             transformInputData: transformInputData,
@@ -332,7 +332,7 @@ extension Request {
         )
     }
     func mapOutputData<NewOutputData>(
-        transformOutputData: @escaping (OutputData) throws -> NewOutputData
+        _ transformOutputData: @escaping (OutputData) throws -> NewOutputData
     ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputData> {
         mapData(
             transformInputData: { $0 },
@@ -373,7 +373,7 @@ extension Request where InputMetadata == Data?, OutputMetadata == Data? {
 }
 
 extension Request where InputMetadata == [CompositeMetadata] {
-    func encode<Encoder>(
+    func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata,
         using encoder: Encoder
     ) -> Self where Encoder: MetadataEncoder {
@@ -395,14 +395,36 @@ extension Request where InputMetadata == [CompositeMetadata] {
 
 // MARK: - Data Encoder
 
+struct DataEncoder<Value> {
+    var mimeType: MIMEType
+    private var _encode: (Value) throws -> Data
+    
+    init(mimeType: MIMEType, encode: @escaping (Value) throws -> Data) {
+        self._encode = encode
+        self.mimeType = mimeType
+    }
+    
+    func encode(_ value: Value) throws -> Data {
+        try _encode(value)
+    }
+}
+
+extension DataEncoder {
+    static func json(
+        type: Value.Type = Value.self,
+        using encoder: JSONEncoder = .init()
+    ) -> Self where Value: Encodable {
+        .init(mimeType: .applicationJson, encode: encoder.encode(_:))
+    }
+}
+
 extension Request where InputMetadata == [CompositeMetadata], InputData == Data {
-    func encodeAsJSON<NewInputData>(
-        type: NewInputData.Type = NewInputData.self,
-        using encoder: JSONEncoder = .init(),
+    func encodeData<NewInputData>(
+        using encoder: DataEncoder<NewInputData>,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
-    ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> where NewInputData: Encodable {
-        encode(.applicationJson, using: dataMIMETypeEncoder)
-            .mapInputData(transformInputData: encoder.encode)
+    ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> {
+        encodeMetadata(.applicationJson, using: dataMIMETypeEncoder)
+            .mapInputData(encoder.encode)
     }
 }
 
@@ -436,12 +458,13 @@ extension DataDecoder {
 extension Request where OutputData == Data, InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
     func decodeData<NewOutputValue>(
         using decoder: [DataDecoder<NewOutputValue>],
-        acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init()
+        acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
+        dataMIMETypeDecoder: DataMIMETypeDecoder = .init()
     ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputValue> {
         let supportedEncodings = decoder.map(\.mimeType)
-        return encode(supportedEncodings, using: acceptableDataMIMETypeEncoder)
+        return encodeMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
             .mapOutput { metadata, data in
-                guard let dataEncoding = try metadata.decodeFirst(using: DataMIMETypeDecoder()) else {
+                guard let dataEncoding = try metadata.decodeFirst(using: dataMIMETypeDecoder) else {
                     throw Error.invalid(message: "Data MIME Type not found in metadata")
                 }
                 guard let decoder = decoder.first(where: { $0.mimeType == dataEncoding }) else {
@@ -454,48 +477,49 @@ extension Request where OutputData == Data, InputMetadata == [CompositeMetadata]
 }
 
 extension Request where OutputData == Data {
-    func decodeAsJSON<NewOutputData>(
-        type: NewOutputData.Type = NewOutputData.self,
-        using decoder: JSONDecoder = .init()
-    ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputData> where NewOutputData: Decodable {
-        mapOutputData { data in
-            try decoder.decode(NewOutputData.self, from: data)
-        }
+    /// unconditionally decodes data with the given `decoder`
+    func decodeData<NewOutputValue>(
+        using decoder: DataDecoder<NewOutputValue>
+    ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputValue> {
+        mapOutputData(decoder.decode(from:))
     }
 }
 
-// MARK: - finalize
+// MARK: - erase
 
 extension Request {
-    func finalizeInputMetadata(_ metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
+    func eraseInputMetadata(_ metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
         mapInputMetadata { metadata }
     }
 }
 
 extension Request where InputMetadata == Data? {
-    func finalizeInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-        finalizeInputMetadata(nil)
+    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
+        eraseInputMetadata(nil)
     }
 }
 
 extension Request where InputMetadata == [CompositeMetadata] {
-    func finalizeInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-        finalizeInputMetadata([])
+    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
+        eraseInputMetadata([])
     }
 }
 
 extension Request {
-    func finalizeInputData(_ inputData: InputData) -> Request<InputMetadata, Void, OutputMetadata, OutputData> {
-        mapInputData(transformInputData: { inputData })
-    }
-}
-
-extension Request {
-    func finalizeOutputMetadata() -> Request<InputMetadata, InputData, Void, OutputData> {
+    func eraseOutputMetadata() -> Request<InputMetadata, InputData, Void, OutputData> {
         mapOutputMetadata { _ in }
     }
 }
 
+typealias AnyRequest<RequestData, ResponseData> = Request<Void, RequestData, Void, ResponseData>
+
+extension Request where InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
+    func eraseMetadata() -> AnyRequest<InputData, OutputData>  {
+        self
+            .eraseInputMetadata()
+            .eraseOutputMetadata()
+    }
+}
 
 func example() {
     struct Stock: Codable {
@@ -513,18 +537,14 @@ func example() {
         // .encodeMetadata(using: CompositeMetadataEncoder())
         // .decodeMetadata(using: CompositeMetadataDecoder())
         // .mapOutputMetadata { $0 ?? [] }
-        //.encode(["stock.isin"], using: RoutingEncoder())
+        .encodeMetadata(["stock.isin"], using: RoutingEncoder())
         // With Swift 5.5 we can write it like this:
-        .encode(["stock.isin"], using: .routing)
-        //.encodeMetadata(using: .routing)
-        //.finalizeInputMetadata(["stock.isin"])
-        .decodeData(using: [DataDecoder.json(type: Price.self)])
-        .encodeAsJSON(type: ISIN.self)
-        
-        .finalizeOutputMetadata()
-        .mapInputData{ (stock: Stock) in stock.isin }
-    
-    let request = priceRequest.finalizeInputData(.init(isin: .init(isin: "CA0585861085")))
+        //.encode(["stock.isin"], using: .routing)
+        .encodeData(using: .json(type: ISIN.self))
+        .decodeData(using: [.json(type: Price.self)])
+        .mapOutputData(\.price)
+        .mapInputData(ISIN.init(isin:))
+        .eraseMetadata()
 }
 
 extension Request where InputMetadata == Void, InputData == Void {

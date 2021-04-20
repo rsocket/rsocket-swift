@@ -90,7 +90,7 @@ final class KeepaliveHandlerTests: XCTestCase {
         let frame = try XCTUnwrap(try channel.readOutbound(as: Frame.self))
         switch frame.body {
         case let .error(body):
-            XCTAssertEqual(body.error.kind, .connectionClose)
+            XCTAssertEqual(body.error.code, .connectionClose)
         default:
             XCTFail("connection should be closed but \(frame) was send")
         }

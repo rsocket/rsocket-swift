@@ -78,10 +78,10 @@ internal struct SetupValidator {
     }
 
     private func getSetupBody(_ frame: Frame) throws -> SetupFrameBody {
-        guard frame.header.streamId == .connection else {
+        guard frame.streamId == .connection else {
             throw Error.invalidSetup(message: "connection needs to be setup on stream 0")
         }
-        guard frame.header.type != .resume else {
+        guard frame.body.type != .resume else {
             throw Error.rejectedResume(message: "resume is not supported")
         }
         guard case let .setup(setup) = frame.body else {

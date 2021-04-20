@@ -19,21 +19,24 @@
 
  For example, response to a request, or message on a channel.
  */
-internal struct PayloadFrameBody: Hashable {
+internal struct PayloadFrameBody: Hashable, FragmentableFrameBody {
+    /// If true, this is a fragment and at least another payload frame will follow
+    internal var fragmentFollows: Bool = false
+    
     /// If this frame marks the completion of the stream
-    internal let isCompletion: Bool
+    internal var isCompletion: Bool
 
     /// If this is a new payload
-    internal let isNext: Bool
+    internal var isNext: Bool
 
     /// Payload for Reactive Streams `onNext`
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension PayloadFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .payload(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        var flags = FrameFlags()
         if payload.metadata != nil {
             flags.insert(.metadata)
         }
@@ -42,6 +45,9 @@ extension PayloadFrameBody: FrameBodyBoundToStream {
         }
         if isNext {
             flags.insert(.payloadNext)
+        }
+        if fragmentFollows {
+            flags.insert(.fragmentFollows)
         }
         return FrameHeader(streamId: streamId, type: .payload, flags: flags)
     }

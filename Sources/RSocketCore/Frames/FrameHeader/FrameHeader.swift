@@ -18,11 +18,11 @@ internal struct FrameHeader: Hashable {
     internal static let lengthInBytes = 6
 
     /// The id of the corresponding stream
-    internal let streamId: StreamID
+    internal var streamId: StreamID
 
     /// The type of the frame
-    internal let type: FrameType
+    internal var type: FrameType
 
     /// The flags that are set on the frame
-    internal let flags: FrameFlags
+    internal var flags: FrameFlags
 }

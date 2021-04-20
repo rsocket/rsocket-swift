@@ -23,10 +23,10 @@ import Foundation
  */
 public struct Payload: Hashable {
     /// Optional metadata of this payload
-    public let metadata: Data?
+    public var metadata: Data?
 
     /// Payload for Reactive Streams `onNext`
-    public let data: Data
+    public var data: Data
 
     public init(
         metadata: Data? = nil,
@@ -34,5 +34,14 @@ public struct Payload: Hashable {
     ) {
         self.metadata = metadata
         self.data = data
+    }
+}
+
+extension Payload: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        if metadata == nil && data.isEmpty {
+            return ".empty"
+        }
+        return "Payload(metadata: \(metadata?.debugDescription ?? "nil"), data: \(data.debugDescription))"
     }
 }

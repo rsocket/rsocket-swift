@@ -66,7 +66,7 @@ internal struct RequesterAdapter: RSocket {
     }
 }
 
-extension RequesterAdapter {
+extension RSocket {
     func fireAndForget<InputData>(
         _ request: Request<Void, InputData, Never, Never>,
         data: InputData

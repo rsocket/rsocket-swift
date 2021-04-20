@@ -1,17 +1,17 @@
 import ArgumentParser
 import Foundation
 import ReactiveSwift
-import RSocketCore
+@testable import RSocketCore
 import RSocketNIOChannel
-import RSocketReactiveSwift
+@testable import RSocketReactiveSwift
 import RSocketWSTransport
 
-func route(_ route: String) -> Data {
-    let encodedRoute = Data(route.utf8)
-    precondition(encodedRoute.count <= Int(UInt8.max), "route is to long to be encoded")
-    let encodedRouteLength = Data([UInt8(encodedRoute.count)])
-
-    return encodedRouteLength + encodedRoute
+extension DataDecoder {
+    static var utf8: DataDecoder<String> {
+        .init(mimeType: .textPlain) { data in
+            String(decoding: data, as: UTF8.self)
+        }
+    }
 }
 
 extension URL: ExpressibleByArgument {
@@ -46,12 +46,14 @@ struct TimerClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
+        
+        let request = Request()
+            .useCompositeMetadata()
+            .encodeMetadata(["timer"], using: .routing)
+            .decodeData(using: .utf8)
+            .eraseMetadata()
 
-        try client.requester.requestStream(payload: Payload(
-            metadata: route("timer"),
-            data: Data()
-        ))
-        .map() { String.init(decoding: $0.data, as: UTF8.self) }
+        try client.requester.requestStream(request, data: Data())
         .logEvents(identifier: "route.timer")
         .take(first: limit)
         .wait()

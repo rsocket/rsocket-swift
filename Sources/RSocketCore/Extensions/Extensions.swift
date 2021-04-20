@@ -274,13 +274,16 @@ extension Request {
             return try transform(metadata, data)
         }
     }
-    func mapInput<NewOutputMetadata, NewOutputData>(
-        _ transform: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
-    ) -> Request<InputMetadata, InputData, NewOutputMetadata, NewOutputData> {
-        .init(transformInput: self.transformInput) { payload in
-            let (metadata, data) = try self.transformOutput(payload)
-            return try transform(metadata, data)
-        }
+    func mapInput<NewInputMetadata, NewInputData>(
+        _ transform: @escaping (NewInputMetadata, NewInputData) throws -> (InputMetadata, InputData)
+    ) -> Request<NewInputMetadata, NewInputData, OutputMetadata, OutputData> {
+        .init(
+            transformInput: { newMetadata, newData in
+                let (metadata, data) = try transform(newMetadata, newData)
+                return try self.transformInput(metadata, data)
+            },
+            transformOutput: transformOutput
+        )
     }
 }
 
@@ -410,6 +413,16 @@ struct DataEncoder<Value> {
 }
 
 extension DataEncoder {
+    func map<NewValue>(
+        _ transform: @escaping (NewValue) throws -> Value
+    ) -> DataEncoder<NewValue> {
+        .init(mimeType: mimeType) { value in
+            try _encode(try transform(value))
+        }
+    }
+}
+
+extension DataEncoder {
     static func json(
         type: Value.Type = Value.self,
         using encoder: JSONEncoder = .init()
@@ -441,6 +454,16 @@ struct DataDecoder<Value> {
     
     func decode(from data: Data) throws -> Value {
         try _decode(data)
+    }
+}
+
+extension DataDecoder {
+    func map<NewValue>(
+        _ transform: @escaping (Value) throws -> NewValue
+    ) -> DataDecoder<NewValue> {
+        .init(mimeType: mimeType) { data in
+            try transform(try _decode(data))
+        }
     }
 }
 

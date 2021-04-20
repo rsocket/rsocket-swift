@@ -18,7 +18,7 @@ import NIO
 
 internal struct ErrorFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: ErrorFrameBody, into buffer: inout ByteBuffer) throws {
-        buffer.writeInteger(frame.error.code)
+        buffer.writeInteger(frame.error.code.rawValue)
         if !frame.error.message.isEmpty {
             let bytesWritten = buffer.writeString(frame.error.message)
             guard bytesWritten > 0 else {

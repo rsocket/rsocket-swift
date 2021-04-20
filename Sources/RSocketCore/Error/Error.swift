@@ -14,238 +14,28 @@
  * limitations under the License.
  */
 
-/**
- Errors are used on individual requests/streams as well
- as connection errors and in response to `SETUP` frames.
- */
-public enum Error: Swift.Error, Hashable {
-    enum Kind {
-        /// Reserved
-        case reservedLower
-        /**
-         The Setup frame is invalid for the server (it could be that the client is too recent for the old server)
 
-         Stream ID MUST be `0`.
-         */
-        case invalidSetup
-        /**
-         Some (or all) of the parameters specified by the client are unsupported by the server
-
-         Stream ID MUST be `0`.
-         */
-        case unsupportedSetup
-        /**
-         Some (or all) of the parameters specified by the client are unsupported by the server
-
-         Stream ID MUST be `0`.
-         */
-        case rejectedSetup
-        /**
-         The server rejected the resume, it can specify the reason in the payload
-
-         Stream ID MUST be `0`.
-         */
-        case rejectedResume
-        /**
-         The connection is being terminated
-
-         Stream ID MUST be `0`. Sender or Receiver of this frame MAY close the connection immediately without waiting for outstanding streams to terminate.
-         */
-        case connectionError
-        /**
-         The connection is being terminated
-
-         Stream ID MUST be `0`. Sender or Receiver of this frame MUST wait for outstanding streams to terminate before closing the connection. New requests MAY not be accepted.
-         */
-        case connectionClose
-        /**
-         Application layer logic generating a Reactive Streams `onError` event
-
-         Stream ID MUST be > `0`.
-         */
-        case applicationError
-        /**
-         Despite being a valid request, the Responder decided to reject it
-
-         Stream ID MUST be > `0`. The Responder guarantees that it didn't process the request. The reason for the rejection is explained in the Error Data section.
-         */
-        case rejected
-        /**
-         The Responder canceled the request but may have started processing it (similar to `REJECTED` but doesn't guarantee lack of side-effects)
-
-         Stream ID MUST be > `0`.
-         */
-        case canceled
-        /**
-         The request is invalid
-
-         Stream ID MUST be > `0`.
-         */
-        case invalid
-        /// Reserved for Extension Use
-        case reservedUpper
-        /// Error code not listed in this enumeration.
-        case other
+public struct Error: Swift.Error, Hashable {
+    public struct Code: RawRepresentable, Hashable {
+        
+        public var rawValue: UInt32
+        
+        public init(rawValue: UInt32) {
+            self.rawValue = rawValue
+        }
     }
-    /// Reserved
-    case reservedLower(message: String)
-
-    /**
-     The Setup frame is invalid for the server (it could be that the client is too recent for the old server)
-
-     Stream ID MUST be `0`.
-     */
-    case invalidSetup(message: String)
-
-    /**
-     Some (or all) of the parameters specified by the client are unsupported by the server
-
-     Stream ID MUST be `0`.
-     */
-    case unsupportedSetup(message: String)
-
-    /**
-     The server rejected the setup, it can specify the reason in the payload
-
-     Stream ID MUST be `0`.
-     */
-    case rejectedSetup(message: String)
-
-    /**
-     The server rejected the resume, it can specify the reason in the payload
-
-     Stream ID MUST be `0`.
-     */
-    case rejectedResume(message: String)
-
-    /**
-     The connection is being terminated
-
-     Stream ID MUST be `0`. Sender or Receiver of this frame MAY close the connection immediately without waiting for outstanding streams to terminate.
-     */
-    case connectionError(message: String)
-
-    /**
-     The connection is being terminated
-
-     Stream ID MUST be `0`. Sender or Receiver of this frame MUST wait for outstanding streams to terminate before closing the connection. New requests MAY not be accepted.
-     */
-    case connectionClose(message: String)
-
-    /**
-     Application layer logic generating a Reactive Streams `onError` event
-
-     Stream ID MUST be > `0`.
-     */
-    case applicationError(message: String)
-
-    /**
-     Despite being a valid request, the Responder decided to reject it
-
-     Stream ID MUST be > `0`. The Responder guarantees that it didn't process the request. The reason for the rejection is explained in the Error Data section.
-     */
-    case rejected(message: String)
-
-    /**
-     The Responder canceled the request but may have started processing it (similar to `REJECTED` but doesn't guarantee lack of side-effects)
-
-     Stream ID MUST be > `0`.
-     */
-    case canceled(message: String)
-
-    /**
-     The request is invalid
-
-     Stream ID MUST be > `0`.
-     */
-    case invalid(message: String)
-
-    /// Reserved for Extension Use
-    case reservedUpper(message: String)
-
-    /// Error code not listed in this enumeration.
-    case other(code: UInt32, message: String)
+    
+    public var code: Code
+    
+    public var message: String
+    
+    public init(code: Error.Code, message: String) {
+        self.code = code
+        self.message = message
+    }
 }
 
-extension Error {
-    var kind: Kind {
-        switch self {
-        case .reservedLower: return .reservedLower
-        case .invalidSetup: return .invalidSetup
-        case .unsupportedSetup: return .unsupportedSetup
-        case .rejectedSetup: return .rejectedSetup
-        case .rejectedResume: return .rejectedResume
-        case .connectionError: return .connectionError
-        case .connectionClose: return .connectionClose
-        case .applicationError: return .applicationError
-        case .rejected: return .rejected
-        case .canceled: return .canceled
-        case .invalid: return .invalid
-        case .reservedUpper: return .reservedUpper
-        case .other: return .other
-        }
-    }
-    public var code: UInt32 {
-        switch self {
-        case .reservedLower:
-            return 0x00000000
-
-        case .invalidSetup:
-            return 0x00000001
-
-        case .unsupportedSetup:
-            return 0x00000002
-
-        case .rejectedSetup:
-            return 0x00000003
-
-        case .rejectedResume:
-            return 0x00000004
-
-        case .connectionError:
-            return 0x00000101
-
-        case .connectionClose:
-            return 0x00000102
-
-        case .applicationError:
-            return 0x00000201
-
-        case .rejected:
-            return 0x00000202
-
-        case .canceled:
-            return 0x00000203
-
-        case .invalid:
-            return 0x00000204
-
-        case .reservedUpper:
-            return 0xFFFFFFFF
-
-        case let .other(code: code, message: _):
-            return code
-        }
-    }
-
-    public var message: String {
-        switch self {
-        case let .reservedLower(message: message),
-             let .invalidSetup(message: message),
-             let .unsupportedSetup(message: message),
-             let .rejectedSetup(message: message),
-             let .rejectedResume(message: message),
-             let .connectionError(message: message),
-             let .connectionClose(message: message),
-             let .applicationError(message: message),
-             let .rejected(message: message),
-             let .canceled(message: message),
-             let .invalid(message: message),
-             let .reservedUpper(message: message),
-             let .other(code: _, message: message):
-            return message
-        }
-    }
+extension Error.Code {
     public var isConnectionError: Bool {
         switch self {
         case .invalidSetup,
@@ -255,65 +45,204 @@ extension Error {
              .connectionError,
              .connectionClose:
             return true
-        case .reservedLower,
-             .applicationError,
-             .rejected,
-             .canceled,
-             .invalid,
-             .reservedUpper,
-             .other:
-            return false
+        default: return false
         }
     }
     public var isProtocolError: Bool {
-        0x0001 <= code && code <= 0x00300
+        (0x0001...0x00300).contains(rawValue)
     }
 
     public var isApplicationLayerError: Bool {
-        0x00301 <= code && code <= 0xFFFFFFFE
+        (0x00301...0xFFFFFFFE).contains(rawValue)
     }
+}
 
-    public init(code: UInt32, message: String) {
-        switch code {
-        case 0x00000000:
-            self = .reservedLower(message: message)
+/// Error codes defined by RSocket
+extension Error.Code {
+    /// Reserved
+    static let reservedLower = Self(rawValue: 0x00000000)
+    
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
 
-        case 0x00000001:
-            self = .invalidSetup(message: message)
+     Stream ID MUST be `0`.
+     */
+    static let invalidSetup = Self(rawValue: 0x00000001)
+    
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
 
-        case 0x00000002:
-            self = .unsupportedSetup(message: message)
+     Stream ID MUST be `0`.
+     */
+    static let unsupportedSetup = Self(rawValue: 0x00000002)
+    
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
 
-        case 0x00000003:
-            self = .rejectedSetup(message: message)
+     Stream ID MUST be `0`.
+     */
+    static let rejectedSetup = Self(rawValue: 0x00000003)
+    
+    /**
+     The server rejected the resume, it can specify the reason in the payload
 
-        case 0x00000004:
-            self = .rejectedResume(message: message)
+     Stream ID MUST be `0`.
+     */
+    static let rejectedResume = Self(rawValue: 0x00000004)
+    
+    /**
+     The connection is being terminated
 
-        case 0x00000101:
-            self = .connectionError(message: message)
+     Stream ID MUST be `0`. Sender or Receiver of this frame MAY close the connection immediately without waiting for outstanding streams to terminate.
+     */
+    static let connectionError = Self(rawValue: 0x00000101)
+    
+    /**
+     The connection is being terminated
 
-        case 0x00000102:
-            self = .connectionClose(message: message)
+     Stream ID MUST be `0`. Sender or Receiver of this frame MUST wait for outstanding streams to terminate before closing the connection. New requests MAY not be accepted.
+     */
+    static let connectionClose = Self(rawValue: 0x00000102)
+    
+    /**
+     Application layer logic generating a Reactive Streams `onError` event
 
-        case 0x00000201:
-            self = .applicationError(message: message)
+     Stream ID MUST be > `0`.
+     */
+    public static let applicationError = Self(rawValue: 0x00000201)
+    
+    /**
+     Despite being a valid request, the Responder decided to reject it
 
-        case 0x00000202:
-            self = .rejected(message: message)
+     Stream ID MUST be > `0`. The Responder guarantees that it didn't process the request. The reason for the rejection is explained in the Error Data section.
+     */
+    public static let rejected = Self(rawValue: 0x00000202)
+    
+    /**
+     The Responder canceled the request but may have started processing it (similar to `REJECTED` but doesn't guarantee lack of side-effects)
 
-        case 0x00000203:
-            self = .canceled(message: message)
+     Stream ID MUST be > `0`.
+     */
+    public static let canceled = Self(rawValue: 0x00000203)
+    
+    /**
+     The request is invalid
 
-        case 0x00000204:
-            self = .invalid(message: message)
+     Stream ID MUST be > `0`.
+     */
+    public static let invalid = Self(rawValue: 0x00000204)
+    
+    /// Reserved for Extension Use
+    static let reservedUpper = Self(rawValue: 0xFFFFFFFF)
+}
 
-        case 0xFFFFFFFF:
-            self = .reservedUpper(message: message)
-
-        default:
-            self = .other(code: code, message: message)
+extension Error.Code: CustomStringConvertible {
+    private var name: String? {
+        switch self {
+        case .reservedLower: return "reservedLower"
+        case .invalidSetup: return "invalidSetup"
+        case .unsupportedSetup: return "unsupportedSetup"
+        case .rejectedSetup: return "rejectedSetup"
+        case .rejectedResume: return "rejectedResume"
+        case .connectionError: return "connectionError"
+        case .connectionClose: return "connectionClose"
+        case .applicationError: return "applicationError"
+        case .rejected: return "rejected"
+        case .canceled: return "canceled"
+        case .invalid: return "invalid"
+        case .reservedUpper: return "reservedUpper"
+        default: return nil
         }
+    }
+    public var description: String {
+        guard let name = name else {
+            return "customError(code: \(rawValue))"
+        }
+        return name
+    }
+}
+
+/// - MARK: Convenience Initialiser
+extension Error {
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
+
+     Stream ID MUST be `0`.
+     */
+    static func invalidSetup(message: String) -> Self {
+        .init(code: .invalidSetup, message: message)
+    }
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
+
+     Stream ID MUST be `0`.
+     */
+    static func unsupportedSetup(message: String) -> Self {
+        .init(code: .unsupportedSetup, message: message)
+    }
+    /**
+     Some (or all) of the parameters specified by the client are unsupported by the server
+
+     Stream ID MUST be `0`.
+     */
+    static func rejectedSetup(message: String) -> Self {
+        .init(code: .rejectedSetup, message: message)
+    }
+    /**
+     The server rejected the resume, it can specify the reason in the payload
+
+     Stream ID MUST be `0`.
+     */
+    static func rejectedResume(message: String) -> Self {
+        .init(code: .rejectedResume, message: message)
+    }
+    /**
+     The connection is being terminated
+
+     Stream ID MUST be `0`. Sender or Receiver of this frame MAY close the connection immediately without waiting for outstanding streams to terminate.
+     */
+    static func connectionError(message: String) -> Self {
+        .init(code: .connectionError, message: message)
+    }
+    /**
+     The connection is being terminated
+
+     Stream ID MUST be `0`. Sender or Receiver of this frame MUST wait for outstanding streams to terminate before closing the connection. New requests MAY not be accepted.
+     */
+    static func connectionClose(message: String) -> Self {
+        .init(code: .connectionClose, message: message)
+    }
+    /**
+     Application layer logic generating a Reactive Streams `onError` event
+
+     Stream ID MUST be > `0`.
+     */
+    public static func applicationError(message: String) -> Self {
+        .init(code: .applicationError, message: message)
+    }
+    /**
+     Despite being a valid request, the Responder decided to reject it
+
+     Stream ID MUST be > `0`. The Responder guarantees that it didn't process the request. The reason for the rejection is explained in the Error Data section.
+     */
+    public static func rejected(message: String) -> Self {
+        .init(code: .rejected, message: message)
+    }
+    /**
+     The Responder canceled the request but may have started processing it (similar to `REJECTED` but doesn't guarantee lack of side-effects)
+
+     Stream ID MUST be > `0`.
+     */
+    public static func canceled(message: String) -> Self {
+        .init(code: .canceled, message: message)
+    }
+    /**
+     The request is invalid
+
+     Stream ID MUST be > `0`.
+     */
+    public static func invalid(message: String) -> Self {
+        .init(code: .invalid, message: message)
     }
 }
 
@@ -327,6 +256,6 @@ extension Error {
     /// - Returns: Error Frame
     internal func asFrame(withStreamId streamId: StreamID) -> Frame {
         ErrorFrameBody(error: self)
-            .asFrame(withStreamId: isConnectionError ? .connection : streamId)
+            .asFrame(withStreamId: code.isConnectionError ? .connection : streamId)
     }
 }

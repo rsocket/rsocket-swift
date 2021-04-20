@@ -70,7 +70,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
             .channelInitializer { [config, transport] channel in
                 transport.addChannelHandler(
                     channel: channel,
-                    maximumIncomingFragmentSize: config.limits.maximumIncomingFragmentSize,
+                    maximumIncomingFragmentSize: config.fragmentation.maximumIncomingFragmentSize,
                     endpoint: endpoint
                 ) {
                     channel.pipeline.addRSocketClientHandlers(

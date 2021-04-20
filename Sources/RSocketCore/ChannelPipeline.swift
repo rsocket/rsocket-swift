@@ -57,7 +57,7 @@ extension ChannelPipeline {
         }
         return addHandlers([
             FrameDecoderHandler(),
-            FrameEncoderHandler(maximumFrameSize: config.limits.maximumOutgoingFragmentSize),
+            FrameEncoderHandler(maximumFrameSize: config.fragmentation.maximumOutgoingFragmentSize),
             ConnectionStateHandler(),
             SetupWriter(
                 timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
@@ -102,7 +102,7 @@ extension ChannelPipeline {
         requesterLateFrameHandler: ((Frame) -> Void)? = nil,
         responderLateFrameHandler: ((Frame) -> Void)? = nil
     ) -> EventLoopFuture<Void> {
-        let maximumFrameSize = maximumFrameSize ?? ClientConfiguration.Limits.default.maximumIncomingFragmentSize
+        let maximumFrameSize = maximumFrameSize ?? ClientConfiguration.Fragmentation.default.maximumIncomingFragmentSize
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),

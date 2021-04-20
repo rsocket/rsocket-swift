@@ -63,7 +63,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
                     transport.addChannelHandler(
                         channel: channel,
-                        maximumIncomingFragmentSize: config.limits.maximumIncomingFragmentSize,
+                        maximumIncomingFragmentSize: config.fragmentation.maximumIncomingFragmentSize,
                         endpoint: endpoint
                     ) {
                         channel.pipeline.addRSocketClientHandlers(

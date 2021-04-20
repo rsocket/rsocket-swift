@@ -79,7 +79,7 @@ internal final class DemultiplexerHandler: ChannelInboundHandler {
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        let route = router.route(for: frame.header.streamId, type: frame.header.type)
+        let route = router.route(for: frame.streamId, type: frame.body.type)
         if route.contains(.connection) {
             context.fireChannelRead(wrapInboundOut(frame))
         }

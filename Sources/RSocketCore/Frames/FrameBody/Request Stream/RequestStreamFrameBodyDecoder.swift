@@ -29,6 +29,7 @@ internal struct RequestStreamFrameBodyDecoder: FrameBodyDecoding {
         }
         let payload = try payloadDecoder.decode(from: &buffer, hasMetadata: header.flags.contains(.metadata))
         return RequestStreamFrameBody(
+            fragmentFollows: header.flags.contains(.fragmentFollows),
             initialRequestN: initialRequestN,
             payload: payload
         )

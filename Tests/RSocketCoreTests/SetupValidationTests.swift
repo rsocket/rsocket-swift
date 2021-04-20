@@ -52,14 +52,14 @@ final class SetupValidationTests: XCTestCase {
         XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.version = Version(major: 1, minor: 1)
         }).asFrame())){ error in
-            XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
+            XCTAssertEqual((error as? RSocketCore.Error)?.code, .unsupportedSetup)
         }
     }
     func testLeaseIsNotSupported() {
         XCTAssertThrowsError(try validator.validate(frame: goodSetup.modify({
             $0.honorsLease = true
         }).asFrame())){ error in
-            XCTAssertEqual((error as? RSocketCore.Error)?.kind, .unsupportedSetup)
+            XCTAssertEqual((error as? RSocketCore.Error)?.code, .unsupportedSetup)
         }
     }
     func testResumeIsRejected() {
@@ -69,7 +69,7 @@ final class SetupValidationTests: XCTestCase {
             lastReceivedServerPosition: 5,
             firstAvailableClientPosition: 6
         ).asFrame())) { error in
-            XCTAssertEqual((error as? RSocketCore.Error)?.kind, .rejectedResume)
+            XCTAssertEqual((error as? RSocketCore.Error)?.code, .rejectedResume)
         }
     }
 }

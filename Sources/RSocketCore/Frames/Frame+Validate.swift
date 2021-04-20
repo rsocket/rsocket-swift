@@ -22,7 +22,7 @@ extension Frame {
         switch body {
         case let .error(body):
             if streamId == .connection {
-                switch body.error {
+                switch body.error.code {
                 case .invalidSetup, .unsupportedSetup, .rejectedSetup, .connectionError, .connectionClose:
                     break
 
@@ -30,11 +30,11 @@ extension Frame {
                     throw Error.connectionError(message: "The given error code is not valid for this streamId")
                 }
             } else {
-                switch body.error {
+                switch body.error.code {
                 case .applicationError, .rejected, .canceled, .invalid:
                     break
 
-                case .other where body.error.isApplicationLayerError:
+                case _ where body.error.code.isApplicationLayerError:
                     break
 
                 default:

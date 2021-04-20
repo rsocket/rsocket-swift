@@ -29,6 +29,7 @@ public protocol TransportChannelHandler {
     associatedtype Endpoint: RSocketCore.Endpoint
     func addChannelHandler(
         channel: Channel,
+        maximumIncomingFragmentSize: Int,
         endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void>

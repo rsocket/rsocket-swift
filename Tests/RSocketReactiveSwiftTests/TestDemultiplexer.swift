@@ -30,7 +30,7 @@ struct TestDemultiplexer {
     }
     
     func receiveFrame(frame: Frame) {
-        let route = router.route(for: frame.header.streamId, type: frame.header.type)
+        let route = router.route(for: frame.streamId, type: frame.body.type)
         if route.contains(.connection) {
             XCTFail("connection message not expected \(frame)")
         }

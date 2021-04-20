@@ -22,7 +22,7 @@ internal struct ResumeOkFrameBody: Hashable {
 
 extension ResumeOkFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .resumeOk(self) }
-    func header(additionalFlags: FrameFlags) -> FrameHeader {
-        FrameHeader(streamId: .connection, type: .resumeOk, flags: additionalFlags)
+    func header() -> FrameHeader {
+        FrameHeader(streamId: .connection, type: .resumeOk, flags: [])
     }
 }

@@ -35,8 +35,8 @@ internal final class Responder {
     }
 
     internal func receiveInbound(frame: Frame) {
-        let streamId = frame.header.streamId
-        if streamId == .connection && frame.header.type == .error {
+        let streamId = frame.streamId
+        if streamId == .connection && frame.body.type == .error {
             activeStreams.values.forEach { $0.receive(frame: frame) }
             return
         }
@@ -50,7 +50,7 @@ internal final class Responder {
             return
         }
         
-        guard frame.header.type.canCreateStream else {
+        guard frame.body.type.canCreateStream else {
             lateFrameHandler?(frame)
             return
         }

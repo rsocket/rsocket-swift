@@ -39,7 +39,7 @@ internal struct FrameEncoder: FrameEncoding {
     private let extensionEncoder = ExtensionFrameBodyEncoder()
 
     internal func encode(frame: Frame, into buffer: inout ByteBuffer) throws {
-        try headerEncoder.encode(header: frame.header, into: &buffer)
+        try headerEncoder.encode(header: frame.makeHeader(), into: &buffer)
         switch frame.body {
         case let .setup(body):
             try setupEncoder.encode(frame: body, into: &buffer)

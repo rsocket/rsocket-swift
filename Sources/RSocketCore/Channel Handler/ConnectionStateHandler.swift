@@ -26,7 +26,7 @@ extension ConnectionStateHandler: ChannelInboundHandler {
 
     internal func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        switch (frame.header.streamId, frame.header.type) {
+        switch (frame.streamId, frame.body.type) {
         case (.connection, .error):
             context.close(mode: .all).whenComplete { _ in
                 context.fireChannelRead(data)
@@ -45,7 +45,7 @@ extension ConnectionStateHandler: ChannelOutboundHandler {
         guard !isConnectionClosed else { return }
         let future = context.write(data)
         let frame = unwrapOutboundIn(data)
-        switch (frame.header.streamId, frame.header.type) {
+        switch (frame.streamId, frame.body.type) {
         case (.connection, .error):
             isConnectionClosed = true
             future.flatMap {

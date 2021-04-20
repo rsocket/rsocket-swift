@@ -38,7 +38,7 @@ internal struct FragmentedFrameAssembler {
                 }
                 fragments.additionalFragments.append(body.payload)
                 fragments.isCompletion = body.isCompletion
-                guard body.isCompletion || !frame.header.flags.contains(.fragmentFollows) else {
+                guard body.isCompletion || !body.fragmentFollows else {
                     self.fragments = fragments
                     return .incomplete
                 }
@@ -76,7 +76,7 @@ internal struct FragmentedFrameAssembler {
         guard fragments == nil else {
             return .error(reason: "Current set of fragments is not complete")
         }
-        if frame.header.flags.contains(.fragmentFollows) {
+        if frame.body.fragmentsFollows {
             fragments = Fragments(initialFrame: frame)
             return .incomplete
         } else {
@@ -133,19 +133,19 @@ private struct Fragments {
         switch initialFrame.body {
         case .requestResponse:
             let newFrame = RequestResponseFrameBody(payload: newPayload)
-                .asFrame(withStreamId: initialFrame.header.streamId)
+                .asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case .requestFnf:
             let newFrame = RequestFireAndForgetFrameBody(payload: newPayload)
-                .asFrame(withStreamId: initialFrame.header.streamId)
+                .asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case let .requestStream(body):
             let newFrame = RequestStreamFrameBody(
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case let .requestChannel(body):
@@ -153,7 +153,7 @@ private struct Fragments {
                 isCompleted: isCompletion,
                 initialRequestN: body.initialRequestN,
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         case .payload:
@@ -161,7 +161,7 @@ private struct Fragments {
                 isCompletion: isCompletion,
                 isNext: true, // only frames that have isNext can be fragmented
                 payload: newPayload
-            ).asFrame(withStreamId: initialFrame.header.streamId)
+            ).asFrame(withStreamId: initialFrame.streamId)
             return .success(newFrame)
 
         default:

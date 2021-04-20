@@ -21,13 +21,13 @@ import RSocketCore
 final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
-    private let config: ClientSetupConfig
+    private let config: ClientConfiguration
     private let transport: Transport
     private let sslContext: NIOSSLContext?
 
     public init(
-        config: ClientSetupConfig,
         transport: Transport,
+        config: ClientConfiguration,
         timeout: TimeAmount = .seconds(30),
         sslContext: NIOSSLContext? = nil
     ) {
@@ -53,6 +53,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
     }
     public func connect(
         to endpoint: Transport.Endpoint,
+        payload: Payload,
         responder: RSocketCore.RSocket?
     ) -> EventLoopFuture<CoreClient> {
         let requesterPromise = group.next().makePromise(of: RSocketCore.RSocket.self)
@@ -60,9 +61,14 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
         let connectFuture = bootstrap
             .channelInitializer { [transport, config, sslContext] channel in
                 let otherHandlersBlock: () -> EventLoopFuture<Void> = {
-                    transport.addChannelHandler(channel: channel, endpoint: endpoint) {
+                    transport.addChannelHandler(
+                        channel: channel,
+                        maximumIncomingFragmentSize: config.fragmentation.maximumIncomingFragmentSize,
+                        endpoint: endpoint
+                    ) {
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
+                            setupPayload: payload,
                             responder: responder,
                             connectedPromise: requesterPromise
                         )

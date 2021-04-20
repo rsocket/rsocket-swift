@@ -40,7 +40,7 @@ final class KeepaliveHandlerTests: XCTestCase {
         try channel.writeInbound(frame)
 
         XCTAssertEqual(
-            try channel.readOutbound(as: Frame.self)?.header.type, .keepalive,
+            try channel.readOutbound(as: Frame.self)?.body.type, .keepalive,
             "Should have received KeepAliveFrame in response"
         )
         XCTAssertTrue(try channel.finish().isClean)
@@ -75,22 +75,22 @@ final class KeepaliveHandlerTests: XCTestCase {
         
         clock.advance(by: 1)
         loop.advanceTime(by: .seconds(1))
-        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.body.type, .keepalive)
         
         clock.advance(by: 1)
         loop.advanceTime(by: .seconds(1))
-        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.body.type, .keepalive)
         
         clock.advance(by: 1)
         loop.advanceTime(by: .seconds(1))
-        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.header.type, .keepalive)
+        XCTAssertEqual(try channel.readOutbound(as: Frame.self)?.body.type, .keepalive)
         
         clock.advance(by: 1)
         loop.advanceTime(by: .seconds(1))
         let frame = try XCTUnwrap(try channel.readOutbound(as: Frame.self))
         switch frame.body {
         case let .error(body):
-            XCTAssertEqual(body.error.kind, .connectionClose)
+            XCTAssertEqual(body.error.code, .connectionClose)
         default:
             XCTFail("connection should be closed but \(frame) was send")
         }

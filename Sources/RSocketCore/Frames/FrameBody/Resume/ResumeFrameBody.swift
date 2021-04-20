@@ -23,21 +23,21 @@ import Foundation
  */
 internal struct ResumeFrameBody: Hashable {
     /// version of the client protocol implementation
-    internal let version: Version
+    internal var version: Version
 
     /// Token used for client resume identification
-    internal let resumeIdentificationToken: Data
+    internal var resumeIdentificationToken: Data
 
     /// The last implied position the client received from the server
-    internal let lastReceivedServerPosition: Int64
+    internal var lastReceivedServerPosition: Int64
 
     /// The earliest position that the client can rewind back to prior to resending frames
-    internal let firstAvailableClientPosition: Int64
+    internal var firstAvailableClientPosition: Int64
 }
 
 extension ResumeFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .resume(self) }
-    func header(additionalFlags: FrameFlags) -> FrameHeader {
-        FrameHeader(streamId: .connection, type: .resume, flags: additionalFlags)
+    func header() -> FrameHeader {
+        FrameHeader(streamId: .connection, type: .resume, flags: [])
     }
 }

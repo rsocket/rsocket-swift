@@ -15,17 +15,23 @@
  */
 
 /// Request single response
-internal struct RequestResponseFrameBody: Hashable {
+internal struct RequestResponseFrameBody: Hashable, FragmentableFrameBody {
+    /// If true, this is a fragment and at least another payload frame will follow
+    internal var fragmentFollows: Bool = false
+    
     /// Identification of the service being requested along with parameters for the request
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension RequestResponseFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .requestResponse(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        var flags = FrameFlags()
         if payload.metadata != nil {
             flags.insert(.metadata)
+        }
+        if fragmentFollows {
+            flags.insert(.fragmentFollows)
         }
         return FrameHeader(streamId: streamId, type: .requestResponse, flags: flags)
     }

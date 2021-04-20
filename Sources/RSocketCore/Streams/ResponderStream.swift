@@ -78,7 +78,7 @@ final internal class ResponderStream {
                         responderStream: adapter
                     ))
                 default:
-                    if !frame.header.flags.contains(.ignore) {
+                    if !frame.body.canBeIgnored {
                         send(frame: Error.connectionError(message: "Frame is not requesting new stream").asFrame(withStreamId: id))
                     }
                     return
@@ -106,7 +106,7 @@ final internal class ResponderStream {
             break
 
         case let .error(reason):
-            if !frame.header.flags.contains(.ignore) {
+            if !frame.body.canBeIgnored {
                 send(frame: Error.canceled(message: reason).asFrame(withStreamId: id))
             }
         }

@@ -15,6 +15,12 @@
  */
 
 internal struct Frame: Hashable {
-    internal let header: FrameHeader
-    internal let body: FrameBody
+    internal var streamId: StreamID
+    internal var body: FrameBody
+}
+
+extension Frame {
+    internal func makeHeader() -> FrameHeader {
+        body.header(withStreamId: streamId)
+    }
 }

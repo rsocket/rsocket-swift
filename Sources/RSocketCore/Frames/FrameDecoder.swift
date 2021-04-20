@@ -94,6 +94,6 @@ internal struct FrameDecoder: FrameDecoding {
         case .ext:
             body = try extensionDecoder.decode(from: &buffer, header: header).body()
         }
-        return Frame(header: header, body: body)
+        return Frame(streamId: header.streamId, body: body)
     }
 }

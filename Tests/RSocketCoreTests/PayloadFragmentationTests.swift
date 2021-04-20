@@ -76,13 +76,13 @@ final class FireAndForgetFragmentationTests: PayloadFragmentationTests {
     }
 }
 final class StreamFragmentationTests: PayloadFragmentationTests {
-    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override var initialFragmentBodyHeaderSize: Int { 4 }
     override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestStreamFrameBody(initialRequestN: 3, payload: payload).asFrame(withStreamId: 8)
     }
 }
 class ChannelFragmentationTests: PayloadFragmentationTests {
-    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override var initialFragmentBodyHeaderSize: Int { 4 }
     override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestChannelFrameBody(isCompleted: isCompletion, initialRequestN: 4, payload: payload).asFrame(withStreamId: 9)
     }
@@ -95,10 +95,10 @@ final class ChannelCompletionFragmentationTests: ChannelFragmentationTests {
 
 
 class PayloadFragmentationTests: XCTestCase {
-    var initialFragmentBodyHeaderSize: Int32 { 0 }
-    private var initialFragmentBodyHeaderSizeWithMetadata: Int32 { initialFragmentBodyHeaderSize + 3 }
-    private var frameHeaderSize: Int32 { initialFragmentBodyHeaderSize + 6 }
-    private var frameHeaderSizeWithMetadata: Int32 { frameHeaderSize + 3 }
+    var initialFragmentBodyHeaderSize: Int { 0 }
+    private var initialFragmentBodyHeaderSizeWithMetadata: Int { initialFragmentBodyHeaderSize + 3 }
+    private var frameHeaderSize: Int { initialFragmentBodyHeaderSize + 6 }
+    private var frameHeaderSizeWithMetadata: Int { frameHeaderSize + 3 }
     
     func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         PayloadFrameBody(isCompletion: isCompletion, isNext: isNext, payload: payload).asFrame(withStreamId: 4)

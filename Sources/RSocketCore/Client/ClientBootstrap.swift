@@ -20,8 +20,15 @@ public protocol ClientBootstrap {
     associatedtype Client
     associatedtype Responder
     associatedtype Transport: TransportChannelHandler
+    
+    /// Creates a new connection to the given `endpoint`.
+    /// - Parameters:
+    ///   - endpoint: endpoint to connect to
+    ///   - payload: user defined `Payload` which is send in the initial setup frame
+    ///   - responder: responder which is used to accept incoming requests. Defaults to a responder which rejects all incoming requests
     func connect(
         to endpoint: Transport.Endpoint,
+        payload: Payload,
         responder: Responder?
     ) -> EventLoopFuture<Client>
 }

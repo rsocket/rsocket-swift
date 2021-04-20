@@ -22,9 +22,9 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
 
     private let frameEncoder = FrameEncoder()
     
-    private let maximumFrameSize: Int32
+    private let maximumFrameSize: Int
     
-    internal init(maximumFrameSize: Int32) {
+    internal init(maximumFrameSize: Int) {
         self.maximumFrameSize = maximumFrameSize
     }
 

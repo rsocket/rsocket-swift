@@ -40,7 +40,7 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     override func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
-        maximumFrameSize: Int32? = nil,
+        maximumFrameSize: Int? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
@@ -62,8 +62,8 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
     }
     override func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
-        maximumFrameSize: Int32? = nil,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -76,8 +76,8 @@ final class NetworkFrameworkEndToEndTests: EndToEndTests {
                 ]).flatMap {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
+                        setupPayload: setupPayload,
                         responder: responderSocket,
-                        maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }

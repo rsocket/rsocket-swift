@@ -27,7 +27,7 @@ extension Payload {
     
     /// combined size of metadata and data.
     /// - Note: this does not include the extra 3 bytes which is needed to encode the metadata length in some frames
-    public var size: Int32 { Int32((metadata?.count ?? 0) + data.count) }
+    public var size: Int { (metadata?.count ?? 0) + data.count }
 }
 
 extension Payload: ExpressibleByStringLiteral {

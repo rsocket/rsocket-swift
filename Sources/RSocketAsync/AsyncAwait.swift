@@ -27,7 +27,7 @@ public struct RequesterAdapter: RSocket {
     }
     public func requestResponse(payload: Payload) async throws -> Payload {
         struct RequestResponseOperator: UnidirectionalStream {
-            var continuation: UnsafeContinuation<Payload, Swift.Error>
+            var continuation: CheckedContinuation<Payload, Swift.Error>
             func onNext(_ payload: Payload, isCompletion: Bool) {
                 assert(isCompletion)
                 continuation.resume(returning: payload)
@@ -55,7 +55,7 @@ public struct RequesterAdapter: RSocket {
         }
         var cancelable: Cancellable?
         defer { cancelable?.onCancel() }
-        return try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Payload, Swift.Error>) in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Payload, Swift.Error>) in
             let stream = RequestResponseOperator(continuation: continuation)
             cancelable = requester.requestResponse(payload: payload, responderStream: stream)
         }

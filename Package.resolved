@@ -21,10 +21,10 @@
       },
       {
         "package": "swift-nio",
-        "repositoryURL": "https://github.com/adam-fowler/swift-nio",
+        "repositoryURL": "https://github.com/apple/swift-nio",
         "state": {
-          "branch": "async-available",
-          "revision": "b5d6a06204d87cfe24ed2f19e59936d5875d543b",
+          "branch": "main",
+          "revision": "f6936ae8132e14c64ed971764065e6842358fde0",
           "version": null
         }
       },

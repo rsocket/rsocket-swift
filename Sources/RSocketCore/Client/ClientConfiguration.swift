@@ -78,11 +78,11 @@ public struct ClientConfiguration {
         }
     }
     
-    /// local limits configuration which are **not** send to the server
-    public struct Limits {
+    /// local fragmentation configuration which are **not** send to the server
+    public struct Fragmentation {
         
-        /// limits incoming and outgoing frames to *2 to the power of 14* (16.384) bytes
-        public static let `default` = Limits()
+        /// limits incoming and outgoing frames to *2 to the power of 24* (16,777,215) bytes
+        public static let `default` = Fragmentation()
         
         /// Maximum size of incoming RSocket frames in **bytes**.
         /// This limit is does not effect the maximum size of a frame after reassembly.
@@ -96,8 +96,8 @@ public struct ClientConfiguration {
         public var maximumOutgoingFragmentSize: Int
         
         public init(
-            maximumIncomingFragmentSize: Int = 1 << 14,
-            maximumOutgoingFragmentSize: Int = 1 << 14
+            maximumIncomingFragmentSize: Int = 1 << 24,
+            maximumOutgoingFragmentSize: Int = 1 << 24
         ) {
             self.maximumIncomingFragmentSize = maximumIncomingFragmentSize
             self.maximumOutgoingFragmentSize = maximumOutgoingFragmentSize
@@ -111,17 +111,17 @@ public struct ClientConfiguration {
     /// encoding configuration of metadata and data which is send to the server during setup
     public var encoding: Encoding
     
-    /// local limits configuration which are **not** send to the server
-    public var limits: Limits
+    /// local fragmentation configuration which are **not** send to the server
+    public var fragmentation: Fragmentation
     
     public init(
         timeout: Timeout,
         encoding: Encoding = .default,
-        limits: Limits = .default
+        fragmentation: Fragmentation = .default
     ) {
         self.timeout = timeout
         self.encoding = encoding
-        self.limits = limits
+        self.fragmentation = fragmentation
     }
 }
 

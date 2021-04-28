@@ -19,6 +19,7 @@ import NIO
 /// Writes a setup frame when the channel becomes active and removes itself immediately afterwards
 internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
+    typealias InboundOut = Frame
     typealias OutboundOut = Frame
     private let timeBetweenKeepaliveFrames: Int32
     private let maxLifetime: Int32

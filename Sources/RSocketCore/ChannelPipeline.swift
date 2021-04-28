@@ -17,6 +17,160 @@
 import Foundation
 import NIO
 
+public struct PipelineBuilder<InboundIn, OutboundOut> {
+    fileprivate var handlers: [ChannelHandler]
+    public init() where InboundIn == ByteBuffer, OutboundOut == ByteBuffer { self.init(inboundIn: InboundIn.self, outboundOut: OutboundOut.self) }
+    public init(inboundIn: InboundIn.Type, outboundOut: OutboundOut.Type) {
+        self.init(handlers: [])
+    }
+    private init(inboundIn: InboundIn.Type = InboundIn.self, outboundOut: OutboundOut.Type = OutboundOut.self, handlers: [ChannelHandler]) {
+        self.handlers = []
+    }
+}
+
+extension PipelineBuilder {
+    public func add<Handler: ChannelInboundHandler>(
+        _ handler: Handler
+    ) -> PipelineBuilder<Handler.InboundOut, OutboundOut> where Handler.InboundIn == InboundIn, Handler.OutboundOut == OutboundOut {
+        .init(handlers: handlers + CollectionOfOne(handler as ChannelHandler))
+    }
+    public func add<Handler: ChannelInboundHandler>(
+        _ handler: Handler
+    ) -> PipelineBuilder<Handler.InboundOut, OutboundOut> where Handler.InboundIn == InboundIn, Handler.OutboundOut == Never {
+        .init(handlers: handlers + CollectionOfOne(handler as ChannelHandler))
+    }
+    public func add<Handler: ChannelOutboundHandler>(
+        _ handler: Handler
+    ) -> PipelineBuilder<InboundIn, Handler.OutboundIn> where Handler.OutboundOut == OutboundOut {
+        .init(handlers: handlers + CollectionOfOne(handler as ChannelHandler))
+    }
+    public func add<Handler: ChannelOutboundHandler & ChannelInboundHandler>(
+        _ handler: Handler
+    ) -> PipelineBuilder<Handler.InboundOut, Handler.OutboundIn> where Handler.OutboundOut == OutboundOut, Handler.InboundIn == InboundIn {
+        .init(handlers: handlers + CollectionOfOne(handler as ChannelHandler))
+    }
+}
+
+extension ChannelPipeline {
+    public func addHandlers<Inbound, Outbound>(_ pipeline: PipelineBuilder<Inbound, Outbound>) -> EventLoopFuture<Void> {
+        addHandlers(pipeline.handlers)
+    }
+    public func addHandlers<InboundIn, InboundOut, OutboundIn, OutboundOut>(
+        inboundIn: InboundIn.Type = InboundIn.self,
+        outboundOut: OutboundOut.Type = OutboundOut.self,
+        buildPipeline: (PipelineBuilder<InboundIn, OutboundOut>) -> PipelineBuilder<InboundOut, OutboundIn>
+    ) -> EventLoopFuture<Void> {
+        addHandlers(buildPipeline(PipelineBuilder(inboundIn: inboundIn, outboundOut: outboundOut)))
+    }
+}
+
+
+
+func test(requester: Requester, responder: Responder) {
+    let a = PipelineBuilder(inboundIn: ByteBuffer.self, outboundOut: ByteBuffer.self)
+        .add(FrameDecoderHandler())
+        .add(FrameEncoderHandler(maximumFrameSize: .max))
+        .add(ConnectionStateHandler())
+        .add(SetupWriter(
+            timeBetweenKeepaliveFrames: 0,
+            maxLifetime: 0,
+            metadataEncodingMimeType: MIMEType.octetStream.rawValue,
+            dataEncodingMimeType: MIMEType.octetStream.rawValue,
+            payload: .empty,
+            connectedPromise: nil
+        ))
+        .add(DemultiplexerHandler(
+            connectionSide: .client,
+            requester: requester,
+            responder: responder
+        ))
+        .add(KeepaliveHandler(
+            timeBetweenKeepaliveFrames: 0,
+            maxLifetime: 0,
+            connectionSide: .client
+        ))
+}
+
+extension PipelineBuilder where InboundIn == ByteBuffer, OutboundOut == ByteBuffer {
+    func addRSocketClientHandlers(
+        config: ClientConfiguration,
+        setupPayload: Payload,
+        responder: Responder,
+        requester: Requester
+    ) throws -> PipelineBuilder<Never, Frame> {
+        let (timeBetweenKeepaliveFrames, maxLifetime) = try config.validateKeepalive()
+        return add(FrameDecoderHandler())
+                .add(FrameEncoderHandler(maximumFrameSize: config.fragmentation.maximumOutgoingFragmentSize))
+                .add(ConnectionStateHandler())
+                .add(SetupWriter(
+                    timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                    maxLifetime: maxLifetime,
+                    metadataEncodingMimeType: config.encoding.metadata.rawValue,
+                    dataEncodingMimeType: config.encoding.data.rawValue,
+                    payload: setupPayload,
+                    connectedPromise: nil
+                ))
+                .add(DemultiplexerHandler(
+                    connectionSide: .client,
+                    requester: requester,
+                    responder: responder
+                ))
+                .add(KeepaliveHandler(
+                    timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                    maxLifetime: maxLifetime,
+                    connectionSide: ConnectionRole.client
+                ))
+        
+    }
+}
+
+extension ChannelPipeline {
+    public func addRSocketClientHandlers_withNewPipelineBuilder(
+        config: ClientConfiguration,
+        setupPayload: Payload,
+        responder: RSocket? = nil,
+        connectedPromise: EventLoopPromise<RSocket>? = nil
+    ) -> EventLoopFuture<Void> {
+        let sendFrame: (Frame) -> () = { [weak self] frame in
+            self?.writeAndFlush(NIOAny(frame), promise: nil)
+        }
+        let promise = eventLoop.makePromise(of: Void.self)
+        let requester = Requester(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: sendFrame)
+        promise.futureResult.map { requester as RSocket }.cascade(to: connectedPromise)
+        let (timeBetweenKeepaliveFrames, maxLifetime): (Int32, Int32)
+        do {
+            (timeBetweenKeepaliveFrames, maxLifetime) = try config.validateKeepalive()
+        } catch {
+            promise.fail(error)
+            return promise.futureResult
+        }
+        return addHandlers(inboundIn: ByteBuffer.self, outboundOut: ByteBuffer.self) { pipeline in
+            pipeline
+                .add(FrameDecoderHandler())
+                .add(FrameEncoderHandler(maximumFrameSize: config.fragmentation.maximumOutgoingFragmentSize))
+                .add(ConnectionStateHandler())
+                .add(SetupWriter(
+                    timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                    maxLifetime: maxLifetime,
+                    metadataEncodingMimeType: config.encoding.metadata.rawValue,
+                    dataEncodingMimeType: config.encoding.data.rawValue,
+                    payload: setupPayload,
+                    connectedPromise: promise
+                ))
+                .add(DemultiplexerHandler(
+                    connectionSide: .client,
+                    requester: requester,
+                    responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
+                ))
+                .add(KeepaliveHandler(
+                    timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+                    maxLifetime: maxLifetime,
+                    connectionSide: ConnectionRole.client
+                ))
+        }
+    }
+}
+
 extension ChannelPipeline {
     public func addRSocketClientHandlers(
         config: ClientConfiguration,

@@ -27,7 +27,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
-        .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
+        // TODO: WebSocketFrameAggregator is not yet release in an official version. Change to "from: ..." when swift-nio release a new version
+        .package(url: "https://github.com/apple/swift-nio", .revision("6befe13e234e7fa4be6e0e9d8f9d06ee18bb589c")),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
         .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4"),

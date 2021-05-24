@@ -20,20 +20,6 @@ import NIOHTTP1
 import NIOWebSocket
 import RSocketCore
 
-/// generates 16 bytes randomly and encodes them as a base64 string as defined in RFC6455 https://tools.ietf.org/html/rfc6455#section-4.1
-/// - Returns: base64 encoded string
-fileprivate func randomRequestKey() -> String {
-    /// we may want to use `randomBytes(count:)` once the proposal is accepted: https://forums.swift.org/t/pitch-requesting-larger-amounts-of-randomness-from-systemrandomnumbergenerator/27226
-    let lower = UInt64.random(in: UInt64.min...UInt64.max)
-    let upper = UInt64.random(in: UInt64.min...UInt64.max)
-    let data = withUnsafeBytes(of: lower) { lowerBytes in
-        withUnsafeBytes(of: upper) { upperBytes in
-            Data(lowerBytes) + Data(upperBytes)
-        }
-    }
-    return data.base64EncodedString()
-}
-
 public struct WSTransport {
     public struct Endpoint {
         public var url: URL
@@ -84,7 +70,6 @@ extension WSTransport: TransportChannelHandler {
             additionalHTTPHeader: endpoint.additionalHTTPHeader
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
-            requestKey: randomRequestKey(),
             maxFrameSize: maximumIncomingFragmentSize,
             upgradePipelineHandler: { channel, _ in
                 channel.pipeline.addHandlers([

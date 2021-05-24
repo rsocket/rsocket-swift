@@ -27,7 +27,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.6.0"),
-        .package(url: "https://github.com/apple/swift-nio", from: "2.26.0"),
+        /// TODO: use `from: "2.30.0"` after swift-nio releases a new minior version
+        .package(url: "https://github.com/apple/swift-nio", .branch("main")),
         .package(url: "https://github.com/apple/swift-nio-extras", from: "1.8.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services", from: "1.9.2"),
         .package(url: "https://github.com/apple/swift-nio-ssl", from: "2.10.4"),

@@ -32,12 +32,10 @@ protocol NIOServerTCPBootstrapProtocol {
 extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
-    static let defaultClientSetup = ClientSetupConfig(
-        timeBetweenKeepaliveFrames: 100,
-        maxLifetime: 1000,
-        metadataEncodingMimeType: "utf8",
-        dataEncodingMimeType: "utf8"
+    static let defaultClientSetup = ClientConfiguration(
+        timeout: .init(timeBetweenKeepaliveFrames: 100, maxLifetime: 1000)
     )
+    
     let host = "127.0.0.1"
     
     /// Maximum count of parallel `thing`s a tests sends.
@@ -81,7 +79,8 @@ class EndToEndTests: XCTestCase {
     }
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOClientTCPBootstrapProtocol {
@@ -91,7 +90,11 @@ class EndToEndTests: XCTestCase {
                     ByteToMessageHandler(LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes)),
                     LengthFieldPrepender(lengthFieldBitLength: .threeBytes),
                 ]).flatMap {
-                    channel.pipeline.addRSocketClientHandlers(config: config, responder: responderSocket)
+                    channel.pipeline.addRSocketClientHandlers(
+                        config: config,
+                        setupPayload: setupPayload,
+                        responder: responderSocket
+                    )
                 }
             }
     }

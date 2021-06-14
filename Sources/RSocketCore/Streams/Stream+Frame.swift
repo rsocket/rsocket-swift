@@ -28,7 +28,7 @@ extension Cancellable {
                 canBeIgnored: body.canBeIgnored
             )
         default:
-            if !frame.header.flags.contains(.ignore) {
+            if !frame.body.canBeIgnored {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active cancelable")
             }
         }
@@ -51,7 +51,7 @@ extension Subscription {
                 canBeIgnored: body.canBeIgnored
             )
         default:
-            if !frame.header.flags.contains(.ignore) {
+            if !frame.body.canBeIgnored {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active subscription")
             }
         }
@@ -82,7 +82,7 @@ extension UnidirectionalStream {
                 canBeIgnored: body.canBeIgnored
             )
         default:
-            if !frame.header.flags.contains(.ignore) {
+            if !frame.body.canBeIgnored {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active unidirectional stream")
             }
         }

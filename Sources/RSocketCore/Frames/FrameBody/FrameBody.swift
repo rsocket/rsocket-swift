@@ -86,3 +86,98 @@ extension FrameBody {
         }
     }
 }
+
+extension FrameBody {
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        switch self {
+        case let .setup(body): return body.header(withStreamId: streamId)
+        case let .lease(body): return body.header(withStreamId: streamId)
+        case let .keepalive(body): return body.header(withStreamId: streamId)
+        case let .requestResponse(body): return body.header(withStreamId: streamId)
+        case let .requestFnf(body): return body.header(withStreamId: streamId)
+        case let .requestStream(body): return body.header(withStreamId: streamId)
+        case let .requestChannel(body): return body.header(withStreamId: streamId)
+        case let .requestN(body): return body.header(withStreamId: streamId)
+        case let .cancel(body): return body.header(withStreamId: streamId)
+        case let .payload(body): return body.header(withStreamId: streamId)
+        case let .error(body): return body.header(withStreamId: streamId)
+        case let .metadataPush(body): return body.header(withStreamId: streamId)
+        case let .resume(body): return body.header(withStreamId: streamId)
+        case let .resumeOk(body): return body.header(withStreamId: streamId)
+        case let .ext(body): return body.header(withStreamId: streamId)
+        }
+    }
+}
+
+extension FrameBody {
+    /// If the frame can be ignored
+    var canBeIgnored: Bool {
+        guard case let .ext(body) = self else { return false }
+        return body.canBeIgnored
+    }
+}
+
+extension FrameBody {
+    /// If true, this is a fragment and at least another payload frame will follow
+    var fragmentsFollows: Bool {
+        switch self {
+        case let .requestResponse(body): return body.fragmentFollows
+        case let .requestFnf(body): return body.fragmentFollows
+        case let .requestStream(body): return body.fragmentFollows
+        case let .requestChannel(body): return body.fragmentFollows
+        case let .payload(body): return body.fragmentFollows
+        default: return false
+        }
+    }
+}
+
+/// creates a description of `body` which looks like the description of an enum where each property of the body is an associated value.
+/// It also removes the redundant `FrameBody` suffix from each type name.
+/// - `PayloadFrameBody(isComplete: true, isNext: false)` will be transformed into `".payload(isComplete: true, isNext: false)"`
+fileprivate func descriptionOfBody<T>(_ body: T) -> String {
+    let typeName = normalizeFrameBodyTypeName(T.self)
+    return ".\(typeName)(\(descriptionsOfProperties(body)))"
+}
+
+/// lowercases the first char of the type name of `T` and removes the `FrameBody` suffix.
+/// - e.g. `RequestResponseFrameBody` becomes `"requestResponse"`
+fileprivate func normalizeFrameBodyTypeName<T>(_ type: T.Type) -> String {
+    let name = String(describing: T.self)
+    guard let firstChar = name.first else { return name }
+    return String(firstChar.lowercased() + name.dropFirst().replacingOccurrences(of: "FrameBody", with: ""))
+}
+
+/// creates a description of all stored properties in the usual format. Property name and value are delimited by `: ` and are then joined by `, `.
+/// - e.g. PayloadFrameBody(isComplete: true, isNext: false) becomes `"isComplete: true, isNext: false"`
+fileprivate func descriptionsOfProperties<T>(_ body: T) -> String {
+    Mirror(reflecting: body).children.compactMap({
+        guard let label = $0.label else { return nil }
+        return "\(label): \(debugDescription(of: $0.value))"
+    }).joined(separator: ", ")
+}
+
+fileprivate func debugDescription(of value: Any) -> String {
+    (value as? CustomDebugStringConvertible)?.debugDescription ?? String(describing: value)
+}
+
+extension FrameBody: CustomDebugStringConvertible {
+    var debugDescription: String {
+        switch self {
+        case let .setup(body): return descriptionOfBody(body)
+        case let .lease(body): return descriptionOfBody(body)
+        case let .keepalive(body): return descriptionOfBody(body)
+        case let .requestResponse(body): return descriptionOfBody(body)
+        case let .requestFnf(body): return descriptionOfBody(body)
+        case let .requestStream(body): return descriptionOfBody(body)
+        case let .requestChannel(body): return descriptionOfBody(body)
+        case let .requestN(body): return descriptionOfBody(body)
+        case let .cancel(body): return descriptionOfBody(body)
+        case let .payload(body): return descriptionOfBody(body)
+        case let .error(body): return descriptionOfBody(body)
+        case let .metadataPush(body): return descriptionOfBody(body)
+        case let .resume(body): return descriptionOfBody(body)
+        case let .resumeOk(body): return descriptionOfBody(body)
+        case let .ext(body): return descriptionOfBody(body)
+        }
+    }
+}

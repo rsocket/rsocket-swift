@@ -73,6 +73,7 @@ extension WSTransport.Endpoint: Endpoint {
 extension WSTransport: TransportChannelHandler {
     public func addChannelHandler(
         channel: Channel,
+        maximumIncomingFragmentSize: Int,
         endpoint: Endpoint,
         upgradeComplete: @escaping () -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
@@ -84,6 +85,7 @@ extension WSTransport: TransportChannelHandler {
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
             requestKey: randomRequestKey(),
+            maxFrameSize: maximumIncomingFragmentSize,
             upgradePipelineHandler: { channel, _ in
                 channel.pipeline.addHandlers([
                     WebSocketFrameToByteBuffer(),
@@ -100,5 +102,5 @@ extension WSTransport: TransportChannelHandler {
         )
         return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config)
             .flatMap { channel.pipeline.addHandler(httpHandler) }
-        }
+    }
 }

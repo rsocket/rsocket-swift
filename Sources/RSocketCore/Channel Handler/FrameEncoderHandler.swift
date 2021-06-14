@@ -22,9 +22,9 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
 
     private let frameEncoder = FrameEncoder()
     
-    private let maximumFrameSize: Int32
+    private let maximumFrameSize: Int
     
-    internal init(maximumFrameSize: Int32) {
+    internal init(maximumFrameSize: Int) {
         self.maximumFrameSize = maximumFrameSize
     }
 
@@ -41,7 +41,7 @@ final class FrameEncoderHandler: ChannelOutboundHandler {
             context.flush()
         } catch {
             assertionFailure("encoding \(frame) failed \(error)")
-            if frame.header.flags.contains(.ignore) {
+            if frame.body.canBeIgnored {
                 return
             }
             context.fireErrorCaught(error)

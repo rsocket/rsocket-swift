@@ -20,11 +20,26 @@ import NIO
 internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
-    private let setup: ClientSetupConfig
+    private let timeBetweenKeepaliveFrames: Int32
+    private let maxLifetime: Int32
+    private let metadataEncodingMimeType: String
+    private let dataEncodingMimeType: String
+    private let payload: Payload
     private let connectedPromise: EventLoopPromise<Void>?
-
-    internal init(config: ClientSetupConfig, connectedPromise: EventLoopPromise<Void>? = nil) {
-        self.setup = config
+    
+    internal init(
+        timeBetweenKeepaliveFrames: Int32,
+        maxLifetime: Int32,
+        metadataEncodingMimeType: String,
+        dataEncodingMimeType: String,
+        payload: Payload,
+        connectedPromise: EventLoopPromise<Void>?
+    ) {
+        self.timeBetweenKeepaliveFrames = timeBetweenKeepaliveFrames
+        self.maxLifetime = maxLifetime
+        self.metadataEncodingMimeType = metadataEncodingMimeType
+        self.dataEncodingMimeType = dataEncodingMimeType
+        self.payload = payload
         self.connectedPromise = connectedPromise
     }
     
@@ -39,16 +54,17 @@ internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler
     }
     
     private func onActive(context: ChannelHandlerContext) {
-        context.writeAndFlush(self.wrapOutboundOut(SetupFrameBody(
+        let setup = SetupFrameBody(
             honorsLease: false,
             version: .current,
-            timeBetweenKeepaliveFrames: setup.timeBetweenKeepaliveFrames,
-            maxLifetime: setup.maxLifetime,
+            timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,
+            maxLifetime: maxLifetime,
             resumeIdentificationToken: nil,
-            metadataEncodingMimeType: setup.metadataEncodingMimeType,
-            dataEncodingMimeType: setup.dataEncodingMimeType,
-            payload: setup.payload
-        ).asFrame()), promise: nil)
+            metadataEncodingMimeType: metadataEncodingMimeType,
+            dataEncodingMimeType: dataEncodingMimeType,
+            payload: payload
+        )
+        context.writeAndFlush(self.wrapOutboundOut(setup.asFrame()), promise: nil)
         context.channel.pipeline.removeHandler(context: context).eventLoop.assertInEventLoop()
         connectedPromise?.succeed(())
     }

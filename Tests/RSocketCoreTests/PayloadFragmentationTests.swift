@@ -76,13 +76,13 @@ final class FireAndForgetFragmentationTests: PayloadFragmentationTests {
     }
 }
 final class StreamFragmentationTests: PayloadFragmentationTests {
-    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override var initialFragmentBodyHeaderSize: Int { 4 }
     override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestStreamFrameBody(initialRequestN: 3, payload: payload).asFrame(withStreamId: 8)
     }
 }
 class ChannelFragmentationTests: PayloadFragmentationTests {
-    override var initialFragmentBodyHeaderSize: Int32 { 4 }
+    override var initialFragmentBodyHeaderSize: Int { 4 }
     override func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         RequestChannelFrameBody(isCompleted: isCompletion, initialRequestN: 4, payload: payload).asFrame(withStreamId: 9)
     }
@@ -95,10 +95,10 @@ final class ChannelCompletionFragmentationTests: ChannelFragmentationTests {
 
 
 class PayloadFragmentationTests: XCTestCase {
-    var initialFragmentBodyHeaderSize: Int32 { 0 }
-    private var initialFragmentBodyHeaderSizeWithMetadata: Int32 { initialFragmentBodyHeaderSize + 3 }
-    private var frameHeaderSize: Int32 { initialFragmentBodyHeaderSize + 6 }
-    private var frameHeaderSizeWithMetadata: Int32 { frameHeaderSize + 3 }
+    var initialFragmentBodyHeaderSize: Int { 0 }
+    private var initialFragmentBodyHeaderSizeWithMetadata: Int { initialFragmentBodyHeaderSize + 3 }
+    private var frameHeaderSize: Int { initialFragmentBodyHeaderSize + 6 }
+    private var frameHeaderSizeWithMetadata: Int { frameHeaderSize + 3 }
     
     func makeFrame(payload: Payload, isCompletion: Bool = false, isNext: Bool = true) -> Frame {
         PayloadFrameBody(isCompletion: isCompletion, isNext: isNext, payload: payload).asFrame(withStreamId: 4)
@@ -333,7 +333,7 @@ class PayloadFragmentationTests: XCTestCase {
             data: "Payload with metadata which is too large to fit into a single frame"
         )
         let frame = makeFrame(payload: payload)
-        try XCTSkipIf(frame.header.type == .payload, "Only request frames should always start a new set of fragments")
+        try XCTSkipIf(frame.body.type == .payload, "Only request frames should always start a new set of fragments")
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 40 + frameHeaderSizeWithMetadata
         )
@@ -386,7 +386,7 @@ class PayloadFragmentationTests: XCTestCase {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: false)
         try XCTSkipUnless(
-            frame.header.type == .payload,
+            frame.body.type == .payload,
             "Request frames always have isNext, only payload frame can have the isNext flag empty (=false)"
         )
         let fragments = frame.splitIntoFragmentsIfNeeded(
@@ -409,7 +409,7 @@ class PayloadFragmentationTests: XCTestCase {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: true, isNext: true)
         try XCTSkipUnless(
-            frame.header.type == .payload || frame.header.type == .requestChannel,
+            frame.body.type == .payload || frame.body.type == .requestChannel,
             "Only payload and requestChannel frames have isCompletion"
         )
         let fragments = frame.splitIntoFragmentsIfNeeded(
@@ -436,7 +436,7 @@ class PayloadFragmentationTests: XCTestCase {
         let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
         try XCTSkipUnless(
-            frame.header.type == .payload || frame.header.type == .requestChannel,
+            frame.body.type == .payload || frame.body.type == .requestChannel,
             "Only payload and requestChannel frames have isCompletion"
         )
         let fragments = frame.splitIntoFragmentsIfNeeded(

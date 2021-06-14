@@ -17,23 +17,23 @@
 /// Used To extend more frame types as well as extensions
 internal struct ExtensionFrameBody: Hashable {
     /// If the frame can be ignored
-    internal let canBeIgnored: Bool
+    internal var canBeIgnored: Bool
 
     /**
      Extended type information
 
      Value MUST be > `0`.
      */
-    internal let extendedType: Int32
+    internal var extendedType: Int32
 
     /// The payload for the extended type
-    internal let payload: Payload
+    internal var payload: Payload
 }
 
 extension ExtensionFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .ext(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        var flags = FrameFlags()
         if canBeIgnored {
             flags.insert(.ignore)
         }

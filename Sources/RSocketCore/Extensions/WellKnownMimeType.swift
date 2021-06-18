@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-public struct MIMEType: RawRepresentable, Hashable {
-    public var rawValue: String
-    public init(rawValue: String) {
-        self.rawValue = rawValue
-    }
-}
-
 public struct WellKnownMIMETypeCode: RawRepresentable, Hashable {
     
     /// rawValue is guaranteed to be between 0 and 127.

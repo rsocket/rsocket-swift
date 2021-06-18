@@ -18,536 +18,48 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
-struct CompositeMetadata {
-    var mimeType: MIMEType
-    var data: Data
-}
-
-// MARK: - MIMEType
-
-struct MIMETypeEncoder {
-    private static let defaultWellKnownMimeTypes = Dictionary(
-        uniqueKeysWithValues: MIMEType.wellKnownMIMETypes.lazy.map{ ($0.1, $0.0) }
-    )
-    var wellKnownMimeTypes: [MIMEType: WellKnownMIMETypeCode] = defaultWellKnownMimeTypes
-    func encode(_ mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-struct MIMETypeDecoder {
-    private static let defaultWellKnownMimeTypes = Dictionary(uniqueKeysWithValues: MIMEType.wellKnownMIMETypes)
-    var wellKnownMimeTypes: [WellKnownMIMETypeCode: MIMEType] = defaultWellKnownMimeTypes
-    func decode(from buffer: inout ByteBuffer) throws -> MIMEType {
-        fatalError("not implemented")
-    }
-}
-
-// MARK: - Metadata Coder
-
-protocol MetadataEncoder {
-    associatedtype Metadata
-    var mimeType: MIMEType { get }
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws
-}
-
-protocol MetadataDecoder {
-    associatedtype Metadata
-    var mimeType: MIMEType { get }
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata
-}
-
-extension MetadataEncoder {
-    func encode(_ metadata: Metadata) throws -> Data {
-        var buffer = ByteBuffer()
-        try self.encode(metadata, into: &buffer)
-        return buffer.readData(length: buffer.readableBytes) ?? Data()
-    }
-}
-
-extension MetadataDecoder {
-    func decode(from data: Data) throws -> Metadata {
-        var buffer = ByteBuffer(data: data)
-        let metadata = try self.decode(from: &buffer)
-        guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
-        }
-        return metadata
-    }
-}
-
-// MARK: - Composite Metadata
-
-struct CompositeMetadataEncoder: MetadataEncoder {
-    typealias Metadata = [CompositeMetadata]
-    var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
-    var mimeTypeEncoder = MIMETypeEncoder()
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-// Swift 5.5 does support static member lookup in a generic context: https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md
-extension MetadataEncoder where Self == CompositeMetadataEncoder {
-    static var compositeMetadata: Self { .init() }
-}
-
-extension MetadataDecoder where Self == CompositeMetadataDecoder {
-    static var compositeMetadata: Self { .init() }
-}
-
-extension CompositeMetadata {
-    static func encoded<Encoder>(
-        _ metadata: Encoder.Metadata,
-        using encoder: Encoder
-    ) throws -> Self where Encoder: MetadataEncoder {
-        CompositeMetadata(
-            mimeType: encoder.mimeType,
-            data: try encoder.encode(metadata)
-        )
-    }
-}
-
-extension RangeReplaceableCollection where Element == CompositeMetadata {
-    func encoded<Encoder>(
-        _ metadata: Encoder.Metadata,
-        using encoder: Encoder
-    ) throws -> Self where Encoder: MetadataEncoder {
-        self + CollectionOfOne(try CompositeMetadata.encoded(metadata, using: encoder))
-    }
-}
-
-struct CompositeMetadataDecoder: MetadataDecoder {
-    typealias Metadata = [CompositeMetadata]
-    var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
-    var mimeTypeDecoder = MIMETypeEncoder()
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
-    }
-}
-
-extension Sequence where Element == CompositeMetadata {
-    func decodeFirst<Decoder>(
-        using decoder: Decoder
-    ) throws -> Decoder.Metadata? where Decoder: MetadataDecoder {
-        guard let data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
-            return nil
-        }
-        return try decoder.decode(from: data)
-    }
-}
-
-// MARK: - Routing
-
-struct RoutingEncoder: MetadataEncoder {
-    typealias Metadata = [String]
-    var mimeType: MIMEType { .messageXRSocketRoutingV0 }
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-struct RoutingDecoder: MetadataDecoder {
-    typealias Metadata = [String]
-    var mimeType: MIMEType { .messageXRSocketRoutingV0 }
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
-    }
-}
-
-extension MetadataEncoder where Self == RoutingEncoder {
-    static var routing: Self { .init() }
-}
-
-extension MetadataDecoder where Self == RoutingDecoder {
-    static var routing: Self { .init() }
-}
-
-// MARK: - Data MIME Type Encoder
-
-struct DataMIMETypeEncoder: MetadataEncoder {
-    typealias Metadata = MIMEType
-    var mimeType: MIMEType { .messageXRSocketMimeTypeV0 }
-    var mimeTypeEncoder = MIMETypeEncoder()
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-struct DataMIMETypeDecoder: MetadataDecoder {
-    typealias Metadata = MIMEType
-    var mimeType: MIMEType { .messageXRSocketMimeTypeV0 }
-    var mimeTypeDecoder = MIMETypeEncoder()
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
-    }
-}
-
-extension MetadataEncoder where Self == DataMIMETypeEncoder {
-    static var dataMIMEType: Self { .init() }
-}
-
-extension MetadataDecoder where Self == DataMIMETypeDecoder {
-    static var dataMIMEType: Self { .init() }
-}
-
-// MARK: - Acceptable Data MIME Type
-
-struct AcceptableDataMIMETypeEncoder: MetadataEncoder {
-    typealias Metadata = [MIMEType]
-    var mimeType: MIMEType { .messageXRSocketMimeTypeV0 }
-    var mimeTypeEncoder = MIMETypeEncoder()
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-struct AcceptableDataMIMETypeDecoder: MetadataDecoder {
-    typealias Metadata = [MIMEType]
-    var mimeType: MIMEType { .messageXRSocketMimeTypeV0 }
-    var mimeTypeDecoder = MIMETypeEncoder()
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
-    }
-}
-
-extension MetadataEncoder where Self == AcceptableDataMIMETypeEncoder {
-    static var acceptableDataMIMEType: Self { .init() }
-}
-
-extension MetadataDecoder where Self == AcceptableDataMIMETypeDecoder {
-    static var acceptableDataMIMEType: Self { .init() }
-}
-
-
-// MARK: - Route
-
-struct Request<InputMetadata, InputData, OutputMetadata, OutputData> {
-    private var transformInput: (InputMetadata, InputData) throws -> Payload
-    private var transformOutput: (Payload) throws -> (OutputMetadata, OutputData)
-    internal init(
-        transformInput: @escaping (InputMetadata, InputData) throws -> Payload,
-        transformOutput: @escaping (Payload) throws -> (OutputMetadata, OutputData)
-    ) {
-        self.transformInput = transformInput
-        self.transformOutput = transformOutput
-    }
-    init() where InputMetadata == Data?, InputData == Data, OutputMetadata == Data?, OutputData == Data {
-        self.init(transformInput: { Payload(metadata: $0, data: $1) }, transformOutput: { ($0.metadata, $0.data) })
-    }
-}
-
-extension Request {
-    func map<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData>(
-        transformInput: @escaping (NewInputMetadata, NewInputData) throws -> (InputMetadata, InputData),
-        transformOutput: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
-    ) -> Request<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData> {
-        .init { newMetadata, newData in
-            let (metadata, data) = try transformInput(newMetadata, newData)
-            return try self.transformInput(metadata, data)
-        } transformOutput: { payload in
-            let (metadata, data) = try self.transformOutput(payload)
-            return try transformOutput(metadata, data)
-        }
-    }
-    func map<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData>(
-        transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata,
-        transformInputData: @escaping (NewInputData) throws -> InputData,
-        transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata,
-        transformOutputData: @escaping (OutputData) throws -> NewOutputData
-    ) -> Request<NewInputMetadata, NewInputData, NewOutputMetadata, NewOutputData> {
-        map { newMetadata, newData in
-            (try transformInputMetadata(newMetadata), try transformInputData(newData))
-        } transformOutput: { metadata, data in
-            (
-                try transformOutputMetadata(metadata),
-                try transformOutputData(data)
-            )
-        }
-    }
-    func mapOutput<NewOutputMetadata, NewOutputData>(
-        _ transform: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
-    ) -> Request<InputMetadata, InputData, NewOutputMetadata, NewOutputData> {
-        .init(transformInput: self.transformInput) { payload in
-            let (metadata, data) = try self.transformOutput(payload)
-            return try transform(metadata, data)
-        }
-    }
-    func mapInput<NewInputMetadata, NewInputData>(
-        _ transform: @escaping (NewInputMetadata, NewInputData) throws -> (InputMetadata, InputData)
-    ) -> Request<NewInputMetadata, NewInputData, OutputMetadata, OutputData> {
-        .init(
-            transformInput: { newMetadata, newData in
-                let (metadata, data) = try transform(newMetadata, newData)
-                return try self.transformInput(metadata, data)
-            },
-            transformOutput: transformOutput
-        )
-    }
-}
-
-extension Request {
-    func mapMetadata<NewInputMetadata, NewOutputMetadata>(
-        transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata,
-        transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata
-    ) -> Request<NewInputMetadata, InputData, NewOutputMetadata, OutputData> {
-        map(
-            transformInputMetadata: transformInputMetadata,
-            transformInputData: { $0 },
-            transformOutputMetadata: transformOutputMetadata,
-            transformOutputData: { $0 }
-        )
-    }
-    func mapData<NewInputData, NewOutputData>(
-        transformInputData: @escaping (NewInputData) throws -> InputData,
-        transformOutputData: @escaping (OutputData) throws -> NewOutputData
-    ) -> Request<InputMetadata, NewInputData, OutputMetadata, NewOutputData> {
-        map(
-            transformInputMetadata: { $0 },
-            transformInputData: transformInputData,
-            transformOutputMetadata: { $0 },
-            transformOutputData: transformOutputData
-        )
-    }
-    func mapInputMetadata<NewInputMetadata>(
-        _ transformInputMetadata: @escaping (NewInputMetadata) throws -> InputMetadata
-    ) -> Request<NewInputMetadata, InputData, OutputMetadata, OutputData> {
-        mapMetadata(
-            transformInputMetadata: transformInputMetadata,
-            transformOutputMetadata: { $0 }
-        )
-    }
-    func mapOutputMetadata<NewOutputMetadata>(
-        _ transformOutputMetadata: @escaping (OutputMetadata) throws -> NewOutputMetadata
-    ) -> Request<InputMetadata, InputData, NewOutputMetadata, OutputData> {
-        mapMetadata(
-            transformInputMetadata: { $0 },
-            transformOutputMetadata: transformOutputMetadata
-        )
-    }
-    func mapInputData<NewInputData>(
-        _ transformInputData: @escaping (NewInputData) throws -> InputData
-    ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> {
-        mapData(
-            transformInputData: transformInputData,
-            transformOutputData: { $0 }
-        )
-    }
-    func mapOutputData<NewOutputData>(
-        _ transformOutputData: @escaping (OutputData) throws -> NewOutputData
-    ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputData> {
-        mapData(
-            transformInputData: { $0 },
-            transformOutputData: transformOutputData
-        )
-    }
-}
-
-extension Request where InputMetadata == Data? {
-    func encodeMetadata<Encoder>(
-        using encoder: Encoder
-    ) -> Request<Encoder.Metadata, InputData, OutputMetadata, OutputData> where Encoder: MetadataEncoder {
-        mapInputMetadata { metadata in
-            try encoder.encode(metadata)
-        }
-    }
-}
-
-extension Request where OutputMetadata == Data? {
-    func decodeMetadata<Decoder>(
-        using decoder: Decoder
-    ) -> Request<InputMetadata, InputData, Decoder.Metadata?, OutputData> where Decoder: MetadataDecoder {
-        mapOutputMetadata { data in
-            try data.map { try decoder.decode(from: $0) }
-        }
-    }
-}
-
-extension Request where InputMetadata == Data?, OutputMetadata == Data? {
-    func useCompositeMetadata(
-        decoder: CompositeMetadataDecoder = .init(),
-        encoder: CompositeMetadataEncoder = .init()
-    ) -> Request<[CompositeMetadata], InputData, [CompositeMetadata], OutputData> {
-        encodeMetadata(using: encoder)
-            .decodeMetadata(using: decoder)
-            .mapOutputMetadata { $0 ?? [] }
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata] {
-    func encodeMetadata<Encoder>(
-        _ metadata: Encoder.Metadata,
-        using encoder: Encoder
-    ) -> Self where Encoder: MetadataEncoder {
-        mapInputMetadata { compositeMetadata in
-            try compositeMetadata.encoded(metadata, using: encoder)
-        }
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata] {
-    func encodeMetadata<Encoder>(
-        using encoder: Encoder
-    ) -> Request<Encoder.Metadata, InputData, OutputMetadata, OutputData> where Encoder: MetadataEncoder {
-        mapInputMetadata { metadata in
-            [try CompositeMetadata.encoded(metadata, using: encoder)]
-        }
-    }
-}
-
-// MARK: - Data Encoder
-
-struct DataEncoder<Value> {
-    var mimeType: MIMEType
-    private var _encode: (Value) throws -> Data
-    
-    init(mimeType: MIMEType, encode: @escaping (Value) throws -> Data) {
-        self._encode = encode
-        self.mimeType = mimeType
-    }
-    
-    func encode(_ value: Value) throws -> Data {
-        try _encode(value)
-    }
-}
-
-extension DataEncoder {
-    func map<NewValue>(
-        _ transform: @escaping (NewValue) throws -> Value
-    ) -> DataEncoder<NewValue> {
-        .init(mimeType: mimeType) { value in
-            try _encode(try transform(value))
-        }
-    }
-}
-
-extension DataEncoder {
-    static func json(
-        type: Value.Type = Value.self,
-        using encoder: JSONEncoder = .init()
-    ) -> Self where Value: Encodable {
-        .init(mimeType: .applicationJson, encode: encoder.encode(_:))
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata], InputData == Data {
-    func encodeData<NewInputData>(
-        using encoder: DataEncoder<NewInputData>,
-        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
-    ) -> Request<InputMetadata, NewInputData, OutputMetadata, OutputData> {
-        encodeMetadata(.applicationJson, using: dataMIMETypeEncoder)
-            .mapInputData(encoder.encode)
-    }
-}
-
-// MARK: - Data Decoder
-
-struct DataDecoder<Value> {
-    var mimeType: MIMEType
-    private var _decode: (Data) throws -> Value
-    
-    init(mimeType: MIMEType, decode: @escaping (Data) throws -> Value) {
-        self._decode = decode
-        self.mimeType = mimeType
-    }
-    
-    func decode(from data: Data) throws -> Value {
-        try _decode(data)
-    }
-}
-
-extension DataDecoder {
-    func map<NewValue>(
-        _ transform: @escaping (Value) throws -> NewValue
-    ) -> DataDecoder<NewValue> {
-        .init(mimeType: mimeType) { data in
-            try transform(try _decode(data))
-        }
-    }
-}
-
-extension DataDecoder {
-    static func json(
-        type: Value.Type = Value.self,
-        using decoder: JSONDecoder = .init()
-    ) -> Self where Value: Decodable {
-        self.init(mimeType: .applicationJson) { data in
-            try decoder.decode(Value.self, from: data)
-        }
-    }
-}
-
-extension Request where OutputData == Data, InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
-    func decodeData<NewOutputValue>(
-        using decoder: [DataDecoder<NewOutputValue>],
-        acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
-        dataMIMETypeDecoder: DataMIMETypeDecoder = .init()
-    ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputValue> {
-        let supportedEncodings = decoder.map(\.mimeType)
-        return encodeMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
-            .mapOutput { metadata, data in
-                guard let dataEncoding = try metadata.decodeFirst(using: dataMIMETypeDecoder) else {
-                    throw Error.invalid(message: "Data MIME Type not found in metadata")
-                }
-                guard let decoder = decoder.first(where: { $0.mimeType == dataEncoding }) else {
-                    throw Error.invalid(message: "\(dataEncoding) is not supported, should be \(supportedEncodings)")
-                }
-                let value = try decoder.decode(from: data)
-                return (metadata, value)
-            }
-    }
-}
-
-extension Request where OutputData == Data {
-    /// unconditionally decodes data with the given `decoder`
-    func decodeData<NewOutputValue>(
-        using decoder: DataDecoder<NewOutputValue>
-    ) -> Request<InputMetadata, InputData, OutputMetadata, NewOutputValue> {
-        mapOutputData(decoder.decode(from:))
-    }
-}
 
 // MARK: - erase
 
-extension Request {
-    func setInputMetadata(to metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
-        mapInputMetadata { metadata }
-    }
-}
-
-extension Request where InputMetadata == Data? {
-    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-        setInputMetadata(to: nil)
-    }
-}
-
-extension Request where InputMetadata == [CompositeMetadata] {
-    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-        setInputMetadata(to: [])
-    }
-}
-
-extension Request {
-    func eraseOutputMetadata() -> Request<InputMetadata, InputData, Void, OutputData> {
-        mapOutputMetadata { _ in }
-    }
-}
-
-typealias AnyRequest<RequestData, ResponseData> = Request<Void, RequestData, Void, ResponseData>
-
-extension Request where InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
-    func eraseMetadata() -> AnyRequest<InputData, OutputData>  {
-        self
-            .eraseInputMetadata()
-            .eraseOutputMetadata()
-    }
-}
-
-extension Request {
-    func preserveOutputMetadata() -> Request<InputMetadata, InputData, Void, (OutputMetadata, OutputData)> {
-        mapOutput { ((), ($0, $1)) }
-    }
-}
+//extension Request {
+//    func setInputMetadata(to metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
+//        mapInputMetadata { metadata }
+//    }
+//}
+//
+//extension Request where InputMetadata == Data? {
+//    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
+//        setInputMetadata(to: nil)
+//    }
+//}
+//
+//extension Request where InputMetadata == [CompositeMetadata] {
+//    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
+//        setInputMetadata(to: [])
+//    }
+//}
+//
+//extension Request {
+//    func eraseOutputMetadata() -> Request<InputMetadata, InputData, Void, OutputData> {
+//        mapOutputMetadata { _ in }
+//    }
+//}
+//
+//typealias AnyRequest<RequestData, ResponseData> = Request<Void, RequestData, Void, ResponseData>
+//
+//extension Request where InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
+//    func eraseMetadata() -> AnyRequest<InputData, OutputData>  {
+//        self
+//            .eraseInputMetadata()
+//            .eraseOutputMetadata()
+//    }
+//}
+//
+//extension Request {
+//    func preserveOutputMetadata() -> Request<InputMetadata, InputData, Void, (OutputMetadata, OutputData)> {
+//        mapOutput { ((), ($0, $1)) }
+//    }
+//}
 
 struct Stock: Codable {
     var isin: ISIN
@@ -561,45 +73,21 @@ struct Price: Codable {
 
 func example() {
 
-    let priceRequest = Request()
+    let priceRequest = Coder()
         .useCompositeMetadata()
         // shorthand for:
         // .encodeMetadata(using: CompositeMetadataEncoder())
         // .decodeMetadata(using: CompositeMetadataDecoder())
         // .mapOutputMetadata { $0 ?? [] }
-        .encodeMetadata(["stock.isin"], using: RoutingEncoder())
-        // With Swift 5.5 we can write it like this:
-        //.encodeMetadata(["stock.isin"], using: .routing)
-        .encodeData(using: .json(type: ISIN.self))
+        .mapEncoder {
+            $0.encodeMetadata(["stock.isin"], using: RoutingEncoder())
+                // With Swift 5.5 we can write it like this:
+                //.encodeMetadata(["stock.isin"], using: .routing)
+                .encodeData(using: .json(type: ISIN.self))
+        }
         .decodeData(using: [.json(type: Price.self)])
-        .mapOutputData(\.price)
-        .mapInputData(ISIN.init(isin:))
-        .eraseMetadata()
-}
-
-extension Request where InputMetadata == Void {
-    func payload(for data: InputData) throws -> Payload {
-        try self.transformInput((), data)
-    }
-}
-
-extension Request where OutputMetadata == Void {
-    func output(from payload: Payload) throws -> OutputData {
-        try transformOutput(payload).1
-    }
-}
-
-extension Request {
-    public static var price: Request<Void, String, Void, Double> {
-        Request<Data?, Data, Data?, Data>()
-            .useCompositeMetadata()
-            .encodeMetadata(["stock.isin"], using: RoutingEncoder())
-            .encodeData(using: .json(type: ISIN.self))
-            .decodeData(using: [.json(type: Price.self)])
-            .mapOutputData(\.price)
-            .mapInputData(ISIN.init(isin:))
-            .eraseMetadata()
-    }
+        .mapDecoder{ $0.mapData(\.price) }
+        .mapEncoder { $0.mapData(ISIN.init(isin:)) }
 }
 
 //protocol RequestDescription {
@@ -625,7 +113,7 @@ extension Request {
 
 // MARK: - Payload Decoder
 
-protocol PayloadDecoderDescriptionProtocol {
+protocol DecoderProtocol {
     associatedtype Request = Payload
     associatedtype Metadata
     associatedtype Data
@@ -637,13 +125,14 @@ protocol PayloadDecoderDescriptionProtocol {
 enum Decoders {}
 
 extension Decoders {
-    struct Start<Request, Metadata, Data>: PayloadDecoderDescriptionProtocol {
+    struct Start<Request, Metadata, Data>: DecoderProtocol {
+
         var make: (Request) -> (Metadata, Data)
         func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
             make(request)
         }
     }
-    struct MapRequest<Decoder: PayloadDecoderDescriptionProtocol, Request>: PayloadDecoderDescriptionProtocol {
+    struct MapRequest<Decoder: DecoderProtocol, Request>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Request) throws -> (Decoder.Request)
         func decodeRequest(_ request: Request) throws -> (Decoder.Metadata, Decoder.Data) {
@@ -651,7 +140,7 @@ extension Decoders {
             return try decoder.decodeRequest(request)
         }
     }
-    struct Map<Decoder: PayloadDecoderDescriptionProtocol, Metadata, Data>: PayloadDecoderDescriptionProtocol {
+    struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
@@ -660,7 +149,7 @@ extension Decoders {
             return try transform(metadata, data)
         }
     }
-    struct MapMetadata<Decoder: PayloadDecoderDescriptionProtocol, Metadata>: PayloadDecoderDescriptionProtocol {
+    struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Metadata) throws -> Metadata
@@ -669,7 +158,7 @@ extension Decoders {
             return (try transform(metadata), data)
         }
     }
-    struct MapData<Decoder: PayloadDecoderDescriptionProtocol, Data>: PayloadDecoderDescriptionProtocol {
+    struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Data) throws -> Data
@@ -680,7 +169,19 @@ extension Decoders {
     }
 }
 
-extension PayloadDecoderDescriptionProtocol {
+struct AnyDecoder<Request, Metadata, Data> {
+    var _decodeRequest: (Request) throws -> (Metadata, Data)
+    init<Decoder>(
+        _ decoder: Decoder
+    ) where Decoder: DecoderProtocol, Decoder.Request == Request, Decoder.Metadata == Metadata, Decoder.Data == Data {
+        _decodeRequest = decoder.decodeRequest(_:)
+    }
+    func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
+        try _decodeRequest(request)
+    }
+}
+
+extension DecoderProtocol {
     func mapRequest<NewRequest>(
         _ transform: @escaping (NewRequest) throws -> Request
     ) -> Decoders.MapRequest<Self, NewRequest> {
@@ -703,51 +204,15 @@ extension PayloadDecoderDescriptionProtocol {
     }
 }
 
-
-struct PayloadDecoderDescription<Metadata, Data> {
-    typealias Decode = (Payload) throws -> (Metadata, Data)
-    var _decode: Decode
-    init(_ decode: @escaping Decode) {
-        self._decode = decode
+extension DecoderProtocol {
+    func eraseToAnyDecoder() -> AnyDecoder<Request, Metadata, Data> {
+        .init(self)
     }
 }
-
-extension PayloadDecoderDescription {
-    func decodePayload(_ payload: Payload) throws -> (Metadata, Data) {
-        try _decode(payload)
-    }
-}
-
-
-extension PayloadDecoderDescription {
-    func map<NewMetadata, NewData>(
-        _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
-    ) -> PayloadDecoderDescription<NewMetadata, NewData> {
-        .init { payload in
-            let (metadata, data) = try self._decode(payload)
-            return try transform(metadata, data)
-        }
-    }
-}
-
-extension PayloadDecoderDescription {
-    func mapMetadata<NewMetadata>(
-        _ transform: @escaping (Metadata) throws -> NewMetadata
-    ) -> PayloadDecoderDescription<NewMetadata, Data> {
-        map { (try transform($0), $1) }
-    }
-    func mapData<NewData>(
-        _ transform: @escaping (Data) throws -> NewData
-    ) -> PayloadDecoderDescription<Metadata, NewData> {
-        map { ($0, try transform($1)) }
-    }
-}
-
 
 // MARK: - Payload Encoder
 
-
-protocol PayloadEncoderDescriptionProtocol {
+protocol EncoderProtocol {
     associatedtype Response = Payload
     associatedtype Metadata
     associatedtype Data
@@ -755,20 +220,20 @@ protocol PayloadEncoderDescriptionProtocol {
 }
 
 enum Encoders {
-    struct Start<Response, Metadata, Data>: PayloadEncoderDescriptionProtocol {
+    struct Start<Response, Metadata, Data>: EncoderProtocol {
         var make: (Metadata, Data) -> Response
         func encodeResponse(metadata: Metadata, data: Data) throws -> Response {
             make(metadata, data)
         }
     }
-    struct MapResponse<Encoder: PayloadEncoderDescriptionProtocol, Response>: PayloadEncoderDescriptionProtocol {
+    struct MapResponse<Encoder: EncoderProtocol, Response>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Encoder.Response) throws -> (Response)
         func encodeResponse(metadata: Encoder.Metadata, data: Encoder.Data) throws -> Response {
             try transform(try encoder.encodeResponse(metadata: metadata, data: data))
         }
     }
-    struct Map<Encoder: PayloadEncoderDescriptionProtocol, Metadata, Data>: PayloadEncoderDescriptionProtocol {
+    struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
@@ -777,7 +242,7 @@ enum Encoders {
             return try encoder.encodeResponse(metadata: metadata, data: data)
         }
     }
-    struct MapMetadata<Encoder: PayloadEncoderDescriptionProtocol, Metadata>: PayloadEncoderDescriptionProtocol {
+    struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
         typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Metadata) throws -> Encoder.Metadata
@@ -785,7 +250,7 @@ enum Encoders {
             try encoder.encodeResponse(metadata: try transform(metadata), data: data)
         }
     }
-    struct MapData<Encoder: PayloadEncoderDescriptionProtocol, Data>: PayloadEncoderDescriptionProtocol {
+    struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
         typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Data) throws -> Encoder.Data
@@ -795,7 +260,7 @@ enum Encoders {
     }
 }
 
-extension PayloadEncoderDescriptionProtocol {
+extension EncoderProtocol {
     func mapResponse<NewResponse>(
         _ transform: @escaping (Response) throws -> NewResponse
     ) -> Encoders.MapResponse<Self, NewResponse> {
@@ -818,42 +283,159 @@ extension PayloadEncoderDescriptionProtocol {
     }
 }
 
+// MARK: Decoder Extensions
 
-struct PayloadEncodeDescription<Metadata, Data> {
-    typealias Encode = (Metadata, Data) throws -> Payload
-    var _encode: Encode
-    init(_ encode: @escaping Encode) {
-        self._encode = encode
-    }
-}
-
-extension PayloadEncodeDescription {
-    func encodeAsPayload(metadata: Metadata, data: Data) throws -> Payload {
-        try _encode(metadata, data)
-    }
-}
-
-extension PayloadEncodeDescription {
-    func map<NewMetadata, NewData>(
-        _ transform: @escaping (NewMetadata, NewData) throws -> (Metadata, Data)
-    ) -> PayloadEncodeDescription<NewMetadata, NewData> {
-        return .init { newMetadata, newData in
-            let (metadata, data) = try transform(newMetadata, newData)
-            return try _encode(metadata, data)
+extension DecoderProtocol where Metadata == Foundation.Data? {
+    func decodeMetadata<Decoder>(
+        using decoder: Decoder
+    ) -> Decoders.MapMetadata<Self, Decoder.Metadata?> where Decoder: MetadataDecoder {
+        mapMetadata { data in
+            try data.map { try decoder.decode(from: $0) }
         }
     }
 }
 
-extension PayloadEncodeDescription {
-    func mapMetadata<NewMetadata>(
-        _ transform: @escaping (NewMetadata) throws -> Metadata
-    ) -> PayloadEncodeDescription<NewMetadata, Data> {
-        map { (try transform($0), $1) }
+extension DecoderProtocol where Data == Foundation.Data {
+    /// unconditionally decodes data with the given `decoder`
+    func decodeData<NewData>(
+        using decoder: DataDecoder<NewData>
+    ) -> Decoders.MapData<Self, NewData> {
+        mapData(decoder.decode(from:))
     }
-    func mapData<NewData>(
-        _ transform: @escaping (NewData) throws -> Data
-    ) -> PayloadEncodeDescription<Metadata, NewData> {
-        map { ($0, try transform($1)) }
+}
+
+extension DecoderProtocol where Metadata == Foundation.Data? {
+    func useCompositeMetadata(
+        decoder: CompositeMetadataDecoder = .init()
+    ) -> Decoders.MapMetadata<Decoders.MapMetadata<Self, CompositeMetadataDecoder.Metadata?>, CompositeMetadataDecoder.Metadata> {
+        decodeMetadata(using: decoder).mapMetadata{ $0 ?? [] }
+    }
+}
+
+// MARK: Encoder Extensions
+
+extension EncoderProtocol where Metadata == Foundation.Data? {
+    func encodeMetadata<Encoder>(
+        using encoder: Encoder
+    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> where Encoder: MetadataEncoder {
+        mapMetadata { metadata in
+            try encoder.encode(metadata)
+        }
+    }
+}
+
+extension EncoderProtocol where Metadata == Foundation.Data? {
+    func useCompositeMetadata(
+        encoder: CompositeMetadataEncoder = .init()
+    ) -> Encoders.MapMetadata<Self, CompositeMetadataEncoder.Metadata> {
+        encodeMetadata(using: encoder)
+    }
+}
+
+extension EncoderProtocol where Metadata == [CompositeMetadata] {
+    /// adds the given metadata to the composition
+    func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata,
+        using encoder: Encoder
+    ) -> Encoders.MapMetadata<Self, [CompositeMetadata]> where Encoder: MetadataEncoder {
+        mapMetadata { compositeMetadata in
+            try compositeMetadata.encoded(metadata, using: encoder)
+        }
+    }
+}
+
+extension EncoderProtocol where Metadata == [CompositeMetadata] {
+    func encodeMetadata<Encoder>(
+        using encoder: Encoder
+    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> where Encoder: MetadataEncoder {
+        mapMetadata { metadata in
+            [try CompositeMetadata.encoded(metadata, using: encoder)]
+        }
+    }
+}
+
+extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
+    func encodeData<NewData>(
+        using encoder: DataEncoder<NewData>,
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
+    ) -> Encoders.MapData<Encoders.MapMetadata<Self, [CompositeMetadata]>, NewData> {
+        encodeMetadata(encoder.mimeType, using: dataMIMETypeEncoder)
+            .mapData(encoder.encode)
+    }
+}
+
+
+
+// MARK: Coder
+
+struct Coder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    var decoder: Decoder
+    var encoder: Encoder
+}
+
+extension Coder {
+    func mapDecoder<NewDecoder>(
+        _ transform: (Decoder) -> NewDecoder
+    ) -> Coder<NewDecoder, Encoder> {
+        .init(decoder: transform(decoder), encoder: encoder)
+    }
+    func mapEncoder<NewEncoder>(
+        _ transform: (Encoder) -> NewEncoder
+    ) -> Coder<Decoder, NewEncoder> {
+        .init(decoder: decoder, encoder: transform(encoder))
+    }
+}
+
+// MARK: - Coder Extensions
+
+
+extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
+    func useCompositeMetadata(
+        decoder: CompositeMetadataDecoder = .init(),
+        encoder: CompositeMetadataEncoder = .init()
+    ) -> Coder<
+        Decoders.MapMetadata<Decoders.MapMetadata<Decoder, CompositeMetadataDecoder.Metadata?>, CompositeMetadataDecoder.Metadata>,
+        Encoders.MapMetadata<Encoder, CompositeMetadataEncoder.Metadata>
+    > {
+        mapDecoder { $0.useCompositeMetadata(decoder: decoder) }
+        .mapEncoder { $0.useCompositeMetadata(encoder: encoder) }
+    }
+}
+
+extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == [CompositeMetadata] {
+    /// Decodes data using one of the given `decoder`s, depending on the MIME Type of the Data.
+    ///
+    /// In addition, this methods encodes all MIME Types of all `decoder`s using the given `acceptableDataMIMETypeEncoder`.
+    /// This makes it possible for a requester to support multiple response data MIME Types at the same time and let the responder choose the best one.
+    func decodeData<NewOutputValue>(
+        using decoder: [DataDecoder<NewOutputValue>],
+        acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
+        dataMIMETypeDecoder: DataMIMETypeDecoder = .init()
+    ) -> Coder<Decoders.Map<Decoder, [CompositeMetadata], NewOutputValue>, Encoders.MapMetadata<Encoder, [CompositeMetadata]>> {
+        let supportedEncodings = decoder.map(\.mimeType)
+        return mapEncoder{
+            $0.encodeMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
+        }.mapDecoder{
+            $0.map { (metadata, data) -> (Decoder.Metadata, NewOutputValue) in
+                guard let dataEncoding = try metadata.decodeFirst(using: dataMIMETypeDecoder) else {
+                    throw Error.invalid(message: "Data MIME Type not found in metadata")
+                }
+                guard let decoder = decoder.first(where: { $0.mimeType == dataEncoding }) else {
+                    throw Error.invalid(message: "\(dataEncoding) is not supported, should be \(supportedEncodings)")
+                }
+                let value = try decoder.decode(from: data)
+                return (metadata, value)
+            }
+        }
+    }
+}
+
+extension Coder {
+    init() where
+    Decoder == Decoders.Start<Payload, Data?, Data>,
+    Encoder == Encoders.Start<Payload, Data?, Data>
+    {
+        self.init(decoder: RSocketCore.Decoder(), encoder: RSocketCore.Encoder())
     }
 }
 
@@ -879,39 +461,6 @@ protocol RouteHandler {
     //var kind: RouteHandlerKind { get }
 }
 
-struct FireAndForget: RouteHandler {
-    var kind: RouteHandlerKind { .fireAndForget }
-    var handle: (Payload) -> ()
-}
-
-struct RequestResponse: RouteHandler {
-    var kind: RouteHandlerKind { .requestResponse }
-    var handle: (Payload) async throws -> Payload
-}
-
-@available(macOS 12.0, *)
-struct RequestStream: RouteHandler {
-    var kind: RouteHandlerKind { .requestStream }
-    var handle: (Payload) async throws -> YieldingContinuation<Payload, Swift.Error>
-}
-
-
-extension RequestResponse {
-    init<RequestMetadata, RequestData, ResponseMetadata, ResponseData>(
-        decoder: (PayloadDecoderDescription<Data?, Data>) -> PayloadDecoderDescription<RequestMetadata, RequestData>,
-        encoder: (PayloadEncodeDescription<Data?, Data>) -> PayloadEncodeDescription<ResponseMetadata, ResponseData>,
-        handler: @escaping (RequestMetadata, RequestData) async throws -> (metadata: ResponseMetadata, data: ResponseData)
-    ) {
-        let decoder = decoder(PayloadDecoderDescription{ ($0.metadata, $0.data) })
-        let encoder = encoder(PayloadEncodeDescription{ Payload(metadata: $0, data: $1) })
-        self.init { payload in
-            let (metadata, data) = try decoder.decodePayload(payload)
-            let response = try await handler(metadata, data)
-            return try encoder.encodeAsPayload(metadata: response.metadata, data: response.data)
-        }
-    }
-}
-
 protocol RequestResponseHandler {
     associatedtype Request
     associatedtype Response
@@ -919,8 +468,8 @@ protocol RequestResponseHandler {
 }
 
 struct RequestResponseResponderDescription<
-    Decoder: PayloadDecoderDescriptionProtocol,
-    Encoder: PayloadEncoderDescriptionProtocol,
+    Decoder: DecoderProtocol,
+    Encoder: EncoderProtocol,
     Handler: RequestResponseHandler
 >: RouteHandler
 {
@@ -961,6 +510,24 @@ struct AsyncAwaitRequestResponseHandler<Request, Response>: RequestResponseHandl
     }
 }
 
+struct RequestResponse<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    let coder: Coder<Decoder, Encoder>
+}
+
+extension RequestResponse {
+    init(decoder: Decoder, encoder: Encoder) {
+        self.init(coder: .init(decoder: decoder, encoder: encoder))
+    }
+}
+
+extension RequestResponse {
+    func responder(
+        handler: @escaping (Decoder.Data) async throws -> Encoder.Data
+    ) -> RequestResponseResponderDescription<Decoder, Encoder, AsyncAwaitRequestResponseHandler<Decoder.Data, Encoder.Data>> {
+            .init(decoder: coder.decoder, encoder: coder.encoder, handler: .init(handler: handler))
+    }
+}
+
 @available(macOS 12.0, *)
 func exampleRouter() -> Router {
     let responder = RequestResponseResponderDescription(
@@ -977,6 +544,14 @@ func exampleRouter() -> Router {
             request
         }
     }
-    let routes = [Route(path: ["stock.isin"], handler: [responder])]
+
+    let responder3 = RequestResponse(
+        decoder: Decoder(),
+        encoder: Encoder()
+    ).responder { request in
+        request
+    }
+
+    let routes = [Route(path: ["stock.isin"], handler: [responder, responder2, responder3])]
     return Router(routes: routes)
 }

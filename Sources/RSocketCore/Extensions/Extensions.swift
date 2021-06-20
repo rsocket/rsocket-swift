@@ -365,8 +365,60 @@ extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [Comp
     }
 }
 
-// MARK: - Coder Encoder Decoder extensions
+// MARK: - Coder decode convenience methods
 
+extension Coder where Decoder.Metadata == Foundation.Data? {
+    func decodeMetadata<MetadataDecoder>(
+        using decoder: MetadataDecoder
+    ) -> Coder<Decoders.MapMetadata<Decoder, MetadataDecoder.Metadata?>, Encoder> where MetadataDecoder: RSocketCore.MetadataDecoder {
+        mapDecoder { $0.decodeMetadata(using: decoder) }
+    }
+}
+
+extension Coder where Decoder.Data == Foundation.Data {
+    /// unconditionally decodes data with the given `decoder`
+    func decodeData<NewData>(
+        using decoder: DataDecoder<NewData>
+    ) -> Coder<Decoders.MapData<Decoder, NewData>, Encoder> {
+        mapDecoder { $0.decodeData(using: decoder) }
+    }
+}
+
+// MARK: - Coder encode convenience methods
+
+extension Coder where Encoder.Metadata == Foundation.Data? {
+    func encodeMetadata<MetadataEncoder>(
+        using encoder: MetadataEncoder
+    ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, MetadataEncoder.Metadata>> where MetadataEncoder: RSocketCore.MetadataEncoder {
+        mapEncoder { $0.encodeMetadata(using: encoder) }
+    }
+}
+
+extension Coder where Encoder.Metadata == [CompositeMetadata] {
+    func encodeMetadata<MetadataEncoder>(
+        _ metadata: MetadataEncoder.Metadata,
+        using encoder: MetadataEncoder
+    ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, Encoder.Metadata>> where MetadataEncoder: RSocketCore.MetadataEncoder {
+        mapEncoder { $0.encodeMetadata(metadata, using: encoder) }
+    }
+}
+
+extension Coder where Encoder.Data == Foundation.Data {
+    func encodeData<NewData>(
+        using encoder: DataEncoder<NewData>
+    ) -> Coder<Decoder, Encoders.MapData<Encoder, NewData>> {
+        mapEncoder { $0.encodeData(using: encoder) }
+    }
+}
+
+extension Coder where Encoder.Metadata == [CompositeMetadata], Encoder.Data == Foundation.Data {
+    func encodeData<NewData>(
+        using encoder: DataEncoder<NewData>,
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
+    ) -> Coder<Decoder, Encoders.MapData<Encoders.MapMetadata<Encoder, [CompositeMetadata]>, NewData>> {
+        mapEncoder { $0.encodeData(using: encoder, dataMIMETypeEncoder: dataMIMETypeEncoder) }
+    }
+}
 
 
 extension Coder {
@@ -776,6 +828,13 @@ enum Requests {
             .mapDecoder {
                 $0.mapData(\.price)
             }
+    }
+    static let priceStream1: RequestStream<ISIN, Price> = .init{
+        Coder()
+            .useCompositeMetadata()
+            .encodeMetadata(["price"], using: .routing)
+            .decodeData(using: [.json(type: Price.self)])
+            .encodeData(using: .json(type: ISIN.self))
     }
 }
 

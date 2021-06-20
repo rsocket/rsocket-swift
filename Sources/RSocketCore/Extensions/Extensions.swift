@@ -517,8 +517,8 @@ extension DecoderProtocol {
     func preserveMetadata() -> Decoders.Map<Self, Void, (Metadata, Data)> {
         map { ((), ($0, $1)) }
     }
-    func eraseMetadata() -> Decoders.Map<Self, Void, Data> {
-        map { _, data in ((), data) }
+    func eraseMetadata() -> Decoders.MapMetadata<Self, Void> where Metadata: ErasableMetadata {
+        mapMetadata { _ in }
     }
 }
 
@@ -533,6 +533,21 @@ extension EncoderProtocol {
             (metadata, data)
         }
     }
+    func eraseMetadata() -> Encoders.MapMetadata<Self, Void> where Metadata: ErasableMetadata {
+        mapMetadata { _ in Metadata.erasedValue }
+    }
+}
+
+protocol ErasableMetadata {
+    static var erasedValue: Self { get }
+}
+
+extension Optional: ErasableMetadata {
+    static var erasedValue: Optional<Wrapped> { nil }
+}
+
+extension Array: ErasableMetadata {
+    static var erasedValue: Array<Element> { [] }
 }
 
 @resultBuilder
@@ -559,13 +574,8 @@ extension EncoderBuilderProtocol {
     }
     static func buildExpression<Encoder>(
         _ encoder: Encoder
-    ) -> Encoders.Map<Encoder, Void, Encoder.Data> where Encoder: EncoderProtocol, Encoder.Metadata == Data? {
-        encoder.setMetadata(nil)
-    }
-    static func buildExpression<Encoder>(
-        _ encoder: Encoder
-    ) -> Encoders.Map<Encoder, Void, Encoder.Data> where Encoder: EncoderProtocol, Encoder.Metadata == [CompositeMetadata] {
-        encoder.setMetadata([])
+    ) -> Encoders.MapMetadata<Encoder, Void> where Encoder: EncoderProtocol, Encoder.Metadata: ErasableMetadata {
+        encoder.eraseMetadata()
     }
 }
 
@@ -593,12 +603,7 @@ extension DecoderBuilderProtocol {
     }
     static func buildExpression<Decoder>(
         _ decoder: Decoder
-    ) -> Decoders.Map<Decoder, Void, Decoder.Data> where Decoder.Metadata == Data? {
-        decoder.eraseMetadata()
-    }
-    static func buildExpression<Decoder>(
-        _ decoder: Decoder
-    ) -> Decoders.Map<Decoder, Void, Decoder.Data> where Decoder.Metadata == [CompositeMetadata] {
+    ) -> Decoders.MapMetadata<Decoder, Void> where Decoder.Metadata: ErasableMetadata {
         decoder.eraseMetadata()
     }
 }
@@ -633,46 +638,20 @@ extension CoderBuilder {
 
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoder> where Decoder.Metadata == Data?, Encoder.Metadata == Void {
-        coder.mapDecoder{ $0.eraseMetadata() }
-    }
-    static func buildExpression<Decoder, Encoder>(
-        _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoder> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == Void {
+    ) -> Coder<Decoders.MapMetadata<Decoder, Void>, Encoder> where Decoder.Metadata: ErasableMetadata, Encoder.Metadata == Void {
         coder.mapDecoder{ $0.eraseMetadata() }
     }
 
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoder, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Void, Encoder.Metadata == Data? {
-        coder.mapEncoder { $0.setMetadata(nil) }
-    }
-    static func buildExpression<Decoder, Encoder>(
-        _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoder, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Void, Encoder.Metadata == [CompositeMetadata] {
-        coder.mapEncoder { $0.setMetadata([]) }
+    ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, Void>> where Decoder.Metadata == Void, Encoder.Metadata: ErasableMetadata {
+        coder.mapEncoder { $0.eraseMetadata() }
     }
 
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
-        coder.mapEncoder { $0.setMetadata(nil) }.mapDecoder{ $0.eraseMetadata() }
-    }
-    static func buildExpression<Decoder, Encoder>(
-        _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == [CompositeMetadata] {
-        coder.mapEncoder { $0.setMetadata([]) }.mapDecoder{ $0.eraseMetadata() }
-    }
-
-    static func buildExpression<Decoder, Encoder>(
-        _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == Data? {
-        coder.mapEncoder { $0.setMetadata(nil) }.mapDecoder{ $0.eraseMetadata() }
-    }
-    static func buildExpression<Decoder, Encoder>(
-        _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Date?, Encoder.Metadata == [CompositeMetadata] {
-        coder.mapEncoder { $0.setMetadata([]) }.mapDecoder{ $0.eraseMetadata() }
+    ) -> Coder<Decoders.MapMetadata<Decoder, Void>, Encoders.MapMetadata<Encoder, Void>> where Decoder.Metadata: ErasableMetadata, Encoder.Metadata: ErasableMetadata {
+        coder.mapEncoder { $0.eraseMetadata() }.mapDecoder{ $0.eraseMetadata() }
     }
 }
 
@@ -833,8 +812,8 @@ enum Requests {
         Coder()
             .useCompositeMetadata()
             .encodeMetadata(["price"], using: .routing)
-            .decodeData(using: [.json(type: Price.self)])
             .encodeData(using: .json(type: ISIN.self))
+            .decodeData(using: [.json(type: Price.self)])
     }
 }
 

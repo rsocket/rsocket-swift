@@ -31,13 +31,6 @@ protocol DecoderProtocol {
 enum Decoders {}
 
 extension Decoders {
-    struct Start<Metadata, Data>: DecoderProtocol {
-
-        var make: (Payload) -> (Metadata, Data)
-        func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
-            make(payload)
-        }
-    }
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
@@ -116,12 +109,6 @@ protocol EncoderProtocol {
 }
 
 enum Encoders {
-    struct Start<Metadata, Data>: EncoderProtocol {
-        var make: (Metadata, Data) -> Payload
-        func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
-            make(metadata, data)
-        }
-    }
     struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
@@ -410,79 +397,18 @@ extension Coder {
     }
 }
 
+// MARK: - Erasable Metadata
 
-
-struct Router {
-    var routes: [Route]
+protocol ErasableMetadata {
+    static var erasedValue: Self { get }
 }
 
-struct Route {
-    var path: [String]
-    var handler: [RouteHandler]
+extension Optional: ErasableMetadata {
+    static var erasedValue: Optional<Wrapped> { nil }
 }
 
-protocol RouteHandler {
-
-}
-
-protocol RequestResponseHandler {
-    associatedtype Request
-    associatedtype Response
-    func handleRequest(_ request: Request) async throws -> Response
-}
-
-struct RequestResponseResponderDescription<
-    Decoder: DecoderProtocol,
-    Encoder: EncoderProtocol,
-    Handler: RequestResponseHandler
->: RouteHandler
-{
-    var decoder: Decoder
-    var encoder: Encoder
-    var handler: Handler
-}
-
-struct AsyncAwaitRequestResponseHandler<Request, Response>: RequestResponseHandler {
-    var handler: (Request) async throws -> Response
-    func handleRequest(_ request: Request) async throws -> Response {
-        try await handler(request)
-    }
-}
-
-
-struct FireAndForgetResponder<Decoder> where Decoder: DecoderProtocol {
-    let decoder: Decoder
-}
-struct RequestResponseResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
-    let coder: Coder<Decoder, Encoder>
-}
-
-struct RequestStreamResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
-    let coder: Coder<Decoder, Encoder>
-}
-
-struct RequestChannelResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
-    let coder: Coder<Decoder, Encoder>
-}
-
-extension RequestResponseResponder {
-    func handler(
-        _ handler: @escaping (Decoder.Data) async throws -> Encoder.Data
-    ) -> RequestResponseResponderDescription<Decoder, Encoder, AsyncAwaitRequestResponseHandler<Decoder.Data, Encoder.Data>> {
-            .init(decoder: coder.decoder, encoder: coder.encoder, handler: .init(handler: handler))
-    }
-}
-
-@available(macOS 12.0, *)
-func exampleRouter() -> Router {
-    let responder = RequestResponseResponder(
-        coder: Coder()
-    ).handler { request in
-        request
-    }
-
-    let routes = [Route(path: ["stock.isin"], handler: [responder])]
-    return Router(routes: routes)
+extension Array: ErasableMetadata {
+    static var erasedValue: Array<Element> { [] }
 }
 
 extension DecoderProtocol {
@@ -510,17 +436,7 @@ extension EncoderProtocol {
     }
 }
 
-protocol ErasableMetadata {
-    static var erasedValue: Self { get }
-}
-
-extension Optional: ErasableMetadata {
-    static var erasedValue: Optional<Wrapped> { nil }
-}
-
-extension Array: ErasableMetadata {
-    static var erasedValue: Array<Element> { [] }
-}
+// MARK: - Encoder Builder
 
 @resultBuilder
 enum EncoderBuilder: EncoderBuilderProtocol {
@@ -551,6 +467,8 @@ extension EncoderBuilderProtocol {
     }
 }
 
+// MARK: - Decoder Builder
+
 @resultBuilder
 enum DecoderBuilder: DecoderBuilderProtocol {
     static func buildBlock<Decoder>(
@@ -579,6 +497,8 @@ extension DecoderBuilderProtocol {
         decoder.eraseMetadata()
     }
 }
+
+// MARK: - Coder Builder
 
 @resultBuilder
 enum CoderBuilder: DecoderBuilderProtocol, EncoderBuilderProtocol {
@@ -626,6 +546,8 @@ extension CoderBuilder {
         coder.mapEncoder { $0.eraseMetadata() }.mapDecoder{ $0.eraseMetadata() }
     }
 }
+
+// MARK: - Requester API
 
 struct FireAndForget<Request> {
     let encoder: AnyEncoder<Void, Request>
@@ -690,8 +612,20 @@ Decoder.Metadata == Void, Decoder.Data == Response {
     }
 }
 
+// MARK: - Requester Example
+
 struct Metrics: Encodable {
     var os: String
+}
+
+struct Stock: Codable {
+    var isin: ISIN
+}
+struct ISIN: Codable {
+    var isin: String
+}
+struct Price: Codable {
+    var price: Double
 }
 
 enum Requests {
@@ -789,47 +723,79 @@ enum Requests {
     }
 }
 
-let coder = Coder()
-    .useCompositeMetadata()
-    .decodeData(using: [.json(type: Price.self)])
-    .mapEncoder {
-        $0.encodeMetadata(["price"], using: .routing)
-            .encodeData(using: .json(type: ISIN.self))
-            .mapData(ISIN.init(isin:))
-            .setMetadata([])
+
+// MARK: - Responder Experiments
+
+struct Router {
+    var routes: [Route]
+}
+
+struct Route {
+    var path: [String]
+    var handler: [RouteHandler]
+}
+
+protocol RouteHandler {
+
+}
+
+protocol RequestResponseHandler {
+    associatedtype Request
+    associatedtype Response
+    func handleRequest(_ request: Request) async throws -> Response
+}
+
+struct RequestResponseResponderDescription<
+    Decoder: DecoderProtocol,
+    Encoder: EncoderProtocol,
+    Handler: RequestResponseHandler
+>: RouteHandler
+{
+    var decoder: Decoder
+    var encoder: Encoder
+    var handler: Handler
+}
+
+struct AsyncAwaitRequestResponseHandler<Request, Response>: RequestResponseHandler {
+    var handler: (Request) async throws -> Response
+    func handleRequest(_ request: Request) async throws -> Response {
+        try await handler(request)
     }
-    .mapDecoder {
-        $0.mapData(\.price).eraseMetadata()
+}
+
+
+struct FireAndForgetResponder<Decoder> where Decoder: DecoderProtocol {
+    @DecoderBuilder let decoder: Decoder
+}
+struct RequestResponseResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    @CoderBuilder let coder: Coder<Decoder, Encoder>
+}
+
+struct RequestStreamResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    @CoderBuilder let coder: Coder<Decoder, Encoder>
+}
+
+struct RequestChannelResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    @CoderBuilder let coder: Coder<Decoder, Encoder>
+}
+
+extension RequestResponseResponder {
+    func handler(
+        _ handler: @escaping (Decoder.Data) async throws -> Encoder.Data
+    ) -> RequestResponseResponderDescription<Decoder, Encoder, AsyncAwaitRequestResponseHandler<Decoder.Data, Encoder.Data>> {
+            .init(decoder: coder.decoder, encoder: coder.encoder, handler: .init(handler: handler))
+    }
+}
+
+@available(macOS 12.0, *)
+func exampleRouter() -> Router {
+
+    let responder = RequestResponseResponder{
+        Coder()
+    }.handler { request in
+        request
     }
 
-
-struct Stock: Codable {
-    var isin: ISIN
-}
-struct ISIN: Codable {
-    var isin: String
-}
-struct Price: Codable {
-    var price: Double
-}
-
-func example() {
-
-    let priceRequest = Coder()
-        .useCompositeMetadata()
-        // shorthand for:
-        // .encodeMetadata(using: CompositeMetadataEncoder())
-        // .decodeMetadata(using: CompositeMetadataDecoder())
-        // .mapOutputMetadata { $0 ?? [] }
-        .mapEncoder {
-            $0.encodeMetadata(["stock.isin"], using: RoutingEncoder())
-                // With Swift 5.5 we can write it like this:
-                //.encodeMetadata(["stock.isin"], using: .routing)
-                .encodeData(using: .json(type: ISIN.self))
-        }
-        .decodeData(using: [.json(type: Price.self)])
-        .mapDecoder{ $0.mapData(\.price) }
-        .mapEncoder { $0.mapData(ISIN.init(isin:)) }
-        .mapEncoder { $0.eraseToAnyEncoder() }
-        .mapDecoder { $0.eraseToAnyDecoder() }
+    let routes = [Route(path: ["stock.isin"], handler: [responder])]
+    return Router(routes: routes)
 }

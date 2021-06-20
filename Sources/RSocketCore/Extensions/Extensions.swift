@@ -21,10 +21,9 @@ import NIOFoundationCompat
 // MARK: - Payload Decoder
 
 protocol DecoderProtocol {
-    associatedtype Request = Payload
     associatedtype Metadata
     associatedtype Data
-    func decodeRequest(_ request: Request) throws -> (Metadata, Data)
+    func decodedPayload(_ payload: Payload) throws -> (Metadata, Data)
 }
 
 
@@ -32,56 +31,40 @@ protocol DecoderProtocol {
 enum Decoders {}
 
 extension Decoders {
-    struct Start<Request, Metadata, Data>: DecoderProtocol {
+    struct Start<Metadata, Data>: DecoderProtocol {
 
-        var make: (Request) -> (Metadata, Data)
-        func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
-            make(request)
-        }
-    }
-    struct MapRequest<Decoder: DecoderProtocol, Request>: DecoderProtocol {
-        var decoder: Decoder
-        var transform: (Request) throws -> (Decoder.Request)
-        func decodeRequest(_ request: Request) throws -> (Decoder.Metadata, Decoder.Data) {
-            let request = try transform(request)
-            return try decoder.decodeRequest(request)
+        var make: (Payload) -> (Metadata, Data)
+        func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+            make(payload)
         }
     }
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
-        typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodeRequest(request)
+        func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload)
             return try transform(metadata, data)
         }
     }
     struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
-        typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Metadata) throws -> Metadata
-        func decodeRequest(_ request: Request) throws -> (Metadata, Decoder.Data) {
-            let (metadata, data) = try decoder.decodeRequest(request)
+        func decodedPayload(_ payload: Payload) throws -> (Metadata, Decoder.Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload)
             return (try transform(metadata), data)
         }
     }
     struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
-        typealias Request = Decoder.Request
         var decoder: Decoder
         var transform: (Decoder.Data) throws -> Data
-        func decodeRequest(_ request: Request) throws -> (Decoder.Metadata, Data) {
-            let (metadata, data) = try decoder.decodeRequest(request)
+        func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload)
             return (metadata, try transform(data))
         }
     }
 }
 
 extension DecoderProtocol {
-    func mapRequest<NewRequest>(
-        _ transform: @escaping (NewRequest) throws -> Request
-    ) -> Decoders.MapRequest<Self, NewRequest> {
-        .init(decoder: self, transform: transform)
-    }
     func map<NewMetadata, NewData>(
         _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
     ) -> Decoders.Map<Self, NewMetadata, NewData> {
@@ -99,80 +82,71 @@ extension DecoderProtocol {
     }
 }
 
-struct AnyDecoder<Request, Metadata, Data>: DecoderProtocol {
-    var _decodeRequest: (Request) throws -> (Metadata, Data)
+struct AnyDecoder<Metadata, Data>: DecoderProtocol {
+    var _decodedPayload: (Payload) throws -> (Metadata, Data)
     init<Decoder>(
         _ decoder: Decoder
-    ) where Decoder: DecoderProtocol, Decoder.Request == Request, Decoder.Metadata == Metadata, Decoder.Data == Data {
-        _decodeRequest = decoder.decodeRequest(_:)
+    ) where Decoder: DecoderProtocol, Decoder.Metadata == Metadata, Decoder.Data == Data {
+        _decodedPayload = decoder.decodedPayload(_:)
     }
-    func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
-        try _decodeRequest(request)
+    func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+        try _decodedPayload(payload)
     }
 }
 
 extension DecoderProtocol {
-    func eraseToAnyDecoder() -> AnyDecoder<Request, Metadata, Data> {
+    func eraseToAnyDecoder() -> AnyDecoder<Metadata, Data> {
         .init(self)
+    }
+}
+
+struct Decoder: DecoderProtocol {
+    init() {}
+    func decodedPayload(_ payload: Payload) throws -> (Data?, Data) {
+        (payload.metadata, payload.data)
     }
 }
 
 // MARK: - Payload Encoder
 
 protocol EncoderProtocol {
-    associatedtype Response = Payload
     associatedtype Metadata
     associatedtype Data
-    func encodeResponse(metadata: Metadata, data: Data) throws -> Response
+    func encodedPayload(metadata: Metadata, data: Data) throws -> Payload
 }
 
 enum Encoders {
-    struct Start<Response, Metadata, Data>: EncoderProtocol {
-        var make: (Metadata, Data) -> Response
-        func encodeResponse(metadata: Metadata, data: Data) throws -> Response {
+    struct Start<Metadata, Data>: EncoderProtocol {
+        var make: (Metadata, Data) -> Payload
+        func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
             make(metadata, data)
         }
     }
-    struct MapResponse<Encoder: EncoderProtocol, Response>: EncoderProtocol {
-        var encoder: Encoder
-        var transform: (Encoder.Response) throws -> (Response)
-        func encodeResponse(metadata: Encoder.Metadata, data: Encoder.Data) throws -> Response {
-            try transform(try encoder.encodeResponse(metadata: metadata, data: data))
-        }
-    }
     struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
-        typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
-        func encodeResponse(metadata: Metadata, data: Data) throws -> Response {
+        func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
             let (metadata, data) = try transform(metadata, data)
-            return try encoder.encodeResponse(metadata: metadata, data: data)
+            return try encoder.encodedPayload(metadata: metadata, data: data)
         }
     }
     struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
-        typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Metadata) throws -> Encoder.Metadata
-        func encodeResponse(metadata: Metadata, data: Encoder.Data) throws -> Response {
-            try encoder.encodeResponse(metadata: try transform(metadata), data: data)
+        func encodedPayload(metadata: Metadata, data: Encoder.Data) throws -> Payload {
+            try encoder.encodedPayload(metadata: try transform(metadata), data: data)
         }
     }
     struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
-        typealias Response = Encoder.Response
         var encoder: Encoder
         var transform: (Data) throws -> Encoder.Data
-        func encodeResponse(metadata: Encoder.Metadata, data: Data) throws -> Response {
-            try encoder.encodeResponse(metadata: metadata, data: try transform(data))
+        func encodedPayload(metadata: Encoder.Metadata, data: Data) throws -> Payload {
+            try encoder.encodedPayload(metadata: metadata, data: try transform(data))
         }
     }
 }
 
 extension EncoderProtocol {
-    func mapResponse<NewResponse>(
-        _ transform: @escaping (Response) throws -> NewResponse
-    ) -> Encoders.MapResponse<Self, NewResponse> {
-        .init(encoder: self, transform: transform)
-    }
     func map<NewMetadata, NewData>(
         _ transform: @escaping (NewMetadata, NewData) throws -> (Metadata, Data)
     ) -> Encoders.Map<Self, NewMetadata, NewData> {
@@ -190,24 +164,24 @@ extension EncoderProtocol {
     }
 }
 
-struct AnyEncoder<Response, Metadata, Data>: EncoderProtocol {
-    var _encodeRequest: (Metadata, Data) throws -> Response
+struct AnyEncoder<Metadata, Data>: EncoderProtocol {
+    var _encodedPayload: (Metadata, Data) throws -> Payload
     init<Encoder>(
         _ encoder: Encoder
-    ) where Encoder: EncoderProtocol, Encoder.Response == Response, Encoder.Metadata == Metadata, Encoder.Data == Data {
-        _encodeRequest = encoder.encodeResponse(metadata:data:)
+    ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
+        _encodedPayload = encoder.encodedPayload(metadata:data:)
     }
-    func encodeResponse(metadata: Metadata, data: Data) throws -> Response {
-        try _encodeRequest(metadata, data)
+    func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+        try _encodedPayload(metadata, data)
     }
 }
 
 extension AnyEncoder {
-    func eraseToAnyEncoder() -> AnyEncoder<Response, Metadata, Data> { self }
+    func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { self }
 }
 
 extension EncoderProtocol {
-    func eraseToAnyEncoder() -> AnyEncoder<Response, Metadata, Data> { .init(self) }
+    func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
 }
 
 // MARK: Decoder Extensions
@@ -296,6 +270,12 @@ extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundat
     ) -> Encoders.MapData<Encoders.MapMetadata<Self, [CompositeMetadata]>, NewData> {
         encodeMetadata(encoder.mimeType, using: dataMIMETypeEncoder)
             .encodeData(using: encoder)
+    }
+}
+
+struct Encoder: EncoderProtocol {
+    func encodedPayload(metadata: Data?, data: Data) throws -> Payload {
+        .init(metadata: metadata, data: data)
     }
 }
 
@@ -423,10 +403,10 @@ extension Coder where Encoder.Metadata == [CompositeMetadata], Encoder.Data == F
 
 extension Coder {
     init() where
-    Decoder == Decoders.Start<Payload, Data?, Data>,
-    Encoder == Encoders.Start<Payload, Data?, Data>
+    Decoder == RSocketCore.Decoder,
+    Encoder == RSocketCore.Encoder
     {
-        self.init(decoder: RSocketCore.Decoder(), encoder: RSocketCore.Encoder())
+        self.init(decoder: .init(), encoder: .init())
     }
 }
 
@@ -460,14 +440,6 @@ struct RequestResponseResponderDescription<
     var decoder: Decoder
     var encoder: Encoder
     var handler: Handler
-}
-
-func Decoder() -> Decoders.Start<Payload, Data?, Data> {
-    Decoders.Start { (payload: Payload) in (payload.metadata, payload.data) }
-}
-
-func Encoder() -> Encoders.Start<Payload, Data?, Data> {
-    Encoders.Start { (metadata, data) in Payload(metadata: metadata, data: data) }
 }
 
 struct AsyncAwaitRequestResponseHandler<Request, Response>: RequestResponseHandler {
@@ -656,28 +628,28 @@ extension CoderBuilder {
 }
 
 struct FireAndForget<Request> {
-    let encoder: AnyEncoder<Payload, Void, Request>
+    let encoder: AnyEncoder<Void, Request>
 }
 
 extension FireAndForget {
     init<Encoder>(
         @EncoderBuilder _ makeEncoder: () -> Encoder
-    ) where Encoder: EncoderProtocol, Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request {
+    ) where Encoder: EncoderProtocol, Encoder.Metadata == Void, Encoder.Data == Request {
         encoder = makeEncoder().eraseToAnyEncoder()
     }
 }
 
 struct RequestResponse<Request, Response> {
-    let encoder: AnyEncoder<Payload, Void, Request>
-    let decoder: AnyDecoder<Payload, Void, Response>
+    let encoder: AnyEncoder<Void, Request>
+    let decoder: AnyDecoder<Void, Response>
 }
 
 extension RequestResponse {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Metadata == Void, Decoder.Data == Response {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()
@@ -685,16 +657,16 @@ Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
 }
 
 struct RequestStream<Request, Response> {
-    let encoder: AnyEncoder<Payload, Void, Request>
-    let decoder: AnyDecoder<Payload, Void, Response>
+    let encoder: AnyEncoder<Void, Request>
+    let decoder: AnyDecoder<Void, Response>
 }
 
 extension RequestStream {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Metadata == Void, Decoder.Data == Response {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()
@@ -702,16 +674,16 @@ Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
 }
 
 struct RequestChannel<Request, Response> {
-    let encoder: AnyEncoder<Payload, Void, Request>
-    let decoder: AnyDecoder<Payload, Void, Response>
+    let encoder: AnyEncoder<Void, Request>
+    let decoder: AnyDecoder<Void, Response>
 }
 
 extension RequestChannel {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Metadata == Void, Decoder.Data == Response {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()

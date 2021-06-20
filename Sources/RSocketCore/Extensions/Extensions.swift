@@ -18,99 +18,6 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
-
-// MARK: - erase
-
-//extension Request {
-//    func setInputMetadata(to metadata: InputMetadata) -> Request<Void, InputData, OutputMetadata, OutputData> {
-//        mapInputMetadata { metadata }
-//    }
-//}
-//
-//extension Request where InputMetadata == Data? {
-//    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-//        setInputMetadata(to: nil)
-//    }
-//}
-//
-//extension Request where InputMetadata == [CompositeMetadata] {
-//    func eraseInputMetadata() -> Request<Void, InputData, OutputMetadata, OutputData> {
-//        setInputMetadata(to: [])
-//    }
-//}
-//
-//extension Request {
-//    func eraseOutputMetadata() -> Request<InputMetadata, InputData, Void, OutputData> {
-//        mapOutputMetadata { _ in }
-//    }
-//}
-//
-//typealias AnyRequest<RequestData, ResponseData> = Request<Void, RequestData, Void, ResponseData>
-//
-//extension Request where InputMetadata == [CompositeMetadata], OutputMetadata == [CompositeMetadata] {
-//    func eraseMetadata() -> AnyRequest<InputData, OutputData>  {
-//        self
-//            .eraseInputMetadata()
-//            .eraseOutputMetadata()
-//    }
-//}
-//
-//extension Request {
-//    func preserveOutputMetadata() -> Request<InputMetadata, InputData, Void, (OutputMetadata, OutputData)> {
-//        mapOutput { ((), ($0, $1)) }
-//    }
-//}
-
-struct Stock: Codable {
-    var isin: ISIN
-}
-struct ISIN: Codable {
-    var isin: String
-}
-struct Price: Codable {
-    var price: Double
-}
-
-func example() {
-
-    let priceRequest = Coder()
-        .useCompositeMetadata()
-        // shorthand for:
-        // .encodeMetadata(using: CompositeMetadataEncoder())
-        // .decodeMetadata(using: CompositeMetadataDecoder())
-        // .mapOutputMetadata { $0 ?? [] }
-        .mapEncoder {
-            $0.encodeMetadata(["stock.isin"], using: RoutingEncoder())
-                // With Swift 5.5 we can write it like this:
-                //.encodeMetadata(["stock.isin"], using: .routing)
-                .encodeData(using: .json(type: ISIN.self))
-        }
-        .decodeData(using: [.json(type: Price.self)])
-        .mapDecoder{ $0.mapData(\.price) }
-        .mapEncoder { $0.mapData(ISIN.init(isin:)) }
-}
-
-//protocol RequestDescription {
-//    associatedtype InputMetadata
-//    associatedtype InputData
-//
-//    func mapInput<NewInputMetadata, NewInputData>(
-//        _ transform: @escaping (NewInputMetadata, NewInputData) throws -> (InputMetadata, InputData)
-//    ) -> Self where Self.InputMetadata == NewInputMetadata, Self.InputData == NewInputData
-//}
-//
-//protocol ResponseDescription {
-//    associatedtype OutputMetadata
-//    associatedtype OutputData
-//
-//    func mapOutput<NewOutputMetadata, NewOutputData>(
-//        _ transform: @escaping (OutputMetadata, OutputData) throws -> (NewOutputMetadata, NewOutputData)
-//    ) -> Self where Self.InputMetadata == NewInputMetadata, Self.InputData == NewInputData
-//}
-//
-//struct FireAndForget<InputMetadata, InputData>: RequestDescription {
-//}
-
 // MARK: - Payload Decoder
 
 protocol DecoderProtocol {
@@ -169,18 +76,6 @@ extension Decoders {
     }
 }
 
-struct AnyDecoder<Request, Metadata, Data> {
-    var _decodeRequest: (Request) throws -> (Metadata, Data)
-    init<Decoder>(
-        _ decoder: Decoder
-    ) where Decoder: DecoderProtocol, Decoder.Request == Request, Decoder.Metadata == Metadata, Decoder.Data == Data {
-        _decodeRequest = decoder.decodeRequest(_:)
-    }
-    func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
-        try _decodeRequest(request)
-    }
-}
-
 extension DecoderProtocol {
     func mapRequest<NewRequest>(
         _ transform: @escaping (NewRequest) throws -> Request
@@ -201,6 +96,18 @@ extension DecoderProtocol {
         _ transform: @escaping (Data) throws -> NewData
     ) -> Decoders.MapData<Self, NewData> {
         .init(decoder: self, transform: transform)
+    }
+}
+
+struct AnyDecoder<Request, Metadata, Data>: DecoderProtocol {
+    var _decodeRequest: (Request) throws -> (Metadata, Data)
+    init<Decoder>(
+        _ decoder: Decoder
+    ) where Decoder: DecoderProtocol, Decoder.Request == Request, Decoder.Metadata == Metadata, Decoder.Data == Data {
+        _decodeRequest = decoder.decodeRequest(_:)
+    }
+    func decodeRequest(_ request: Request) throws -> (Metadata, Data) {
+        try _decodeRequest(request)
     }
 }
 
@@ -283,6 +190,26 @@ extension EncoderProtocol {
     }
 }
 
+struct AnyEncoder<Response, Metadata, Data>: EncoderProtocol {
+    var _encodeRequest: (Metadata, Data) throws -> Response
+    init<Encoder>(
+        _ encoder: Encoder
+    ) where Encoder: EncoderProtocol, Encoder.Response == Response, Encoder.Metadata == Metadata, Encoder.Data == Data {
+        _encodeRequest = encoder.encodeResponse(metadata:data:)
+    }
+    func encodeResponse(metadata: Metadata, data: Data) throws -> Response {
+        try _encodeRequest(metadata, data)
+    }
+}
+
+extension AnyEncoder {
+    func eraseToAnyEncoder() -> AnyEncoder<Response, Metadata, Data> { self }
+}
+
+extension EncoderProtocol {
+    func eraseToAnyEncoder() -> AnyEncoder<Response, Metadata, Data> { .init(self) }
+}
+
 // MARK: Decoder Extensions
 
 extension DecoderProtocol where Metadata == Foundation.Data? {
@@ -354,13 +281,21 @@ extension EncoderProtocol where Metadata == [CompositeMetadata] {
     }
 }
 
+extension EncoderProtocol where Data == Foundation.Data {
+    func encodeData<NewData>(
+        using encoder: DataEncoder<NewData>
+    ) -> Encoders.MapData<Self, NewData> {
+        mapData(encoder.encode)
+    }
+}
+
 extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
     func encodeData<NewData>(
         using encoder: DataEncoder<NewData>,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
     ) -> Encoders.MapData<Encoders.MapMetadata<Self, [CompositeMetadata]>, NewData> {
         encodeMetadata(encoder.mimeType, using: dataMIMETypeEncoder)
-            .mapData(encoder.encode)
+            .encodeData(using: encoder)
     }
 }
 
@@ -430,6 +365,10 @@ extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [Comp
     }
 }
 
+// MARK: - Coder Encoder Decoder extensions
+
+
+
 extension Coder {
     init() where
     Decoder == Decoders.Start<Payload, Data?, Data>,
@@ -450,15 +389,8 @@ struct Route {
     var handler: [RouteHandler]
 }
 
-enum RouteHandlerKind {
-    case fireAndForget
-    case requestResponse
-    case requestStream
-    case requestChannel
-}
-
 protocol RouteHandler {
-    //var kind: RouteHandlerKind { get }
+
 }
 
 protocol RequestResponseHandler {
@@ -478,23 +410,6 @@ struct RequestResponseResponderDescription<
     var handler: Handler
 }
 
-extension RequestResponseResponderDescription {
-    init(@ResponderBuilder _ description: () -> RequestResponseResponderDescription<Decoder, Encoder, Handler>) {
-        self = description()
-    }
-}
-
-@resultBuilder
-struct ResponderBuilder {
-    static func buildBlock<Decoder, Encoder, Handler>(
-        _ decoder: Decoder,
-        _ encoder: Encoder,
-        _ handler: Handler
-    ) -> RequestResponseResponderDescription<Decoder, Encoder, Handler> {
-        .init(decoder: decoder, encoder: encoder, handler: handler)
-    }
-}
-
 func Decoder() -> Decoders.Start<Payload, Data?, Data> {
     Decoders.Start { (payload: Payload) in (payload.metadata, payload.data) }
 }
@@ -510,19 +425,25 @@ struct AsyncAwaitRequestResponseHandler<Request, Response>: RequestResponseHandl
     }
 }
 
-struct RequestResponse<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+
+struct FireAndForgetResponder<Decoder> where Decoder: DecoderProtocol {
+    let decoder: Decoder
+}
+struct RequestResponseResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
     let coder: Coder<Decoder, Encoder>
 }
 
-extension RequestResponse {
-    init(decoder: Decoder, encoder: Encoder) {
-        self.init(coder: .init(decoder: decoder, encoder: encoder))
-    }
+struct RequestStreamResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    let coder: Coder<Decoder, Encoder>
 }
 
-extension RequestResponse {
-    func responder(
-        handler: @escaping (Decoder.Data) async throws -> Encoder.Data
+struct RequestChannelResponder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
+    let coder: Coder<Decoder, Encoder>
+}
+
+extension RequestResponseResponder {
+    func handler(
+        _ handler: @escaping (Decoder.Data) async throws -> Encoder.Data
     ) -> RequestResponseResponderDescription<Decoder, Encoder, AsyncAwaitRequestResponseHandler<Decoder.Data, Encoder.Data>> {
             .init(decoder: coder.decoder, encoder: coder.encoder, handler: .init(handler: handler))
     }
@@ -530,28 +451,375 @@ extension RequestResponse {
 
 @available(macOS 12.0, *)
 func exampleRouter() -> Router {
-    let responder = RequestResponseResponderDescription(
-        decoder: Decoder(),
-        encoder: Encoder(),
-        handler: AsyncAwaitRequestResponseHandler { (request: Payload) -> Payload in
-            request
-        }
-    )
-    let responder2 = RequestResponseResponderDescription {
-        Decoder()
-        Encoder()
-        AsyncAwaitRequestResponseHandler { (request: Payload) -> Payload in
-            request
-        }
-    }
-
-    let responder3 = RequestResponse(
-        decoder: Decoder(),
-        encoder: Encoder()
-    ).responder { request in
+    let responder = RequestResponseResponder(
+        coder: Coder()
+    ).handler { request in
         request
     }
 
-    let routes = [Route(path: ["stock.isin"], handler: [responder, responder2, responder3])]
+    let routes = [Route(path: ["stock.isin"], handler: [responder])]
     return Router(routes: routes)
+}
+
+extension DecoderProtocol {
+    func preserveMetadata() -> Decoders.Map<Self, Void, (Metadata, Data)> {
+        map { ((), ($0, $1)) }
+    }
+    func eraseMetadata() -> Decoders.Map<Self, Void, Data> {
+        map { _, data in ((), data) }
+    }
+}
+
+extension EncoderProtocol {
+    func preserveMetadata() -> Encoders.Map<Self, Void, (Metadata, Data)> {
+        map { (metadata: Void, data: (Metadata, Data)) -> (Metadata, Data) in
+            (data.0, data.1)
+        }
+    }
+    func setMetadata(_ metadata: Metadata) -> Encoders.Map<Self, Void, Data> {
+        map { (_, data: Data) -> (Metadata, Data) in
+            (metadata, data)
+        }
+    }
+}
+
+@resultBuilder
+enum EncoderBuilder: EncoderBuilderProtocol {
+    static func buildBlock<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoder where Encoder: EncoderProtocol {
+        encoder
+    }
+}
+
+protocol EncoderBuilderProtocol {}
+
+extension EncoderBuilderProtocol {
+    static func buildExpression<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoders.Map<Encoder, Void, (Encoder.Metadata, Encoder.Data)> {
+        encoder.preserveMetadata()
+    }
+    static func buildExpression<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoder where Encoder: EncoderProtocol, Encoder.Metadata == Void {
+        encoder
+    }
+    static func buildExpression<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoders.Map<Encoder, Void, Encoder.Data> where Encoder: EncoderProtocol, Encoder.Metadata == Data? {
+        encoder.setMetadata(nil)
+    }
+    static func buildExpression<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoders.Map<Encoder, Void, Encoder.Data> where Encoder: EncoderProtocol, Encoder.Metadata == [CompositeMetadata] {
+        encoder.setMetadata([])
+    }
+}
+
+@resultBuilder
+enum DecoderBuilder: DecoderBuilderProtocol {
+    static func buildBlock<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoder where Decoder: DecoderProtocol {
+        decoder
+    }
+}
+
+protocol DecoderBuilderProtocol {}
+
+extension DecoderBuilderProtocol {
+    static func buildExpression<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoders.Map<Decoder, Void, (Decoder.Metadata, Decoder.Data)> {
+        decoder.preserveMetadata()
+    }
+    static func buildExpression<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoder where Decoder: DecoderProtocol, Decoder.Metadata == Void {
+        decoder
+    }
+    static func buildExpression<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoders.Map<Decoder, Void, Decoder.Data> where Decoder.Metadata == Data? {
+        decoder.eraseMetadata()
+    }
+    static func buildExpression<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoders.Map<Decoder, Void, Decoder.Data> where Decoder.Metadata == [CompositeMetadata] {
+        decoder.eraseMetadata()
+    }
+}
+
+@resultBuilder
+enum CoderBuilder: DecoderBuilderProtocol, EncoderBuilderProtocol {
+    static func buildBlock<Decoder, Encoder>(
+        _ decoder: Decoder,
+        _ encoder: Encoder
+    ) -> Coder<Decoder, Encoder> {
+        .init(decoder: decoder, encoder: encoder)
+    }
+    static func buildBlock<Decoder, Encoder>(
+        _ encoder: Encoder,
+        _ decoder: Decoder
+    ) -> Coder<Decoder, Encoder> {
+        .init(decoder: decoder, encoder: encoder)
+    }
+    static func buildBlock<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoder, Encoder> {
+        coder
+    }
+}
+
+extension CoderBuilder {
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoder, Encoder> where Decoder.Metadata == Void, Encoder.Metadata == Void {
+        coder
+    }
+
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoder> where Decoder.Metadata == Data?, Encoder.Metadata == Void {
+        coder.mapDecoder{ $0.eraseMetadata() }
+    }
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoder> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == Void {
+        coder.mapDecoder{ $0.eraseMetadata() }
+    }
+
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoder, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Void, Encoder.Metadata == Data? {
+        coder.mapEncoder { $0.setMetadata(nil) }
+    }
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoder, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Void, Encoder.Metadata == [CompositeMetadata] {
+        coder.mapEncoder { $0.setMetadata([]) }
+    }
+
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
+        coder.mapEncoder { $0.setMetadata(nil) }.mapDecoder{ $0.eraseMetadata() }
+    }
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == [CompositeMetadata] {
+        coder.mapEncoder { $0.setMetadata([]) }.mapDecoder{ $0.eraseMetadata() }
+    }
+
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == Data? {
+        coder.mapEncoder { $0.setMetadata(nil) }.mapDecoder{ $0.eraseMetadata() }
+    }
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<Decoders.Map<Decoder, Void, Decoder.Data>, Encoders.Map<Encoder, Void, Encoder.Data>> where Decoder.Metadata == Date?, Encoder.Metadata == [CompositeMetadata] {
+        coder.mapEncoder { $0.setMetadata([]) }.mapDecoder{ $0.eraseMetadata() }
+    }
+}
+
+struct FireAndForget<Request> {
+    let encoder: AnyEncoder<Payload, Void, Request>
+}
+
+extension FireAndForget {
+    init<Encoder>(
+        @EncoderBuilder _ makeEncoder: () -> Encoder
+    ) where Encoder: EncoderProtocol, Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request {
+        encoder = makeEncoder().eraseToAnyEncoder()
+    }
+}
+
+struct RequestResponse<Request, Response> {
+    let encoder: AnyEncoder<Payload, Void, Request>
+    let decoder: AnyDecoder<Payload, Void, Response>
+}
+
+extension RequestResponse {
+    init<Encoder, Decoder>(
+        @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
+    ) where
+Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+        let coder = makeCoder()
+        encoder = coder.encoder.eraseToAnyEncoder()
+        decoder = coder.decoder.eraseToAnyDecoder()
+    }
+}
+
+struct RequestStream<Request, Response> {
+    let encoder: AnyEncoder<Payload, Void, Request>
+    let decoder: AnyDecoder<Payload, Void, Response>
+}
+
+extension RequestStream {
+    init<Encoder, Decoder>(
+        @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
+    ) where
+Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+        let coder = makeCoder()
+        encoder = coder.encoder.eraseToAnyEncoder()
+        decoder = coder.decoder.eraseToAnyDecoder()
+    }
+}
+
+struct RequestChannel<Request, Response> {
+    let encoder: AnyEncoder<Payload, Void, Request>
+    let decoder: AnyDecoder<Payload, Void, Response>
+}
+
+extension RequestChannel {
+    init<Encoder, Decoder>(
+        @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
+    ) where
+Encoder.Response == Payload, Encoder.Metadata == Void, Encoder.Data == Request,
+Decoder.Request == Payload, Decoder.Metadata == Void, Decoder.Data == Response {
+        let coder = makeCoder()
+        encoder = coder.encoder.eraseToAnyEncoder()
+        decoder = coder.decoder.eraseToAnyDecoder()
+    }
+}
+
+struct Metrics: Encodable {
+    var os: String
+}
+
+enum Requests {
+    static let metrics1: FireAndForget<Metrics> = .init {
+        Encoder()
+            .encodeMetadata(using: .routing)
+            .setMetadata(["metrics"])
+            .encodeData(using: .json(type: Metrics.self))
+    }
+    static let metrics2: FireAndForget<Metrics> = .init {
+        Encoder()
+            .useCompositeMetadata()
+            .encodeMetadata(["metrics"], using: .routing)
+            .encodeData(using: .json(type: Metrics.self))
+    }
+    static let metrics3: FireAndForget<([CompositeMetadata], Metrics)> = .init {
+        Encoder()
+            .useCompositeMetadata()
+            .encodeMetadata(["metrics"], using: .routing)
+            .encodeData(using: .json(type: Metrics.self))
+            .preserveMetadata()
+    }
+    static let priceRequest1: RequestResponse<String, Double> = .init{
+        Encoder()
+            .useCompositeMetadata()
+            .encodeMetadata(["price"], using: .routing)
+            .encodeMetadata([.json], using: .acceptableDataMIMEType)
+            .encodeData(using: .json(type: ISIN.self))
+            .mapData(ISIN.init(isin:))
+        Decoder()
+            .useCompositeMetadata()
+            .decodeData(using: .json(type: Price.self))
+            .mapData(\.price)
+    }
+    static let priceRequest2: RequestResponse<String, Double> = .init{
+        Coder()
+            .useCompositeMetadata()
+            .decodeData(using: [.json(type: Price.self)])
+            .mapEncoder {
+                $0.encodeMetadata(["price"], using: .routing)
+                    .encodeData(using: .json(type: ISIN.self))
+                    .mapData(ISIN.init(isin:))
+                    .setMetadata([])
+            }
+            .mapDecoder {
+                $0.mapData(\.price).eraseMetadata()
+            }
+    }
+    static let priceRequest3: RequestResponse<String, Double> = .init{
+        Coder()
+            .useCompositeMetadata()
+            .decodeData(using: [.json(type: Price.self)])
+            .mapEncoder {
+                $0.encodeMetadata(["price"], using: .routing)
+                    .encodeData(using: .json(type: ISIN.self))
+                    .mapData(ISIN.init(isin:))
+                    .setMetadata([])
+            }
+            .mapDecoder {
+                $0.mapData(\.price)
+            }
+    }
+    static let priceRequest4: RequestResponse<String, Double> = .init{
+        Coder()
+            .useCompositeMetadata()
+            .decodeData(using: [.json(type: Price.self)])
+            .mapEncoder {
+                $0.encodeMetadata(["price"], using: .routing)
+                    .encodeData(using: .json(type: ISIN.self))
+                    .mapData(ISIN.init(isin:))
+            }
+            .mapDecoder {
+                $0.mapData(\.price).eraseMetadata()
+            }
+    }
+    static let priceRequest5: RequestResponse<String, Double> = .init{
+        Coder()
+            .useCompositeMetadata()
+            .decodeData(using: [.json(type: Price.self)])
+            .mapEncoder {
+                $0.encodeMetadata(["price"], using: .routing)
+                    .encodeData(using: .json(type: ISIN.self))
+                    .mapData(ISIN.init(isin:))
+            }
+            .mapDecoder {
+                $0.mapData(\.price)
+            }
+    }
+}
+
+let coder = Coder()
+    .useCompositeMetadata()
+    .decodeData(using: [.json(type: Price.self)])
+    .mapEncoder {
+        $0.encodeMetadata(["price"], using: .routing)
+            .encodeData(using: .json(type: ISIN.self))
+            .mapData(ISIN.init(isin:))
+            .setMetadata([])
+    }
+    .mapDecoder {
+        $0.mapData(\.price).eraseMetadata()
+    }
+
+
+struct Stock: Codable {
+    var isin: ISIN
+}
+struct ISIN: Codable {
+    var isin: String
+}
+struct Price: Codable {
+    var price: Double
+}
+
+func example() {
+
+    let priceRequest = Coder()
+        .useCompositeMetadata()
+        // shorthand for:
+        // .encodeMetadata(using: CompositeMetadataEncoder())
+        // .decodeMetadata(using: CompositeMetadataDecoder())
+        // .mapOutputMetadata { $0 ?? [] }
+        .mapEncoder {
+            $0.encodeMetadata(["stock.isin"], using: RoutingEncoder())
+                // With Swift 5.5 we can write it like this:
+                //.encodeMetadata(["stock.isin"], using: .routing)
+                .encodeData(using: .json(type: ISIN.self))
+        }
+        .decodeData(using: [.json(type: Price.self)])
+        .mapDecoder{ $0.mapData(\.price) }
+        .mapEncoder { $0.mapData(ISIN.init(isin:)) }
+        .mapEncoder { $0.eraseToAnyEncoder() }
+        .mapDecoder { $0.eraseToAnyDecoder() }
 }

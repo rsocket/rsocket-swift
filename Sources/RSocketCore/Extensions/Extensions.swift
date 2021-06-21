@@ -194,8 +194,8 @@ extension DecoderProtocol where Data == Foundation.Data {
 
 extension DecoderProtocol where Metadata == Foundation.Data? {
     func useCompositeMetadata(
-        decoder: CompositeMetadataDecoder = .init()
-    ) -> Decoders.MapMetadata<Decoders.MapMetadata<Self, CompositeMetadataDecoder.Metadata?>, CompositeMetadataDecoder.Metadata> {
+        decoder: RootCompositeMetadataDecoder = .init()
+    ) -> Decoders.MapMetadata<Decoders.MapMetadata<Self, RootCompositeMetadataDecoder.Metadata?>, RootCompositeMetadataDecoder.Metadata> {
         decodeMetadata(using: decoder).mapMetadata{ $0 ?? [] }
     }
 }
@@ -214,8 +214,8 @@ extension EncoderProtocol where Metadata == Foundation.Data? {
 
 extension EncoderProtocol where Metadata == Foundation.Data? {
     func useCompositeMetadata(
-        encoder: CompositeMetadataEncoder = .init()
-    ) -> Encoders.MapMetadata<Self, CompositeMetadataEncoder.Metadata> {
+        encoder: RootCompositeMetadataEncoder = .init()
+    ) -> Encoders.MapMetadata<Self, RootCompositeMetadataEncoder.Metadata> {
         encodeMetadata(using: encoder)
     }
 }
@@ -293,11 +293,11 @@ extension Coder {
 
 extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
     func useCompositeMetadata(
-        decoder: CompositeMetadataDecoder = .init(),
-        encoder: CompositeMetadataEncoder = .init()
+        decoder: RootCompositeMetadataDecoder = .init(),
+        encoder: RootCompositeMetadataEncoder = .init()
     ) -> Coder<
-        Decoders.MapMetadata<Decoders.MapMetadata<Decoder, CompositeMetadataDecoder.Metadata?>, CompositeMetadataDecoder.Metadata>,
-        Encoders.MapMetadata<Encoder, CompositeMetadataEncoder.Metadata>
+        Decoders.MapMetadata<Decoders.MapMetadata<Decoder, RootCompositeMetadataDecoder.Metadata?>, RootCompositeMetadataDecoder.Metadata>,
+        Encoders.MapMetadata<Encoder, RootCompositeMetadataEncoder.Metadata>
     > {
         mapDecoder { $0.useCompositeMetadata(decoder: decoder) }
         .mapEncoder { $0.useCompositeMetadata(encoder: encoder) }
@@ -319,7 +319,7 @@ extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [Comp
             $0.encodeMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
         }.mapDecoder{
             $0.map { (metadata, data) -> (Decoder.Metadata, NewOutputValue) in
-                guard let dataEncoding = try metadata.decodeFirst(using: dataMIMETypeDecoder) else {
+                guard let dataEncoding = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) else {
                     throw Error.invalid(message: "Data MIME Type not found in metadata")
                 }
                 guard let decoder = decoder.first(where: { $0.mimeType == dataEncoding }) else {
@@ -723,6 +723,35 @@ enum Requests {
     }
 }
 
+func test() {
+    let decoder = Decoder()
+        .useCompositeMetadata()
+        .decodeMetadata {
+            RoutingDecoder()
+            DataMIMETypeDecoder()
+        }
+
+    let encoder = Encoder()
+        .useCompositeMetadata()
+        .encodeMetadata {
+            RoutingEncoder()
+            DataMIMETypeEncoder()
+        }
+    let request = RequestStream {
+        Decoder()
+            .useCompositeMetadata()
+            .decodeMetadata {
+                RoutingDecoder()
+            }
+        Encoder()
+            .useCompositeMetadata()
+            .encodeMetadata {
+                RoutingEncoder()
+                DataMIMETypeEncoder()
+            }
+    }
+}
+
 
 // MARK: - Responder Experiments
 
@@ -799,3 +828,4 @@ func exampleRouter() -> Router {
     let routes = [Route(path: ["stock.isin"], handler: [responder])]
     return Router(routes: routes)
 }
+

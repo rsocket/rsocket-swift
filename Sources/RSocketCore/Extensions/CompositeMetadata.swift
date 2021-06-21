@@ -22,7 +22,7 @@ struct CompositeMetadata {
     var data: Data
 }
 
-struct CompositeMetadataEncoder: MetadataEncoder {
+struct RootCompositeMetadataEncoder: MetadataEncoder {
     typealias Metadata = [CompositeMetadata]
     var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
     var mimeTypeEncoder = MIMETypeEncoder()
@@ -32,11 +32,7 @@ struct CompositeMetadataEncoder: MetadataEncoder {
 }
 
 // Swift 5.5 does support static member lookup in a generic context: https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md
-extension MetadataEncoder where Self == CompositeMetadataEncoder {
-    static var compositeMetadata: Self { .init() }
-}
-
-extension MetadataDecoder where Self == CompositeMetadataDecoder {
+extension MetadataEncoder where Self == RootCompositeMetadataEncoder {
     static var compositeMetadata: Self { .init() }
 }
 
@@ -61,7 +57,7 @@ extension RangeReplaceableCollection where Element == CompositeMetadata {
     }
 }
 
-struct CompositeMetadataDecoder: MetadataDecoder {
+struct RootCompositeMetadataDecoder: MetadataDecoder {
     typealias Metadata = [CompositeMetadata]
     var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
     var mimeTypeDecoder = MIMETypeEncoder()
@@ -70,13 +66,168 @@ struct CompositeMetadataDecoder: MetadataDecoder {
     }
 }
 
+extension MetadataDecoder where Self == RootCompositeMetadataDecoder {
+    static var compositeMetadata: Self { .init() }
+}
+
+enum CompositeMetadataDecodeError: Swift.Error {
+    case requiredMetadataNotPresentForMIMEType(MIMEType)
+}
+
 extension Sequence where Element == CompositeMetadata {
-    func decodeFirst<Decoder>(
+    func decodeFirstIfPresent<Decoder>(
         using decoder: Decoder
     ) throws -> Decoder.Metadata? where Decoder: MetadataDecoder {
         guard let data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
             return nil
         }
         return try decoder.decode(from: data)
+    }
+    func decodeFirst<Decoder>(
+        using decoder: Decoder
+    ) throws -> Decoder.Metadata where Decoder: MetadataDecoder {
+        guard let metadata = try decodeFirstIfPresent(using: decoder) else {
+            throw CompositeMetadataDecodeError.requiredMetadataNotPresentForMIMEType(decoder.mimeType)
+        }
+        return metadata
+    }
+}
+
+
+// MARK: - Composite Metadata Payload Decoer
+
+protocol CompositeMetadataDecoder {
+    associatedtype Metadata
+    func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata
+}
+
+
+struct CompositeMetadataDecoderTuple2<A, B>: CompositeMetadataDecoder where
+A: MetadataDecoder,
+B: MetadataDecoder
+{
+    typealias Metadata = (A.Metadata, B.Metadata)
+    let decoder: (A, B)
+    func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
+        (
+            try compositeMetadata.decodeFirst(using: decoder.0),
+            try compositeMetadata.decodeFirst(using: decoder.1)
+        )
+    }
+}
+
+struct CompositeMetadataDecoderTuple3<A, B, C>: CompositeMetadataDecoder where
+A: MetadataDecoder,
+B: MetadataDecoder,
+C: MetadataDecoder
+{
+    typealias Metadata = (A.Metadata, B.Metadata, C.Metadata)
+    let decoder: (A, B, C)
+    func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
+        (
+            try compositeMetadata.decodeFirst(using: decoder.0),
+            try compositeMetadata.decodeFirst(using: decoder.1),
+            try compositeMetadata.decodeFirst(using: decoder.2)
+        )
+    }
+}
+
+@resultBuilder
+enum CompositeMetadataDecoderBuilder {
+    static func buildBlock<Decoder>(
+        _ decoder: Decoder
+    ) -> Decoder where Decoder: CompositeMetadataDecoder {
+        decoder
+    }
+    static func buildBlock<A, B>(
+        _ a: A,
+        _ b: B
+    ) -> CompositeMetadataDecoderTuple2<A, B> {
+        .init(decoder: (a, b))
+    }
+    static func buildBlock<A, B, C>(
+        _ a: A,
+        _ b: B,
+        _ c: C
+    ) -> CompositeMetadataDecoderTuple3<A, B, C> {
+        .init(decoder: (a, b, c))
+    }
+}
+
+extension DecoderProtocol where Metadata == [CompositeMetadata] {
+    func decodeMetadata<Decoder: CompositeMetadataDecoder>(
+        @CompositeMetadataDecoderBuilder _ decoder: () -> Decoder
+    ) -> Decoders.MapMetadata<Self, Decoder.Metadata> {
+        let decoder = decoder()
+        return mapMetadata(decoder.decode(from:))
+    }
+}
+
+// MARK: - Composite Metadata Payload Encoder
+
+protocol CompositeMetadataEncoder {
+    associatedtype Metadata
+    func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata]
+}
+
+struct CompositeMetadataEncoderTuple2<A, B>: CompositeMetadataEncoder where
+A: MetadataEncoder,
+B: MetadataEncoder
+{
+    typealias Metadata = (A.Metadata, B.Metadata)
+    let encoder: (A, B)
+    func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
+        [
+            try CompositeMetadata.encoded(metadata.0, using: encoder.0),
+            try CompositeMetadata.encoded(metadata.1, using: encoder.1),
+        ]
+    }
+}
+
+struct CompositeMetadataEncoderTuple3<A, B, C>: CompositeMetadataEncoder where
+A: MetadataEncoder,
+B: MetadataEncoder,
+C: MetadataEncoder
+{
+    typealias Metadata = (A.Metadata, B.Metadata, C.Metadata)
+    let encoder: (A, B, C)
+    func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
+        [
+            try CompositeMetadata.encoded(metadata.0, using: encoder.0),
+            try CompositeMetadata.encoded(metadata.1, using: encoder.1),
+            try CompositeMetadata.encoded(metadata.2, using: encoder.2),
+        ]
+    }
+}
+
+
+@resultBuilder
+enum CompositeMetadataEncoderBuilder {
+    static func buildBlock<Encoder>(
+        _ encoder: Encoder
+    ) -> Encoder where Encoder: CompositeMetadataEncoder {
+        encoder
+    }
+    static func buildBlock<A, B>(
+        _ a: A,
+        _ b: B
+    ) -> CompositeMetadataEncoderTuple2<A, B> {
+        .init(encoder: (a, b))
+    }
+    static func buildBlock<A, B, C>(
+        _ a: A,
+        _ b: B,
+        _ c: C
+    ) -> CompositeMetadataEncoderTuple3<A, B, C> {
+        .init(encoder: (a, b, c))
+    }
+}
+
+extension EncoderProtocol where Metadata == [CompositeMetadata] {
+    func encodeMetadata<Encoder: CompositeMetadataEncoder>(
+        @CompositeMetadataEncoderBuilder _ encoder: () -> Encoder
+    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> {
+        let encoder = encoder()
+        return mapMetadata(encoder.encodeMetadata)
     }
 }

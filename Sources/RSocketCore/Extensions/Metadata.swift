@@ -17,13 +17,13 @@
 import NIO
 import Foundation
 
-protocol MetadataEncoder {
+protocol MetadataEncoder: CompositeMetadataEncoder {
     associatedtype Metadata
     var mimeType: MIMEType { get }
     func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws
 }
 
-protocol MetadataDecoder {
+protocol MetadataDecoder: CompositeMetadataDecoder {
     associatedtype Metadata
     var mimeType: MIMEType { get }
     func decode(from buffer: inout ByteBuffer) throws -> Metadata
@@ -45,5 +45,18 @@ extension MetadataDecoder {
             throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
         }
         return metadata
+    }
+}
+
+
+extension MetadataDecoder {
+    func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
+        try compositeMetadata.decodeFirst(using: self)
+    }
+}
+
+extension MetadataEncoder {
+    func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
+        [try CompositeMetadata.encoded(metadata, using: self)]
     }
 }

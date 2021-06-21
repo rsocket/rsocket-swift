@@ -23,7 +23,7 @@ import NIOFoundationCompat
 protocol DecoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    func decodedPayload(_ payload: Payload) throws -> (Metadata, Data)
+    mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data)
 }
 
 
@@ -34,7 +34,7 @@ extension Decoders {
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+        mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
             let (metadata, data) = try decoder.decodedPayload(payload)
             return try transform(metadata, data)
         }
@@ -42,7 +42,7 @@ extension Decoders {
     struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Metadata) throws -> Metadata
-        func decodedPayload(_ payload: Payload) throws -> (Metadata, Decoder.Data) {
+        mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Decoder.Data) {
             let (metadata, data) = try decoder.decodedPayload(payload)
             return (try transform(metadata), data)
         }
@@ -50,7 +50,7 @@ extension Decoders {
     struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Data) throws -> Data
-        func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Data) {
+        mutating func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Data) {
             let (metadata, data) = try decoder.decodedPayload(payload)
             return (metadata, try transform(data))
         }
@@ -76,14 +76,39 @@ extension DecoderProtocol {
 }
 
 struct AnyDecoder<Metadata, Data>: DecoderProtocol {
-    var _decodedPayload: (Payload) throws -> (Metadata, Data)
+    var _decoderBox: _AnyDecoderBase<Metadata, Data>
     init<Decoder>(
         _ decoder: Decoder
     ) where Decoder: DecoderProtocol, Decoder.Metadata == Metadata, Decoder.Data == Data {
-        _decodedPayload = decoder.decodedPayload(_:)
+        _decoderBox = _AnyDecoderBox(decoder: decoder)
     }
+    mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+        if !isKnownUniquelyReferenced(&_decoderBox) {
+            _decoderBox = _decoderBox.copy()
+        }
+        return try _decoderBox.decodedPayload(payload)
+    }
+}
+
+class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
     func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
-        try _decodedPayload(payload)
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+    func copy() -> _AnyDecoderBase<Metadata, Data> {
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+}
+
+class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
+    var decoder: Decoder
+    internal init(decoder: Decoder) {
+        self.decoder = decoder
+    }
+    override func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Decoder.Data) {
+        try decoder.decodedPayload(payload)
+    }
+    override func copy() -> _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
+        _AnyDecoderBox(decoder: decoder)
     }
 }
 

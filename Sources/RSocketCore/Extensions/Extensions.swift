@@ -185,9 +185,9 @@ extension DecoderProtocol where Metadata == Foundation.Data? {
 
 extension DecoderProtocol where Data == Foundation.Data {
     /// unconditionally decodes data with the given `decoder`
-    func decodeData<NewData>(
-        using decoder: DataDecoder<NewData>
-    ) -> Decoders.MapData<Self, NewData> {
+    func decodeData<Decoder>(
+        using decoder: Decoder
+    ) -> Decoders.MapData<Self, Decoder.Data> where Decoder: DataDecoderProtocol {
         mapData(decoder.decode(from:))
     }
 }
@@ -222,7 +222,7 @@ extension EncoderProtocol where Metadata == Foundation.Data? {
 
 extension EncoderProtocol where Metadata == [CompositeMetadata] {
     /// adds the given metadata to the composition
-    func encodeMetadata<Encoder>(
+    func encodeStaticMetadata<Encoder>(
         _ metadata: Encoder.Metadata,
         using encoder: Encoder
     ) -> Encoders.MapMetadata<Self, [CompositeMetadata]> where Encoder: MetadataEncoder {
@@ -243,20 +243,27 @@ extension EncoderProtocol where Metadata == [CompositeMetadata] {
 }
 
 extension EncoderProtocol where Data == Foundation.Data {
-    func encodeData<NewData>(
-        using encoder: DataEncoder<NewData>
-    ) -> Encoders.MapData<Self, NewData> {
+    func encodeData<Encoder>(
+        using encoder: Encoder
+    ) -> Encoders.MapData<Self, Encoder.Data> where Encoder: DataEncoderProtocol {
         mapData(encoder.encode)
     }
 }
 
 extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
-    func encodeData<NewData>(
-        using encoder: DataEncoder<NewData>,
-        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
-    ) -> Encoders.MapData<Encoders.MapMetadata<Self, [CompositeMetadata]>, NewData> {
-        encodeMetadata(encoder.mimeType, using: dataMIMETypeEncoder)
-            .encodeData(using: encoder)
+    func encodeData<Encoder>(
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
+        @MultiDataEncoderBuilder encoder: () -> Encoder
+    ) -> Encoders.Map<Self, Metadata, (MIMEType, Encoder.Data)> where Encoder: MultiDataEncoderProtocol {
+        let encoder = encoder()
+        return map { metadata, data in
+            let (mimeType, data) = data
+
+            return (
+                try metadata.encoded(mimeType, using: dataMIMETypeEncoder),
+                try encoder.encode(data, as: mimeType)
+            )
+        }
     }
 }
 
@@ -309,23 +316,21 @@ extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [Comp
     ///
     /// In addition, this methods encodes all MIME Types of all `decoder`s using the given `acceptableDataMIMETypeEncoder`.
     /// This makes it possible for a requester to support multiple response data MIME Types at the same time and let the responder choose the best one.
-    func decodeData<NewOutputValue>(
-        using decoder: [DataDecoder<NewOutputValue>],
+    func decodeData<DataDecoder>(
         acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
-        dataMIMETypeDecoder: DataMIMETypeDecoder = .init()
-    ) -> Coder<Decoders.Map<Decoder, [CompositeMetadata], NewOutputValue>, Encoders.MapMetadata<Encoder, [CompositeMetadata]>> {
-        let supportedEncodings = decoder.map(\.mimeType)
+        dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
+        @MultiDataDecoderBuilder decoder: () -> DataDecoder
+    ) -> Coder<Decoders.Map<Decoder, [CompositeMetadata], DataDecoder.Data>, Encoders.MapMetadata<Encoder, [CompositeMetadata]>> where DataDecoder: MultiDataDecoderProtocol {
+        let decoder = decoder()
+        let supportedEncodings = decoder.supportedMIMETypes
         return mapEncoder{
-            $0.encodeMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
+            $0.encodeStaticMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
         }.mapDecoder{
-            $0.map { (metadata, data) -> (Decoder.Metadata, NewOutputValue) in
+            $0.map { (metadata, data) in
                 guard let dataEncoding = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) else {
                     throw Error.invalid(message: "Data MIME Type not found in metadata")
                 }
-                guard let decoder = decoder.first(where: { $0.mimeType == dataEncoding }) else {
-                    throw Error.invalid(message: "\(dataEncoding) is not supported, should be \(supportedEncodings)")
-                }
-                let value = try decoder.decode(from: data)
+                let value = try decoder.decodeMIMEType(dataEncoding, from: data)
                 return (metadata, value)
             }
         }
@@ -344,9 +349,9 @@ extension Coder where Decoder.Metadata == Foundation.Data? {
 
 extension Coder where Decoder.Data == Foundation.Data {
     /// unconditionally decodes data with the given `decoder`
-    func decodeData<NewData>(
-        using decoder: DataDecoder<NewData>
-    ) -> Coder<Decoders.MapData<Decoder, NewData>, Encoder> {
+    func decodeData<DataDecoder>(
+        using decoder: DataDecoder
+    ) -> Coder<Decoders.MapData<Decoder, DataDecoder.Data>, Encoder> where DataDecoder: DataDecoderProtocol {
         mapDecoder { $0.decodeData(using: decoder) }
     }
 }
@@ -362,28 +367,28 @@ extension Coder where Encoder.Metadata == Foundation.Data? {
 }
 
 extension Coder where Encoder.Metadata == [CompositeMetadata] {
-    func encodeMetadata<MetadataEncoder>(
+    func encodeStaticMetadata<MetadataEncoder>(
         _ metadata: MetadataEncoder.Metadata,
         using encoder: MetadataEncoder
     ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, Encoder.Metadata>> where MetadataEncoder: RSocketCore.MetadataEncoder {
-        mapEncoder { $0.encodeMetadata(metadata, using: encoder) }
+        mapEncoder { $0.encodeStaticMetadata(metadata, using: encoder) }
     }
 }
 
 extension Coder where Encoder.Data == Foundation.Data {
-    func encodeData<NewData>(
-        using encoder: DataEncoder<NewData>
-    ) -> Coder<Decoder, Encoders.MapData<Encoder, NewData>> {
+    func encodeData<DataEncoder>(
+        using encoder: DataEncoder
+    ) -> Coder<Decoder, Encoders.MapData<Encoder, DataEncoder.Data>> where DataEncoder: DataEncoderProtocol {
         mapEncoder { $0.encodeData(using: encoder) }
     }
 }
 
 extension Coder where Encoder.Metadata == [CompositeMetadata], Encoder.Data == Foundation.Data {
-    func encodeData<NewData>(
-        using encoder: DataEncoder<NewData>,
-        dataMIMETypeEncoder: DataMIMETypeEncoder = .init()
-    ) -> Coder<Decoder, Encoders.MapData<Encoders.MapMetadata<Encoder, [CompositeMetadata]>, NewData>> {
-        mapEncoder { $0.encodeData(using: encoder, dataMIMETypeEncoder: dataMIMETypeEncoder) }
+    func encodeData<DataEncoder>(
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
+        @MultiDataEncoderBuilder encoder: () -> DataEncoder
+    ) -> Coder<Decoder, Encoders.Map<Encoder, Encoder.Metadata, (MIMEType, DataEncoder.Data)>> where DataEncoder: MultiDataEncoderProtocol {
+        mapEncoder { $0.encodeData(dataMIMETypeEncoder: dataMIMETypeEncoder, encoder: encoder) }
     }
 }
 
@@ -633,40 +638,41 @@ enum Requests {
         Encoder()
             .encodeMetadata(using: .routing)
             .setMetadata(["metrics"])
-            .encodeData(using: .json(type: Metrics.self))
+            .encodeData(using: JSONDataEncoder<Metrics>())
     }
     static let metrics2: FireAndForget<Metrics> = .init {
         Encoder()
             .useCompositeMetadata()
-            .encodeMetadata(["metrics"], using: .routing)
-            .encodeData(using: .json(type: Metrics.self))
+            .encodeStaticMetadata(["metrics"], using: .routing)
+            .encodeData(using: JSONDataEncoder<Metrics>())
     }
     static let metrics3: FireAndForget<([CompositeMetadata], Metrics)> = .init {
         Encoder()
             .useCompositeMetadata()
-            .encodeMetadata(["metrics"], using: .routing)
-            .encodeData(using: .json(type: Metrics.self))
+            .encodeStaticMetadata(["metrics"], using: .routing)
+            .encodeData(using: JSONDataEncoder<Metrics>())
             .preserveMetadata()
     }
     static let priceRequest1: RequestResponse<String, Double> = .init{
         Encoder()
             .useCompositeMetadata()
-            .encodeMetadata(["price"], using: .routing)
-            .encodeMetadata([.json], using: .acceptableDataMIMEType)
-            .encodeData(using: .json(type: ISIN.self))
+            .encodeStaticMetadata(["price"], using: .routing)
+            .encodeStaticMetadata([.json], using: .acceptableDataMIMEType)
+            .encodeData(using: JSONDataEncoder<ISIN>())
             .mapData(ISIN.init(isin:))
         Decoder()
             .useCompositeMetadata()
-            .decodeData(using: .json(type: Price.self))
-            .mapData(\.price)
+            .decodeData(using: JSONDataDecoder<Price>().map(\.price))
     }
     static let priceRequest2: RequestResponse<String, Double> = .init{
         Coder()
             .useCompositeMetadata()
-            .decodeData(using: [.json(type: Price.self)])
+            .decodeData {
+                JSONDataDecoder<Price>()
+            }
             .mapEncoder {
-                $0.encodeMetadata(["price"], using: .routing)
-                    .encodeData(using: .json(type: ISIN.self))
+                $0.encodeStaticMetadata(["price"], using: .routing)
+                    .encodeData(using: JSONDataEncoder<ISIN>())
                     .mapData(ISIN.init(isin:))
                     .setMetadata([])
             }
@@ -677,10 +683,12 @@ enum Requests {
     static let priceRequest3: RequestResponse<String, Double> = .init{
         Coder()
             .useCompositeMetadata()
-            .decodeData(using: [.json(type: Price.self)])
+            .decodeData {
+                JSONDataDecoder<Price>()
+            }
             .mapEncoder {
-                $0.encodeMetadata(["price"], using: .routing)
-                    .encodeData(using: .json(type: ISIN.self))
+                $0.encodeStaticMetadata(["price"], using: .routing)
+                    .encodeData(using: JSONDataEncoder<ISIN>())
                     .mapData(ISIN.init(isin:))
                     .setMetadata([])
             }
@@ -691,24 +699,30 @@ enum Requests {
     static let priceRequest4: RequestResponse<String, Double> = .init{
         Coder()
             .useCompositeMetadata()
-            .decodeData(using: [.json(type: Price.self)])
+            .decodeData {
+                JSONDataDecoder<Price>()
+            }
             .mapEncoder {
-                $0.encodeMetadata(["price"], using: .routing)
-                    .encodeData(using: .json(type: ISIN.self))
+                $0.encodeStaticMetadata(["price"], using: .routing)
+                    .encodeData(using: JSONDataEncoder<ISIN>())
                     .mapData(ISIN.init(isin:))
             }
             .mapDecoder {
                 $0.mapData(\.price).eraseMetadata()
             }
     }
-    static let priceRequest5: RequestResponse<String, Double> = .init{
+    static let priceRequest5: RequestResponse<(MIMEType, String), Double> = .init {
         Coder()
             .useCompositeMetadata()
-            .decodeData(using: [.json(type: Price.self)])
+            .decodeData {
+                JSONDataDecoder<Price>()
+            }
             .mapEncoder {
-                $0.encodeMetadata(["price"], using: .routing)
-                    .encodeData(using: .json(type: ISIN.self))
-                    .mapData(ISIN.init(isin:))
+                $0.encodeStaticMetadata(["price"], using: .routing)
+                    .encodeData {
+                        JSONDataEncoder<ISIN>()
+                            .map(ISIN.init(isin:))
+                    }
             }
             .mapDecoder {
                 $0.mapData(\.price)
@@ -717,9 +731,11 @@ enum Requests {
     static let priceStream1: RequestStream<ISIN, Price> = .init{
         Coder()
             .useCompositeMetadata()
-            .encodeMetadata(["price"], using: .routing)
-            .encodeData(using: .json(type: ISIN.self))
-            .decodeData(using: [.json(type: Price.self)])
+            .encodeStaticMetadata(["price"], using: .routing)
+            .encodeData(using: JSONDataEncoder<ISIN>())
+            .decodeData {
+                JSONDataDecoder<Price>()
+            }
     }
 }
 

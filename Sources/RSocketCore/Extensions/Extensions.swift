@@ -99,7 +99,7 @@ class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
     }
 }
 
-class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
+final class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
     var decoder: Decoder
     internal init(decoder: Decoder) {
         self.decoder = decoder
@@ -130,14 +130,14 @@ struct Decoder: DecoderProtocol {
 protocol EncoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    func encodedPayload(metadata: Metadata, data: Data) throws -> Payload
+    mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload
 }
 
 enum Encoders {
     struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
-        func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+        mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
             let (metadata, data) = try transform(metadata, data)
             return try encoder.encodedPayload(metadata: metadata, data: data)
         }
@@ -145,14 +145,14 @@ enum Encoders {
     struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Metadata) throws -> Encoder.Metadata
-        func encodedPayload(metadata: Metadata, data: Encoder.Data) throws -> Payload {
+        mutating func encodedPayload(metadata: Metadata, data: Encoder.Data) throws -> Payload {
             try encoder.encodedPayload(metadata: try transform(metadata), data: data)
         }
     }
     struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Data) throws -> Encoder.Data
-        func encodedPayload(metadata: Encoder.Metadata, data: Data) throws -> Payload {
+        mutating func encodedPayload(metadata: Encoder.Metadata, data: Data) throws -> Payload {
             try encoder.encodedPayload(metadata: metadata, data: try transform(data))
         }
     }
@@ -177,14 +177,39 @@ extension EncoderProtocol {
 }
 
 struct AnyEncoder<Metadata, Data>: EncoderProtocol {
-    var _encodedPayload: (Metadata, Data) throws -> Payload
+    var _encoderBox: _AnyEncoderBase<Metadata, Data>
     init<Encoder>(
         _ encoder: Encoder
     ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
-        _encodedPayload = encoder.encodedPayload(metadata:data:)
+        _encoderBox = _AnyEncoderBox(encoder: encoder)
     }
+    mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+        if !isKnownUniquelyReferenced(&_encoderBox) {
+            _encoderBox = _encoderBox.copy()
+        }
+        return try _encoderBox.encodedPayload(metadata: metadata, data: data)
+    }
+}
+
+class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
     func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
-        try _encodedPayload(metadata, data)
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+    func copy() -> _AnyEncoderBase<Metadata, Data> {
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+}
+
+final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+    var encoder: Encoder
+    internal init(encoder: Encoder) {
+        self.encoder = encoder
+    }
+    override func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+        try encoder.encodedPayload(metadata: metadata, data: data)
+    }
+    override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+        _AnyEncoderBox(encoder: encoder)
     }
 }
 

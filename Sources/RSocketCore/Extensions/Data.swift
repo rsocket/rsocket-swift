@@ -68,6 +68,9 @@ extension DataDecoderProtocol {
 struct JSONDataDecoder<Data: Decodable>: DataDecoderProtocol {
     var decoder: JSONDecoder = .init()
     var mimeType: MIMEType { .json }
+    init(type: Data.Type = Data.self, decoder: JSONDecoder = .init()) {
+        self.decoder = decoder
+    }
     func decode(from buffer: inout ByteBuffer) throws -> Data {
         try decoder.decode(Data.self, from: buffer)
     }
@@ -80,8 +83,11 @@ extension DataDecoderProtocol {
 }
 
 struct JSONDataEncoder<Data: Encodable>: DataEncoderProtocol {
-    var encoder: JSONEncoder = .init()
+    var encoder: JSONEncoder
     var mimeType: MIMEType { .json }
+    init(type: Data.Type = Data.self, encoder: JSONEncoder = .init()) {
+        self.encoder = encoder
+    }
     func encode(_ data: Data, into buffer: inout ByteBuffer) throws {
         try encoder.encode(data, into: &buffer)
     }

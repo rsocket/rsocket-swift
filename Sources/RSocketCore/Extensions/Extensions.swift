@@ -18,12 +18,20 @@ import Foundation
 import NIO
 import NIOFoundationCompat
 
+struct ConnectionMIMEType {
+    var metadata: MIMEType
+    var data: MIMEType
+}
+
 // MARK: - Payload Decoder
 
 protocol DecoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data)
+    mutating func decodedPayload(
+        _ payload: Payload,
+        mimeType: ConnectionMIMEType
+    ) throws -> (Metadata, Data)
 }
 
 
@@ -34,25 +42,130 @@ extension Decoders {
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload)
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
             return try transform(metadata, data)
         }
     }
     struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Metadata) throws -> Metadata
-        mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Decoder.Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload)
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Decoder.Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
             return (try transform(metadata), data)
         }
     }
     struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         var decoder: Decoder
         var transform: (Decoder.Data) throws -> Data
-        mutating func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload)
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Decoder.Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
             return (metadata, try transform(data))
+        }
+    }
+    struct MetadataDecoder<Decoder, MetadataDecoder>: DecoderProtocol where
+    Decoder: DecoderProtocol,
+    Decoder.Metadata == Foundation.Data?,
+    MetadataDecoder: RSocketCore.MetadataDecoder
+    {
+        typealias Metadata = MetadataDecoder.Metadata?
+        typealias Data = Decoder.Data
+        var decoder: Decoder
+        var metadataDecoder: MetadataDecoder
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let decodedMetadata = try metadata.map { try metadataDecoder.decode(from: $0) }
+            return (decodedMetadata, data)
+        }
+    }
+    struct CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>: DecoderProtocol where
+    Decoder: DecoderProtocol,
+    Decoder.Metadata == [CompositeMetadata],
+    CompositeMetadataDecoder: RSocketCore.CompositeMetadataDecoder
+    {
+        typealias Metadata = CompositeMetadataDecoder.Metadata
+        typealias Data = Decoder.Data
+        var decoder: Decoder
+        var metadataDecoder: CompositeMetadataDecoder
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let decodedMetadata = try metadataDecoder.decode(from: metadata)
+            return (decodedMetadata, data)
+        }
+    }
+    struct RootCompositeMetadataDecoder<Decoder>: DecoderProtocol where
+    Decoder: DecoderProtocol,
+    Decoder.Metadata == Foundation.Data?
+    {
+        typealias Metadata = [CompositeMetadata]
+        typealias Data = Decoder.Data
+        var decoder: Decoder
+        var metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let decodedMetadata = try metadata.map { try metadataDecoder.decode(from: $0) }
+            return (decodedMetadata ?? [], data)
+        }
+    }
+    struct DataDecoder<Decoder, DataDecoder>: DecoderProtocol where
+    Decoder: DecoderProtocol,
+    Decoder.Data == Foundation.Data,
+    DataDecoder: DataDecoderProtocol
+    {
+        typealias Metadata = Decoder.Metadata
+        typealias Data = DataDecoder.Data
+        var decoder: Decoder
+        var dataDecoder: DataDecoder
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let decodedData = try dataDecoder.decode(from: data)
+            return (metadata, decodedData)
+        }
+    }
+    struct MultiDataDecoder<Decoder, DataDecoder>: DecoderProtocol where
+    Decoder: DecoderProtocol,
+    Decoder.Metadata == [CompositeMetadata],
+    Decoder.Data == Foundation.Data,
+    DataDecoder: MultiDataDecoderProtocol
+    {
+        typealias Metadata = Decoder.Metadata
+        typealias Data = DataDecoder.Data
+        var decoder: Decoder
+        var dataMIMETypeDecoder: DataMIMETypeDecoder
+        var dataDecoder: DataDecoder
+        var lastSeenDataMIMEType: MIMEType?
+        mutating func decodedPayload(
+            _ payload: Payload,
+            mimeType connectionMIMEType: ConnectionMIMEType
+        ) throws -> (Metadata, Data) {
+            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: connectionMIMEType)
+            if let dataMIMEType = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) {
+                lastSeenDataMIMEType = dataMIMEType
+            }
+            let dataMIMEType = lastSeenDataMIMEType ?? connectionMIMEType.data
+            let decodedData = try dataDecoder.decodeMIMEType(dataMIMEType, from: data)
+            return (metadata, decodedData)
         }
     }
 }
@@ -73,6 +186,34 @@ extension DecoderProtocol {
     ) -> Decoders.MapData<Self, NewData> {
         .init(decoder: self, transform: transform)
     }
+    func decodeMetadata<MetadataDecoder>(
+        using metadataDecoder: MetadataDecoder
+    ) -> Decoders.MetadataDecoder<Self, MetadataDecoder> {
+        .init(decoder: self, metadataDecoder: metadataDecoder)
+    }
+    func decodeMetadata<CompositeMetadataDecoder>(
+        @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
+    ) -> Decoders.CompositeMetadataDecoder<Self, CompositeMetadataDecoder> {
+        .init(decoder: self, metadataDecoder: metadataDecoder())
+    }
+    /// unconditionally decodes data with the given `decoder`
+    func decodeData<DataDecoder>(
+        using dataDecoder: DataDecoder
+    ) -> Decoders.DataDecoder<Self, DataDecoder> {
+        .init(decoder: self, dataDecoder: dataDecoder)
+    }
+    /// unconditionally decodes data with the given `decoder`
+    func decodeData<DataDecoder>(
+        dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
+        @MultiDataDecoderBuilder dataDecoder: () -> DataDecoder
+    ) -> Decoders.MultiDataDecoder<Self, DataDecoder> {
+        .init(decoder: self, dataMIMETypeDecoder: dataMIMETypeDecoder, dataDecoder: dataDecoder())
+    }
+    func useCompositeMetadata(
+        metadataDecoder: RootCompositeMetadataDecoder = .init()
+    ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == Foundation.Data? {
+        .init(decoder: self, metadataDecoder: metadataDecoder)
+    }
 }
 
 struct AnyDecoder<Metadata, Data>: DecoderProtocol {
@@ -82,16 +223,22 @@ struct AnyDecoder<Metadata, Data>: DecoderProtocol {
     ) where Decoder: DecoderProtocol, Decoder.Metadata == Metadata, Decoder.Data == Data {
         _decoderBox = _AnyDecoderBox(decoder: decoder)
     }
-    mutating func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+    mutating func decodedPayload(
+        _ payload: Payload,
+        mimeType: ConnectionMIMEType
+    ) throws -> (Metadata, Data) {
         if !isKnownUniquelyReferenced(&_decoderBox) {
             _decoderBox = _decoderBox.copy()
         }
-        return try _decoderBox.decodedPayload(payload)
+        return try _decoderBox.decodedPayload(payload, mimeType: mimeType)
     }
 }
 
 class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
-    func decodedPayload(_ payload: Payload) throws -> (Metadata, Data) {
+    func decodedPayload(
+        _ payload: Payload,
+        mimeType: ConnectionMIMEType
+    ) throws -> (Metadata, Data) {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
     func copy() -> _AnyDecoderBase<Metadata, Data> {
@@ -104,8 +251,11 @@ final class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Me
     internal init(decoder: Decoder) {
         self.decoder = decoder
     }
-    override func decodedPayload(_ payload: Payload) throws -> (Decoder.Metadata, Decoder.Data) {
-        try decoder.decodedPayload(payload)
+    override func decodedPayload(
+        _ payload: Payload,
+        mimeType: ConnectionMIMEType
+    ) throws -> (Decoder.Metadata, Decoder.Data) {
+        try decoder.decodedPayload(payload, mimeType: mimeType)
     }
     override func copy() -> _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
         _AnyDecoderBox(decoder: decoder)
@@ -120,7 +270,7 @@ extension DecoderProtocol {
 
 struct Decoder: DecoderProtocol {
     init() {}
-    func decodedPayload(_ payload: Payload) throws -> (Data?, Data) {
+    func decodedPayload(_ payload: Payload, mimeType: ConnectionMIMEType) throws -> (Data?, Data) {
         (payload.metadata, payload.data)
     }
 }
@@ -130,30 +280,167 @@ struct Decoder: DecoderProtocol {
 protocol EncoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload
+    mutating func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload
 }
 
 enum Encoders {
     struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
-        mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
             let (metadata, data) = try transform(metadata, data)
-            return try encoder.encodedPayload(metadata: metadata, data: data)
+            return try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
         }
     }
     struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Metadata) throws -> Encoder.Metadata
-        mutating func encodedPayload(metadata: Metadata, data: Encoder.Data) throws -> Payload {
-            try encoder.encodedPayload(metadata: try transform(metadata), data: data)
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Encoder.Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(metadata: try transform(metadata), data: data, mimeType: mimeType)
         }
     }
     struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
         var encoder: Encoder
         var transform: (Data) throws -> Encoder.Data
-        mutating func encodedPayload(metadata: Encoder.Metadata, data: Data) throws -> Payload {
-            try encoder.encodedPayload(metadata: metadata, data: try transform(data))
+        mutating func encodedPayload(
+            metadata: Encoder.Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(metadata: metadata, data: try transform(data), mimeType: mimeType)
+        }
+    }
+    struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+    Encoder: EncoderProtocol,
+    Encoder.Metadata == Foundation.Data?,
+    MetadataEncoder: RSocketCore.MetadataEncoder
+    {
+        typealias Metadata = MetadataEncoder.Metadata
+        typealias Data = Encoder.Data
+        var encoder: Encoder
+        var metadataEncoder: MetadataEncoder
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(
+                metadata: try metadataEncoder.encode(metadata), 
+                data: data, 
+                mimeType: mimeType
+            )
+        }
+    }
+    typealias RootCompositeMetadataEncoder<Encoder> = MetadataEncoder<Encoder, RSocketCore.RootCompositeMetadataEncoder> where Encoder: EncoderProtocol, Encoder.Metadata == Foundation.Data?
+    
+    struct StaticMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+    Encoder: EncoderProtocol,
+    Encoder.Metadata == [CompositeMetadata],
+    MetadataEncoder: RSocketCore.MetadataEncoder
+    {
+        typealias Metadata = Encoder.Metadata
+        typealias Data = Encoder.Data
+        var encoder: Encoder
+        var metadataEncoder: MetadataEncoder
+        var staticMetadata: MetadataEncoder.Metadata
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(
+                metadata: try metadata.encoded(staticMetadata, using: metadataEncoder), 
+                data: data, 
+                mimeType: mimeType
+            )
+        }
+    }
+    struct CompositeMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+    Encoder: EncoderProtocol,
+    Encoder.Metadata == [CompositeMetadata],
+    MetadataEncoder: RSocketCore.CompositeMetadataEncoder
+    {
+        typealias Metadata = MetadataEncoder.Metadata
+        typealias Data = Encoder.Data
+        var encoder: Encoder
+        var metadataEncoder: MetadataEncoder
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(
+                metadata: metadataEncoder.encodeMetadata(metadata), 
+                data: data, 
+                mimeType: mimeType
+            )
+        }
+    }
+    struct DataEncoder<Encoder, DataEncoder>: EncoderProtocol where
+    Encoder: EncoderProtocol,
+    Encoder.Data == Data,
+    DataEncoder: RSocketCore.DataEncoderProtocol
+    {
+        typealias Metadata = Encoder.Metadata
+        typealias Data = DataEncoder.Data
+        var encoder: Encoder
+        var dataEncoder: DataEncoder
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType: ConnectionMIMEType
+        ) throws -> Payload {
+            try encoder.encodedPayload(
+                metadata: metadata, 
+                data: try dataEncoder.encode(data), 
+                mimeType: mimeType
+            )
+        }
+    }
+    struct MultiDataEncoder<Encoder, DataEncoder>: EncoderProtocol where
+    Encoder: EncoderProtocol,
+    Encoder.Data == Foundation.Data,
+    Encoder.Metadata == [CompositeMetadata],
+    DataEncoder: RSocketCore.MultiDataEncoderProtocol
+    {
+        typealias Metadata = Encoder.Metadata
+        typealias Data = (MIMEType, DataEncoder.Data)
+        var encoder: Encoder
+        var dataEncoder: DataEncoder
+        var dataMIMETypeEncoder: DataMIMETypeEncoder
+        var alwaysEncodeDataMIMEType: Bool
+        mutating func encodedPayload(
+            metadata: Metadata,
+            data: Data,
+            mimeType connectionMIMEType: ConnectionMIMEType
+        ) throws -> Payload {
+            let (dataMIMEType, data) = data
+            
+            let shouldEncodeDataMIMEType = alwaysEncodeDataMIMEType || 
+                connectionMIMEType.data != dataMIMEType
+            let newMetadata: [CompositeMetadata]
+            if shouldEncodeDataMIMEType {
+                newMetadata = try metadata.encoded(dataMIMEType, using: dataMIMETypeEncoder)
+            } else {
+                newMetadata = metadata
+            }
+            return try encoder.encodedPayload(
+                metadata: newMetadata, 
+                data: try dataEncoder.encode(data, as: dataMIMEType), 
+                mimeType: connectionMIMEType
+            )
         }
     }
 }
@@ -174,6 +461,49 @@ extension EncoderProtocol {
     ) -> Encoders.MapData<Self, NewData> {
         .init(encoder: self, transform: transform)
     }
+    func encodeMetadata<MetadataEncoder>(
+        using metadataEncoder: MetadataEncoder
+    ) -> Encoders.MetadataEncoder<Self, MetadataEncoder> {
+        .init(encoder: self, metadataEncoder: metadataEncoder)
+    }
+    func useCompositeMetadata(
+        metadataEncoder: RootCompositeMetadataEncoder = .init()
+    ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == Foundation.Data? {
+        encodeMetadata(using: metadataEncoder)
+    }
+    /// adds the given metadata to the composition
+    func encodeStaticMetadata<MetadataEncoder>(
+        _ staticMetadata: MetadataEncoder.Metadata,
+        using metadataEncoder: MetadataEncoder
+    ) -> Encoders.StaticMetadataEncoder<Self, MetadataEncoder> {
+        .init(encoder: self, metadataEncoder: metadataEncoder, staticMetadata: staticMetadata)
+    }
+    func encodeMetadata<MetadataEncoder>(
+        metadataEncoder: () -> MetadataEncoder
+    ) -> Encoders.CompositeMetadataEncoder<Self, MetadataEncoder> {
+            .init(encoder: self, metadataEncoder: metadataEncoder())
+    }
+    func encodeData<DataEncoder>(
+        using dataEncoder: DataEncoder
+    ) -> Encoders.DataEncoder<Self, DataEncoder> {
+        .init(encoder: self, dataEncoder: dataEncoder)
+    }
+}
+
+extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
+    func encodeData<Encoder>(
+        alwaysEncodeDataMIMEType: Bool = false,
+        dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
+        @MultiDataEncoderBuilder encoder: () -> Encoder
+    ) -> Encoders.MultiDataEncoder<Self, Encoder> {
+        .init(encoder: self, dataEncoder: encoder(), dataMIMETypeEncoder: dataMIMETypeEncoder, alwaysEncodeDataMIMEType: alwaysEncodeDataMIMEType)
+    }
+}
+
+struct Encoder: EncoderProtocol {
+    func encodedPayload(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
+        .init(metadata: metadata, data: data)
+    }
 }
 
 struct AnyEncoder<Metadata, Data>: EncoderProtocol {
@@ -183,16 +513,24 @@ struct AnyEncoder<Metadata, Data>: EncoderProtocol {
     ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
         _encoderBox = _AnyEncoderBox(encoder: encoder)
     }
-    mutating func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+    mutating func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
         if !isKnownUniquelyReferenced(&_encoderBox) {
             _encoderBox = _encoderBox.copy()
         }
-        return try _encoderBox.encodedPayload(metadata: metadata, data: data)
+        return try _encoderBox.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
     }
 }
 
 class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
-    func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
+    func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
     func copy() -> _AnyEncoderBase<Metadata, Data> {
@@ -205,8 +543,12 @@ final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Me
     internal init(encoder: Encoder) {
         self.encoder = encoder
     }
-    override func encodedPayload(metadata: Metadata, data: Data) throws -> Payload {
-        try encoder.encodedPayload(metadata: metadata, data: data)
+    override func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
+        try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
     }
     override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
         _AnyEncoderBox(encoder: encoder)
@@ -220,109 +562,6 @@ extension AnyEncoder {
 extension EncoderProtocol {
     func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
 }
-
-// MARK: Decoder Extensions
-
-extension DecoderProtocol where Metadata == Foundation.Data? {
-    func decodeMetadata<Decoder>(
-        using decoder: Decoder
-    ) -> Decoders.MapMetadata<Self, Decoder.Metadata?> where Decoder: MetadataDecoder {
-        mapMetadata { data in
-            try data.map { try decoder.decode(from: $0) }
-        }
-    }
-}
-
-extension DecoderProtocol where Data == Foundation.Data {
-    /// unconditionally decodes data with the given `decoder`
-    func decodeData<Decoder>(
-        using decoder: Decoder
-    ) -> Decoders.MapData<Self, Decoder.Data> where Decoder: DataDecoderProtocol {
-        mapData(decoder.decode(from:))
-    }
-}
-
-extension DecoderProtocol where Metadata == Foundation.Data? {
-    func useCompositeMetadata(
-        decoder: RootCompositeMetadataDecoder = .init()
-    ) -> Decoders.MapMetadata<Decoders.MapMetadata<Self, RootCompositeMetadataDecoder.Metadata?>, RootCompositeMetadataDecoder.Metadata> {
-        decodeMetadata(using: decoder).mapMetadata{ $0 ?? [] }
-    }
-}
-
-// MARK: Encoder Extensions
-
-extension EncoderProtocol where Metadata == Foundation.Data? {
-    func encodeMetadata<Encoder>(
-        using encoder: Encoder
-    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> where Encoder: MetadataEncoder {
-        mapMetadata { metadata in
-            try encoder.encode(metadata)
-        }
-    }
-}
-
-extension EncoderProtocol where Metadata == Foundation.Data? {
-    func useCompositeMetadata(
-        encoder: RootCompositeMetadataEncoder = .init()
-    ) -> Encoders.MapMetadata<Self, RootCompositeMetadataEncoder.Metadata> {
-        encodeMetadata(using: encoder)
-    }
-}
-
-extension EncoderProtocol where Metadata == [CompositeMetadata] {
-    /// adds the given metadata to the composition
-    func encodeStaticMetadata<Encoder>(
-        _ metadata: Encoder.Metadata,
-        using encoder: Encoder
-    ) -> Encoders.MapMetadata<Self, [CompositeMetadata]> where Encoder: MetadataEncoder {
-        mapMetadata { compositeMetadata in
-            try compositeMetadata.encoded(metadata, using: encoder)
-        }
-    }
-}
-
-extension EncoderProtocol where Metadata == [CompositeMetadata] {
-    func encodeMetadata<Encoder>(
-        using encoder: Encoder
-    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> where Encoder: MetadataEncoder {
-        mapMetadata { metadata in
-            [try CompositeMetadata.encoded(metadata, using: encoder)]
-        }
-    }
-}
-
-extension EncoderProtocol where Data == Foundation.Data {
-    func encodeData<Encoder>(
-        using encoder: Encoder
-    ) -> Encoders.MapData<Self, Encoder.Data> where Encoder: DataEncoderProtocol {
-        mapData(encoder.encode)
-    }
-}
-
-extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
-    func encodeData<Encoder>(
-        dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
-        @MultiDataEncoderBuilder encoder: () -> Encoder
-    ) -> Encoders.Map<Self, Metadata, (MIMEType, Encoder.Data)> where Encoder: MultiDataEncoderProtocol {
-        let encoder = encoder()
-        return map { metadata, data in
-            let (mimeType, data) = data
-
-            return (
-                try metadata.encoded(mimeType, using: dataMIMETypeEncoder),
-                try encoder.encode(data, as: mimeType)
-            )
-        }
-    }
-}
-
-struct Encoder: EncoderProtocol {
-    func encodedPayload(metadata: Data?, data: Data) throws -> Payload {
-        .init(metadata: metadata, data: data)
-    }
-}
-
 
 
 // MARK: Coder
@@ -350,18 +589,18 @@ extension Coder {
 
 extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
     func useCompositeMetadata(
-        decoder: RootCompositeMetadataDecoder = .init(),
-        encoder: RootCompositeMetadataEncoder = .init()
+        metadataDecoder: RootCompositeMetadataDecoder = .init(),
+        metadataEncoder: RootCompositeMetadataEncoder = .init()
     ) -> Coder<
-        Decoders.MapMetadata<Decoders.MapMetadata<Decoder, RootCompositeMetadataDecoder.Metadata?>, RootCompositeMetadataDecoder.Metadata>,
-        Encoders.MapMetadata<Encoder, RootCompositeMetadataEncoder.Metadata>
+        Decoders.RootCompositeMetadataDecoder<Decoder>,
+        Encoders.RootCompositeMetadataEncoder<Encoder>
     > {
-        mapDecoder { $0.useCompositeMetadata(decoder: decoder) }
-        .mapEncoder { $0.useCompositeMetadata(encoder: encoder) }
+        mapDecoder { $0.useCompositeMetadata(metadataDecoder: metadataDecoder) }
+        .mapEncoder { $0.useCompositeMetadata(metadataEncoder: metadataEncoder) }
     }
 }
 
-extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [CompositeMetadata], Encoder.Metadata == [CompositeMetadata] {
+extension Coder {
     /// Decodes data using one of the given `decoder`s, depending on the MIME Type of the Data.
     ///
     /// In addition, this methods encodes all MIME Types of all `decoder`s using the given `acceptableDataMIMETypeEncoder`.
@@ -370,75 +609,78 @@ extension Coder where Decoder.Data == Foundation.Data, Decoder.Metadata == [Comp
         acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
         @MultiDataDecoderBuilder decoder: () -> DataDecoder
-    ) -> Coder<Decoders.Map<Decoder, [CompositeMetadata], DataDecoder.Data>, Encoders.MapMetadata<Encoder, [CompositeMetadata]>> where DataDecoder: MultiDataDecoderProtocol {
+    ) -> Coder<
+        Decoders.MultiDataDecoder<Decoder, DataDecoder>, 
+        Encoders.StaticMetadataEncoder<Encoder, AcceptableDataMIMETypeEncoder>
+    > {
         let decoder = decoder()
         let supportedEncodings = decoder.supportedMIMETypes
         return mapEncoder{
             $0.encodeStaticMetadata(supportedEncodings, using: acceptableDataMIMETypeEncoder)
         }.mapDecoder{
-            $0.map { (metadata, data) in
-                guard let dataEncoding = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) else {
-                    throw Error.invalid(message: "Data MIME Type not found in metadata")
-                }
-                let value = try decoder.decodeMIMEType(dataEncoding, from: data)
-                return (metadata, value)
-            }
+            $0.decodeData(dataMIMETypeDecoder: dataMIMETypeDecoder, dataDecoder: { decoder })
         }
     }
 }
 
 // MARK: - Coder decode convenience methods
 
-extension Coder where Decoder.Metadata == Foundation.Data? {
+extension Coder {
     func decodeMetadata<MetadataDecoder>(
-        using decoder: MetadataDecoder
-    ) -> Coder<Decoders.MapMetadata<Decoder, MetadataDecoder.Metadata?>, Encoder> where MetadataDecoder: RSocketCore.MetadataDecoder {
-        mapDecoder { $0.decodeMetadata(using: decoder) }
+        using metadataDecoder: MetadataDecoder
+    ) -> Coder<Decoders.MetadataDecoder<Decoder, MetadataDecoder>, Encoder> {
+        mapDecoder { $0.decodeMetadata(using: metadataDecoder) }
     }
-}
-
-extension Coder where Decoder.Data == Foundation.Data {
+    func decodeMetadata<CompositeMetadataDecoder>(
+        @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
+    ) -> Coder<Decoders.CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>, Encoder> {
+        mapDecoder { $0.decodeMetadata(metadataDecoder: metadataDecoder) }
+    }
     /// unconditionally decodes data with the given `decoder`
     func decodeData<DataDecoder>(
-        using decoder: DataDecoder
-    ) -> Coder<Decoders.MapData<Decoder, DataDecoder.Data>, Encoder> where DataDecoder: DataDecoderProtocol {
-        mapDecoder { $0.decodeData(using: decoder) }
+        using dataDecoder: DataDecoder
+    ) -> Coder<Decoders.DataDecoder<Decoder, DataDecoder>, Encoder> {
+        mapDecoder { $0.decodeData(using: dataDecoder) }
     }
 }
 
 // MARK: - Coder encode convenience methods
 
-extension Coder where Encoder.Metadata == Foundation.Data? {
+extension Coder {
     func encodeMetadata<MetadataEncoder>(
-        using encoder: MetadataEncoder
-    ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, MetadataEncoder.Metadata>> where MetadataEncoder: RSocketCore.MetadataEncoder {
-        mapEncoder { $0.encodeMetadata(using: encoder) }
+        using metadataEncoder: MetadataEncoder
+    ) -> Coder<Decoder, Encoders.MetadataEncoder<Encoder, MetadataEncoder>> {
+        mapEncoder { $0.encodeMetadata(using: metadataEncoder) }
     }
-}
-
-extension Coder where Encoder.Metadata == [CompositeMetadata] {
+    func encodeMetadata<CompositeMetadataEncoder>(
+        @CompositeMetadataEncoderBuilder metadataEncoder: () -> CompositeMetadataEncoder
+    ) -> Coder<Decoder, Encoders.CompositeMetadataEncoder<Encoder, CompositeMetadataEncoder>> {
+        mapEncoder { $0.encodeMetadata(metadataEncoder: metadataEncoder) }
+    }
     func encodeStaticMetadata<MetadataEncoder>(
-        _ metadata: MetadataEncoder.Metadata,
-        using encoder: MetadataEncoder
-    ) -> Coder<Decoder, Encoders.MapMetadata<Encoder, Encoder.Metadata>> where MetadataEncoder: RSocketCore.MetadataEncoder {
-        mapEncoder { $0.encodeStaticMetadata(metadata, using: encoder) }
+        _ staticMetadata: MetadataEncoder.Metadata,
+        using metadataEncoder: MetadataEncoder
+    ) -> Coder<Decoder, Encoders.StaticMetadataEncoder<Encoder, MetadataEncoder>> {
+        mapEncoder { $0.encodeStaticMetadata(staticMetadata, using: metadataEncoder) }
     }
-}
-
-extension Coder where Encoder.Data == Foundation.Data {
+    
     func encodeData<DataEncoder>(
-        using encoder: DataEncoder
-    ) -> Coder<Decoder, Encoders.MapData<Encoder, DataEncoder.Data>> where DataEncoder: DataEncoderProtocol {
-        mapEncoder { $0.encodeData(using: encoder) }
+        using dataEncoder: DataEncoder
+    ) -> Coder<Decoder, Encoders.DataEncoder<Encoder, DataEncoder>> {
+        mapEncoder { $0.encodeData(using: dataEncoder) }
     }
-}
-
-extension Coder where Encoder.Metadata == [CompositeMetadata], Encoder.Data == Foundation.Data {
     func encodeData<DataEncoder>(
+        alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
         @MultiDataEncoderBuilder encoder: () -> DataEncoder
-    ) -> Coder<Decoder, Encoders.Map<Encoder, Encoder.Metadata, (MIMEType, DataEncoder.Data)>> where DataEncoder: MultiDataEncoderProtocol {
-        mapEncoder { $0.encodeData(dataMIMETypeEncoder: dataMIMETypeEncoder, encoder: encoder) }
+    ) -> Coder<Decoder, Encoders.MultiDataEncoder<Encoder, DataEncoder>> {
+        mapEncoder { 
+            $0.encodeData(
+                alwaysEncodeDataMIMEType: alwaysEncodeDataMIMEType,
+                dataMIMETypeEncoder: dataMIMETypeEncoder, 
+                encoder: encoder
+            ) 
+        }
     }
 }
 
@@ -669,7 +911,7 @@ Decoder.Metadata == Void, Decoder.Data == Response {
 
 // MARK: - Requester Example
 
-struct Metrics: Encodable {
+struct Metrics: Codable {
     var os: String
 }
 
@@ -684,126 +926,105 @@ struct Price: Codable {
 }
 
 enum Requests {
-    static let metrics1: FireAndForget<Metrics> = .init {
+    static let metrics1 = FireAndForget<Metrics> {
         Encoder()
             .encodeMetadata(using: .routing)
             .setMetadata(["metrics"])
-            .encodeData(using: JSONDataEncoder<Metrics>())
+            .encodeData(using: JSONDataEncoder(type: Metrics.self))
     }
-    static let metrics2: FireAndForget<Metrics> = .init {
+    static let metrics2 = FireAndForget<Metrics> {
         Encoder()
             .useCompositeMetadata()
             .encodeStaticMetadata(["metrics"], using: .routing)
-            .encodeData(using: JSONDataEncoder<Metrics>())
+            .encodeData(using: JSONDataEncoder(type: Metrics.self))
     }
-    static let metrics3: FireAndForget<([CompositeMetadata], Metrics)> = .init {
+    static let metrics3 = FireAndForget<([CompositeMetadata], Metrics)> {
         Encoder()
             .useCompositeMetadata()
             .encodeStaticMetadata(["metrics"], using: .routing)
-            .encodeData(using: JSONDataEncoder<Metrics>())
+            .encodeData(using: JSONDataEncoder(type: Metrics.self))
             .preserveMetadata()
     }
-    static let priceRequest1: RequestResponse<String, Double> = .init{
+    static let priceRequest1 = RequestResponse<String, Double> {
         Encoder()
             .useCompositeMetadata()
             .encodeStaticMetadata(["price"], using: .routing)
             .encodeStaticMetadata([.json], using: .acceptableDataMIMEType)
-            .encodeData(using: JSONDataEncoder<ISIN>())
+            .encodeData(using: JSONDataEncoder(type: ISIN.self))
             .mapData(ISIN.init(isin:))
         Decoder()
             .useCompositeMetadata()
-            .decodeData(using: JSONDataDecoder<Price>().map(\.price))
+            .decodeData(using: JSONDataDecoder(type: Price.self).map(\.price))
     }
-    static let priceRequest2: RequestResponse<String, Double> = .init{
+    static let priceRequest2 = RequestResponse<String, Double> {
         Coder()
             .useCompositeMetadata()
             .decodeData {
-                JSONDataDecoder<Price>()
+                JSONDataDecoder(type: Price.self).map(\.price)
             }
-            .mapEncoder {
-                $0.encodeStaticMetadata(["price"], using: .routing)
-                    .encodeData(using: JSONDataEncoder<ISIN>())
-                    .mapData(ISIN.init(isin:))
-                    .setMetadata([])
-            }
-            .mapDecoder {
-                $0.mapData(\.price).eraseMetadata()
-            }
+            .encodeStaticMetadata(["price"], using: .routing)
+            .encodeData(using: JSONDataEncoder(type: ISIN.self).map(ISIN.init(isin:)))
     }
-    static let priceRequest3: RequestResponse<String, Double> = .init{
+    static let priceRequest3 = RequestResponse<(MIMEType, String), Double> {
         Coder()
             .useCompositeMetadata()
             .decodeData {
-                JSONDataDecoder<Price>()
+                JSONDataDecoder(type: Price.self)
+                    .map(\.price)
             }
-            .mapEncoder {
-                $0.encodeStaticMetadata(["price"], using: .routing)
-                    .encodeData(using: JSONDataEncoder<ISIN>())
-                    .mapData(ISIN.init(isin:))
-                    .setMetadata([])
-            }
-            .mapDecoder {
-                $0.mapData(\.price)
+            .encodeStaticMetadata(["price"], using: .routing)
+            .encodeData {
+                JSONDataEncoder(type: ISIN.self).map(ISIN.init(isin:))
             }
     }
-    static let priceRequest4: RequestResponse<String, Double> = .init{
-        Coder()
-            .useCompositeMetadata()
-            .decodeData {
-                JSONDataDecoder<Price>()
-            }
-            .mapEncoder {
-                $0.encodeStaticMetadata(["price"], using: .routing)
-                    .encodeData(using: JSONDataEncoder<ISIN>())
-                    .mapData(ISIN.init(isin:))
-            }
-            .mapDecoder {
-                $0.mapData(\.price).eraseMetadata()
-            }
-    }
-    static let priceRequest5: RequestResponse<(MIMEType, String), Double> = .init {
-        Coder()
-            .useCompositeMetadata()
-            .decodeData {
-                JSONDataDecoder<Price>()
-            }
-            .mapEncoder {
-                $0.encodeStaticMetadata(["price"], using: .routing)
-                    .encodeData {
-                        JSONDataEncoder<ISIN>()
-                            .map(ISIN.init(isin:))
-                    }
-            }
-            .mapDecoder {
-                $0.mapData(\.price)
-            }
-    }
-    static let priceStream1: RequestStream<ISIN, Price> = .init{
+    static let priceStream1 = RequestStream<ISIN, Price> {
         Coder()
             .useCompositeMetadata()
             .encodeStaticMetadata(["price"], using: .routing)
-            .encodeData(using: JSONDataEncoder<ISIN>())
+            .encodeData(using: JSONDataEncoder(type: ISIN.self))
             .decodeData {
-                JSONDataDecoder<Price>()
+                JSONDataDecoder(type: Price.self)
             }
     }
 }
 
 func test() {
-    let decoder = Decoder()
+    _ = Decoder()
         .useCompositeMetadata()
         .decodeMetadata {
             RoutingDecoder()
             DataMIMETypeDecoder()
         }
+        .decodeData(using: JSONDataDecoder(type: Metrics.self))
 
-    let encoder = Encoder()
+    _ = Encoder()
         .useCompositeMetadata()
         .encodeMetadata {
             RoutingEncoder()
             DataMIMETypeEncoder()
         }
-    let request = RequestStream {
+        .encodeData(using: JSONDataEncoder(type: Metrics.self))
+
+    _ = Coder()
+        .useCompositeMetadata()
+        .decodeData {
+            JSONDataDecoder(type: Metrics.self)
+        }
+        .encodeData {
+            JSONDataEncoder(type: Metrics.self)
+        }
+        .decodeMetadata {
+            RoutingDecoder()
+            AcceptableDataMIMETypeDecoder()
+            DataMIMETypeDecoder()
+        }
+        .encodeMetadata {
+            RoutingEncoder()
+            DataMIMETypeEncoder()
+        }
+        
+
+    _ = RequestStream {
         Decoder()
             .useCompositeMetadata()
             .decodeMetadata {
@@ -887,8 +1108,16 @@ func exampleRouter() -> Router {
 
     let responder = RequestResponseResponder{
         Coder()
+            .useCompositeMetadata()
+            .decodeData {
+                JSONDataDecoder(type: Metrics.self)
+                JSONDataDecoder(type: Metrics.self)
+            }
+            .encodeData {
+                JSONDataEncoder(type: Metrics.self)
+            }
     }.handler { request in
-        request
+        (.json, request)
     }
 
     let routes = [Route(path: ["stock.isin"], handler: [responder])]

@@ -34,6 +34,96 @@ protocol DecoderProtocol {
     ) throws -> (Metadata, Data)
 }
 
+protocol SingleMetadataDecodable {
+    func decodeMetadata<Decoder>(
+        using metadataDecoder: Decoder
+    ) throws -> Decoder.Metadata where Decoder: MetadataDecoder 
+}
+
+protocol SingleMetadataEncodable {
+    associatedtype CombinableMetadata = Void
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata,
+        using metadataEncoder: Encoder
+    ) throws -> Self where Encoder: MetadataEncoder
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata,
+        using metadataEncoder: Encoder,
+        combinedWith other: CombinableMetadata
+    ) throws -> Self where Encoder: MetadataEncoder
+}
+
+extension SingleMetadataEncodable where CombinableMetadata == Void {
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata, 
+        using metadataEncoder: Encoder, 
+        combinedWith other: Void
+    ) throws -> Self where Encoder : MetadataEncoder {
+        try encodeMetadata(metadata, using: metadataEncoder)
+    }
+}
+
+extension Data: SingleMetadataDecodable {
+    func decodeMetadata<Decoder>(
+        using metadataDecoder: Decoder
+    ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
+        try metadataDecoder.decode(from: self)
+    }
+}
+
+extension Optional: SingleMetadataDecodable where Wrapped: SingleMetadataDecodable {
+    func decodeMetadata<Decoder>(
+        using metadataDecoder: Decoder
+    ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
+        guard let self = self else {
+            throw Error.invalid(message: "Metadata is nil an therefore can not be decoded as \(Decoder.Metadata.self) using \(Decoder.self)")
+        }
+        return try self.decodeMetadata(using: metadataDecoder)
+    }
+}
+
+extension Data: SingleMetadataEncodable {
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata, 
+        using metadataEncoder: Encoder
+    ) throws -> Data where Encoder : MetadataEncoder {
+        try metadataEncoder.encode(metadata)
+    }
+}
+
+extension Optional: SingleMetadataEncodable where Wrapped: SingleMetadataEncodable {
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata, 
+        using metadataEncoder: Encoder
+    ) throws -> Self where Encoder : MetadataEncoder {
+        try Wrapped.encodeMetadata(metadata, using: metadataEncoder)
+    }
+}
+
+extension Array: SingleMetadataDecodable where Element == CompositeMetadata {
+    func decodeMetadata<Decoder>(
+        using metadataDecoder: Decoder
+    ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
+        try self.decodeFirst(using: metadataDecoder)
+    }
+}
+
+extension Array: SingleMetadataEncodable where Element == CompositeMetadata {
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata, 
+        using metadataEncoder: Encoder
+    ) throws -> Self where Encoder : MetadataEncoder {
+        [try CompositeMetadata.encoded(metadata, using: metadataEncoder)]
+    }
+    static func encodeMetadata<Encoder>(
+        _ metadata: Encoder.Metadata, 
+        using metadataEncoder: Encoder, 
+        combinedWith other: Self
+    ) throws -> [CompositeMetadata] where Encoder : MetadataEncoder {
+        other + CollectionOfOne(try CompositeMetadata.encoded(metadata, using: metadataEncoder))
+    }
+}
+
 
 /// Namespace
 enum Decoders {}
@@ -74,7 +164,7 @@ extension Decoders {
     }
     struct MetadataDecoder<Decoder, MetadataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
-    Decoder.Metadata == Foundation.Data?,
+    Decoder.Metadata: SingleMetadataDecodable,
     MetadataDecoder: RSocketCore.MetadataDecoder
     {
         typealias Metadata = MetadataDecoder.Metadata?
@@ -86,7 +176,7 @@ extension Decoders {
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
             let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
-            let decodedMetadata = try metadata.map { try metadataDecoder.decode(from: $0) }
+            let decodedMetadata = try metadata.decodeMetadata(using: metadataDecoder)
             return (decodedMetadata, data)
         }
     }
@@ -324,7 +414,7 @@ enum Encoders {
     }
     struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
-    Encoder.Metadata == Foundation.Data?,
+    Encoder.Metadata: SingleMetadataEncodable,
     MetadataEncoder: RSocketCore.MetadataEncoder
     {
         typealias Metadata = MetadataEncoder.Metadata
@@ -337,7 +427,7 @@ enum Encoders {
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
             try encoder.encodedPayload(
-                metadata: try metadataEncoder.encode(metadata), 
+                metadata: try Encoder.Metadata.encodeMetadata(metadata, using: metadataEncoder), 
                 data: data, 
                 mimeType: mimeType
             )
@@ -347,10 +437,10 @@ enum Encoders {
     
     struct StaticMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
-    Encoder.Metadata == [CompositeMetadata],
+    Encoder.Metadata: SingleMetadataEncodable,
     MetadataEncoder: RSocketCore.MetadataEncoder
     {
-        typealias Metadata = Encoder.Metadata
+        typealias Metadata = Encoder.Metadata.CombinableMetadata
         typealias Data = Encoder.Data
         var encoder: Encoder
         var metadataEncoder: MetadataEncoder
@@ -361,7 +451,11 @@ enum Encoders {
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
             try encoder.encodedPayload(
-                metadata: try metadata.encoded(staticMetadata, using: metadataEncoder), 
+                metadata: try Encoder.Metadata.encodeMetadata(
+                    staticMetadata, 
+                    using: metadataEncoder, 
+                    combinedWith: metadata
+                ), 
                 data: data, 
                 mimeType: mimeType
             )
@@ -479,7 +573,7 @@ extension EncoderProtocol {
         .init(encoder: self, metadataEncoder: metadataEncoder, staticMetadata: staticMetadata)
     }
     func encodeMetadata<MetadataEncoder>(
-        metadataEncoder: () -> MetadataEncoder
+        @CompositeMetadataEncoderBuilder metadataEncoder: () -> MetadataEncoder
     ) -> Encoders.CompositeMetadataEncoder<Self, MetadataEncoder> {
             .init(encoder: self, metadataEncoder: metadataEncoder())
     }
@@ -928,8 +1022,7 @@ struct Price: Codable {
 enum Requests {
     static let metrics1 = FireAndForget<Metrics> {
         Encoder()
-            .encodeMetadata(using: .routing)
-            .setMetadata(["metrics"])
+            .encodeStaticMetadata(["metrics"], using: .routing)
             .encodeData(using: JSONDataEncoder(type: Metrics.self))
     }
     static let metrics2 = FireAndForget<Metrics> {
@@ -984,11 +1077,16 @@ enum Requests {
             .encodeData(using: JSONDataEncoder(type: ISIN.self))
             .decodeData {
                 JSONDataDecoder(type: Price.self)
+                JSONDataDecoder(type: Price.self)
             }
     }
 }
 
 func test() {
+    _ = Encoder()
+        .encodeMetadata(using: RoutingEncoder())
+        .setMetadata(["stock.isin"])
+    
     _ = Decoder()
         .useCompositeMetadata()
         .decodeMetadata {
@@ -1122,5 +1220,37 @@ func exampleRouter() -> Router {
 
     let routes = [Route(path: ["stock.isin"], handler: [responder])]
     return Router(routes: routes)
+    
+//    Router {
+//        Route(path: "stock.isin") {
+//            RequestResponseResponder {
+//                Coder()
+//                    .useCompositeMetadata()
+//                    .decodeData {
+//                        JSONDataDecoder(type: Metrics.self)
+//                        JSONDataDecoder(type: Metrics.self)
+//                    }
+//                    .encodeData {
+//                        JSONDataEncoder(type: Metrics.self)
+//                    }
+//            }.handler { request in
+//                (.json, request)
+//            }
+//            
+//            RequestStreamResponder{
+//                Coder()
+//                    .useCompositeMetadata()
+//                    .decodeData {
+//                        JSONDataDecoder(type: Metrics.self)
+//                        JSONDataDecoder(type: Metrics.self)
+//                    }
+//                    .encodeData {
+//                        JSONDataEncoder(type: Metrics.self)
+//                    }
+//            }.handler { request in
+//                (.json, request)
+//            }
+//        }
+//    }
 }
 

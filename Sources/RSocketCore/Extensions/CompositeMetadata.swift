@@ -94,7 +94,7 @@ extension Sequence where Element == CompositeMetadata {
 }
 
 
-// MARK: - Composite Metadata Payload Decoer
+// MARK: - Composite Metadata Payload Decoder
 
 protocol CompositeMetadataDecoder {
     associatedtype Metadata
@@ -151,15 +151,6 @@ enum CompositeMetadataDecoderBuilder {
         _ c: C
     ) -> CompositeMetadataDecoderTuple3<A, B, C> {
         .init(decoder: (a, b, c))
-    }
-}
-
-extension DecoderProtocol where Metadata == [CompositeMetadata] {
-    func decodeMetadata<Decoder: CompositeMetadataDecoder>(
-        @CompositeMetadataDecoderBuilder _ decoder: () -> Decoder
-    ) -> Decoders.MapMetadata<Self, Decoder.Metadata> {
-        let decoder = decoder()
-        return mapMetadata(decoder.decode(from:))
     }
 }
 
@@ -220,14 +211,5 @@ enum CompositeMetadataEncoderBuilder {
         _ c: C
     ) -> CompositeMetadataEncoderTuple3<A, B, C> {
         .init(encoder: (a, b, c))
-    }
-}
-
-extension EncoderProtocol where Metadata == [CompositeMetadata] {
-    func encodeMetadata<Encoder: CompositeMetadataEncoder>(
-        @CompositeMetadataEncoderBuilder _ encoder: () -> Encoder
-    ) -> Encoders.MapMetadata<Self, Encoder.Metadata> {
-        let encoder = encoder()
-        return mapMetadata(encoder.encodeMetadata)
     }
 }

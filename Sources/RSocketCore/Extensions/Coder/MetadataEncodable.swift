@@ -15,7 +15,7 @@
  */
 import Foundation
 
-protocol MetadataEncodable {
+public protocol MetadataEncodable {
     associatedtype CombinableMetadata = Void
     static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata,
@@ -29,7 +29,7 @@ protocol MetadataEncodable {
 }
 
 extension MetadataEncodable where CombinableMetadata == Void {
-    static func encodeMetadata<Encoder>(
+    public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder, 
         combinedWith other: Void
@@ -39,7 +39,7 @@ extension MetadataEncodable where CombinableMetadata == Void {
 }
 
 extension Data: MetadataEncodable {
-    static func encodeMetadata<Encoder>(
+    public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder
     ) throws -> Data where Encoder : MetadataEncoder {
@@ -48,7 +48,7 @@ extension Data: MetadataEncodable {
 }
 
 extension Optional: MetadataEncodable where Wrapped: MetadataEncodable {
-    static func encodeMetadata<Encoder>(
+    public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder
     ) throws -> Self where Encoder : MetadataEncoder {
@@ -57,13 +57,13 @@ extension Optional: MetadataEncodable where Wrapped: MetadataEncodable {
 }
 
 extension Array: MetadataEncodable where Element == CompositeMetadata {
-    static func encodeMetadata<Encoder>(
+    public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder
     ) throws -> Self where Encoder : MetadataEncoder {
         [try CompositeMetadata.encoded(metadata, using: metadataEncoder)]
     }
-    static func encodeMetadata<Encoder>(
+    public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder, 
         combinedWith other: Self

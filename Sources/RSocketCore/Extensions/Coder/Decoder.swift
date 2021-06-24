@@ -94,7 +94,7 @@ public enum Decoders {}
 public extension Decoders {
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
-        var transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
+        let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
         public mutating func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -105,7 +105,7 @@ public extension Decoders {
     }
     struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         var decoder: Decoder
-        var transform: (Decoder.Metadata) throws -> Metadata
+        let transform: (Decoder.Metadata) throws -> Metadata
         public mutating func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -116,7 +116,7 @@ public extension Decoders {
     }
     struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         var decoder: Decoder
-        var transform: (Decoder.Data) throws -> Data
+        let transform: (Decoder.Data) throws -> Data
         public mutating func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -133,7 +133,7 @@ public extension Decoders {
         public typealias Metadata = MetadataDecoder.Metadata?
         public typealias Data = Decoder.Data
         var decoder: Decoder
-        var metadataDecoder: MetadataDecoder
+        let metadataDecoder: MetadataDecoder
         public mutating func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -151,7 +151,7 @@ public extension Decoders {
         public typealias Metadata = CompositeMetadataDecoder.Metadata
         public typealias Data = Decoder.Data
         var decoder: Decoder
-        var metadataDecoder: CompositeMetadataDecoder
+        let metadataDecoder: CompositeMetadataDecoder
         mutating public func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -168,7 +168,7 @@ public extension Decoders {
         public typealias Metadata = [CompositeMetadata]
         public typealias Data = Decoder.Data
         var decoder: Decoder
-        var metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
+        let metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
         mutating public func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -186,7 +186,7 @@ public extension Decoders {
         public typealias Metadata = Decoder.Metadata
         public typealias Data = DataDecoder.Data
         var decoder: Decoder
-        var dataDecoder: DataDecoder
+        let dataDecoder: DataDecoder
         mutating public func decodedPayload(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -205,8 +205,8 @@ public extension Decoders {
         public typealias Metadata = Decoder.Metadata
         public typealias Data = DataDecoder.Data
         var decoder: Decoder
-        var dataMIMETypeDecoder: DataMIMETypeDecoder
-        var dataDecoder: DataDecoder
+        let dataMIMETypeDecoder: DataMIMETypeDecoder
+        let dataDecoder: DataDecoder
         var lastSeenDataMIMEType: MIMEType?
         mutating public func decodedPayload(
             _ payload: Payload,

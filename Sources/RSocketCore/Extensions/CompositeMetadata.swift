@@ -136,18 +136,18 @@ C: MetadataDecoder
 
 @resultBuilder
 public enum CompositeMetadataDecoderBuilder {
-    static func buildBlock<Decoder>(
+    public static func buildBlock<Decoder>(
         _ decoder: Decoder
     ) -> Decoder where Decoder: CompositeMetadataDecoder {
         decoder
     }
-    static func buildBlock<A, B>(
+    public static func buildBlock<A, B>(
         _ a: A,
         _ b: B
     ) -> CompositeMetadataDecoderTuple2<A, B> {
         .init(decoder: (a, b))
     }
-    static func buildBlock<A, B, C>(
+    public static func buildBlock<A, B, C>(
         _ a: A,
         _ b: B,
         _ c: C
@@ -196,18 +196,18 @@ C: MetadataEncoder
 
 @resultBuilder
 public enum CompositeMetadataEncoderBuilder {
-    static func buildBlock<Encoder>(
+    public static func buildBlock<Encoder>(
         _ encoder: Encoder
     ) -> Encoder where Encoder: CompositeMetadataEncoder {
         encoder
     }
-    static func buildBlock<A, B>(
+    public static func buildBlock<A, B>(
         _ a: A,
         _ b: B
     ) -> CompositeMetadataEncoderTuple2<A, B> {
         .init(encoder: (a, b))
     }
-    static func buildBlock<A, B, C>(
+    public static func buildBlock<A, B, C>(
         _ a: A,
         _ b: B,
         _ c: C

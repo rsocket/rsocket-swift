@@ -87,6 +87,10 @@ extension DecoderProtocol {
     }
 }
 
+extension AnyDecoder {
+    public func eraseToAnyDecoder() -> AnyDecoder<Metadata, Data> { self }
+}
+
 
 /// Namespace for types conforming to the ``DecoderProtocol`` protocol
 public enum Decoders {}
@@ -255,7 +259,6 @@ public extension DecoderProtocol {
     ) -> Decoders.DataDecoder<Self, DataDecoder> {
         .init(decoder: self, dataDecoder: dataDecoder)
     }
-    /// unconditionally decodes data with the given `decoder`
     func decodeData<DataDecoder>(
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
         @MultiDataDecoderBuilder dataDecoder: () -> DataDecoder

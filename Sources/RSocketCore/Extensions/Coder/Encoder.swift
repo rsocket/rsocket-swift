@@ -25,6 +25,69 @@ public protocol EncoderProtocol {
     ) throws -> Payload
 }
 
+public struct Encoder: EncoderProtocol {
+    public func encodedPayload(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
+        .init(metadata: metadata, data: data)
+    }
+}
+
+public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
+    var _encoderBox: _AnyEncoderBase<Metadata, Data>
+    init<Encoder>(
+        _ encoder: Encoder
+    ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
+        _encoderBox = _AnyEncoderBox(encoder: encoder)
+    }
+    mutating public func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
+        if !isKnownUniquelyReferenced(&_encoderBox) {
+            _encoderBox = _encoderBox.copy()
+        }
+        return try _encoderBox.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
+    }
+}
+
+class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
+    func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+    func copy() -> _AnyEncoderBase<Metadata, Data> {
+        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
+    }
+}
+
+final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+    var encoder: Encoder
+    internal init(encoder: Encoder) {
+        self.encoder = encoder
+    }
+    override func encodedPayload(
+        metadata: Metadata,
+        data: Data,
+        mimeType: ConnectionMIMEType
+    ) throws -> Payload {
+        try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
+    }
+    override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+        _AnyEncoderBox(encoder: encoder)
+    }
+}
+
+extension AnyEncoder {
+    public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { self }
+}
+
+extension EncoderProtocol {
+    public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
+}
+
 /// Namespace for types conforming to the ``EncoderProtocol`` protocol
 public enum Encoders {}
 
@@ -233,9 +296,6 @@ extension EncoderProtocol {
     ) -> Encoders.DataEncoder<Self, DataEncoder> {
         .init(encoder: self, dataEncoder: dataEncoder)
     }
-}
-
-extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundation.Data {
     func encodeData<Encoder>(
         alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
@@ -243,67 +303,4 @@ extension EncoderProtocol where Metadata == [CompositeMetadata], Data == Foundat
     ) -> Encoders.MultiDataEncoder<Self, Encoder> {
         .init(encoder: self, dataEncoder: encoder(), dataMIMETypeEncoder: dataMIMETypeEncoder, alwaysEncodeDataMIMEType: alwaysEncodeDataMIMEType)
     }
-}
-
-struct Encoder: EncoderProtocol {
-    func encodedPayload(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
-        .init(metadata: metadata, data: data)
-    }
-}
-
-struct AnyEncoder<Metadata, Data>: EncoderProtocol {
-    var _encoderBox: _AnyEncoderBase<Metadata, Data>
-    init<Encoder>(
-        _ encoder: Encoder
-    ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
-        _encoderBox = _AnyEncoderBox(encoder: encoder)
-    }
-    mutating func encodedPayload(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        if !isKnownUniquelyReferenced(&_encoderBox) {
-            _encoderBox = _encoderBox.copy()
-        }
-        return try _encoderBox.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
-    }
-}
-
-class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
-    func encodedPayload(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
-    }
-    func copy() -> _AnyEncoderBase<Metadata, Data> {
-        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
-    }
-}
-
-final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
-    var encoder: Encoder
-    internal init(encoder: Encoder) {
-        self.encoder = encoder
-    }
-    override func encodedPayload(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
-    }
-    override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
-        _AnyEncoderBox(encoder: encoder)
-    }
-}
-
-extension AnyEncoder {
-    func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { self }
-}
-
-extension EncoderProtocol {
-    func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
 }

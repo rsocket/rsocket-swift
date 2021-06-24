@@ -224,18 +224,18 @@ A.Data == C.Data
 
 @resultBuilder
 public enum MultiDataEncoderBuilder {
-    static func buildBlock<Encoder>(
+    public static func buildBlock<Encoder>(
         _ encoder: Encoder
     ) -> Encoder where Encoder: MultiDataEncoderProtocol {
         encoder
     }
-    static func buildBlock<A, B>(
+    public static func buildBlock<A, B>(
         _ a: A,
         _ b: B
     ) -> MultiDataEncoderTuple2<A, B> {
         .init(encoder: (a, b))
     }
-    static func buildBlock<A, B, C>(
+    public static func buildBlock<A, B, C>(
         _ a: A,
         _ b: B,
         _ c: C
@@ -324,18 +324,18 @@ A.Data == C.Data{
 
 @resultBuilder
 public enum MultiDataDecoderBuilder {
-    static func buildBlock<Decoder>(
+    public static func buildBlock<Decoder>(
         _ decoder: Decoder
     ) -> Decoder where Decoder: MultiDataDecoderProtocol {
         decoder
     }
-    static func buildBlock<A, B>(
+    public static func buildBlock<A, B>(
         _ a: A,
         _ b: B
     ) -> MultiDataDecoderTuple2<A, B> {
         .init(decoder: (a, b))
     }
-    static func buildBlock<A, B, C>(
+    public static func buildBlock<A, B, C>(
         _ a: A,
         _ b: B,
         _ c: C

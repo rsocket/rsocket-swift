@@ -113,7 +113,7 @@ extension MetadataEncoder where Self == SimpleAuthenticationEncoder {
     static var simpleAuthentication: Self { .init() }
 }
 
-struct AuthenticationDecoder {
+struct AuthenticationDecoder: MetadataDecoder {
     var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
     func decode(from buffer: inout ByteBuffer) throws -> Authentication {
         fatalError("not implemented")

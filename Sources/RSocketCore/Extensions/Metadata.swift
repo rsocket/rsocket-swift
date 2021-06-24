@@ -17,13 +17,13 @@
 import NIO
 import Foundation
 
-protocol MetadataEncoder: CompositeMetadataEncoder {
+public protocol MetadataEncoder: CompositeMetadataEncoder {
     associatedtype Metadata
     var mimeType: MIMEType { get }
     func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws
 }
 
-protocol MetadataDecoder: CompositeMetadataDecoder {
+public protocol MetadataDecoder: CompositeMetadataDecoder {
     associatedtype Metadata
     var mimeType: MIMEType { get }
     func decode(from buffer: inout ByteBuffer) throws -> Metadata
@@ -50,13 +50,13 @@ extension MetadataDecoder {
 
 
 extension MetadataDecoder {
-    func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
+    public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
         try compositeMetadata.decodeFirst(using: self)
     }
 }
 
 extension MetadataEncoder {
-    func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
+    public func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
         [try CompositeMetadata.encoded(metadata, using: self)]
     }
 }

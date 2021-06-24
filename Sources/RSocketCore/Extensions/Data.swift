@@ -40,7 +40,7 @@ extension DataEncoderProtocol {
     }
 }
 
-protocol DataDecoderProtocol: MultiDataDecoderProtocol {
+public protocol DataDecoderProtocol: MultiDataDecoderProtocol {
     associatedtype Data
     var mimeType: MIMEType { get }
     func decode(from buffer: inout ByteBuffer) throws -> Data
@@ -246,7 +246,7 @@ enum MultiDataEncoderBuilder {
     }
 }
 
-protocol MultiDataDecoderProtocol {
+public protocol MultiDataDecoderProtocol {
     associatedtype Data
     var supportedMIMETypes: [MIMEType] { get }
     func decodeMIMETypeIfSupported(_ mimeType: MIMEType, from buffer: inout ByteBuffer) throws -> Data?

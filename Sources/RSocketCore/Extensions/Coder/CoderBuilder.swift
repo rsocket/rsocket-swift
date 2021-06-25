@@ -41,22 +41,84 @@ public extension CoderBuilder {
     ) -> Coder<Decoder, Encoder> where Decoder.Metadata == Void, Encoder.Metadata == Void {
         coder
     }
-
+    
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.EraseMetadata<Decoder>, Encoder> where Decoder.Metadata: ErasableMetadata, Encoder.Metadata == Void {
-        coder.mapDecoder{ $0.eraseMetadata() }
+    ) -> Coder<
+        Decoders.PreserveMetadata<Decoder>, 
+        Encoders.PreserveMetadata<Encoder>
+    > {
+        coder
+            .mapDecoder { $0.preserveMetadata() }
+            .mapEncoder { $0.preserveMetadata() }
+    }
+    
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<
+        Decoders.EraseMetadata<Decoder>, 
+        Encoders.EraseMetadata<Encoder>
+    > where Decoder.Metadata: ErasableMetadata, Encoder.Metadata: ErasableMetadata {
+        coder
+            .mapEncoder { $0.eraseMetadata() }
+            .mapDecoder { $0.eraseMetadata() }
+    }
+    
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<
+        Decoder, 
+        Encoders.PreserveMetadata<Encoder>
+    > where Decoder.Metadata == Void {
+        coder.mapEncoder { $0.preserveMetadata() }
+    }
+    
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<
+        Decoders.PreserveMetadata<Decoder>, 
+        Encoder
+    > where Encoder.Metadata == Void {
+        coder.mapDecoder { $0.preserveMetadata() }
     }
 
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoder, Encoders.EraseMetadata<Encoder>> where Decoder.Metadata == Void, Encoder.Metadata: ErasableMetadata {
+    ) -> Coder<
+        Decoders.EraseMetadata<Decoder>, 
+        Encoder
+    > where Decoder.Metadata: ErasableMetadata, Encoder.Metadata == Void {
+        coder.mapDecoder { $0.eraseMetadata() }
+    }
+
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<
+        Decoder, 
+        Encoders.EraseMetadata<Encoder>
+    > where Decoder.Metadata == Void, Encoder.Metadata: ErasableMetadata {
         coder.mapEncoder { $0.eraseMetadata() }
     }
-
+    
     static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
-    ) -> Coder<Decoders.EraseMetadata<Decoder>, Encoders.EraseMetadata<Encoder>> where Decoder.Metadata: ErasableMetadata, Encoder.Metadata: ErasableMetadata {
-        coder.mapEncoder { $0.eraseMetadata() }.mapDecoder{ $0.eraseMetadata() }
+    ) -> Coder<
+        Decoders.EraseMetadata<Decoder>, 
+        Encoders.PreserveMetadata<Encoder>
+    > where Decoder.Metadata: ErasableMetadata {
+        coder
+            .mapDecoder { $0.eraseMetadata() }
+            .mapEncoder { $0.preserveMetadata() }
+    }
+    
+    static func buildExpression<Decoder, Encoder>(
+        _ coder: Coder<Decoder, Encoder>
+    ) -> Coder<
+        Decoders.PreserveMetadata<Decoder>, 
+        Encoders.EraseMetadata<Encoder>
+    > where Encoder.Metadata: ErasableMetadata {
+        coder
+            .mapDecoder { $0.preserveMetadata() }
+            .mapEncoder { $0.eraseMetadata() }
     }
 }

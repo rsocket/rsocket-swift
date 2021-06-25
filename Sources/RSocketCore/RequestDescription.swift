@@ -21,7 +21,11 @@ public struct FireAndForget<Request> {
 public extension FireAndForget {
     init<Encoder>(
         @EncoderBuilder _ makeEncoder: () -> Encoder
-    ) where Encoder: EncoderProtocol, Encoder.Metadata == Void, Encoder.Data == Request {
+    ) where 
+    Encoder: EncoderProtocol, 
+    Encoder.Metadata == Void, 
+    Encoder.Data == Request 
+    {
         encoder = makeEncoder().eraseToAnyEncoder()
     }
 }
@@ -35,8 +39,9 @@ public extension RequestResponse {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Metadata == Void, Decoder.Data == Response {
+    Encoder.Metadata == Void, Encoder.Data == Request,
+    Decoder.Metadata == Void, Decoder.Data == Response 
+    {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()
@@ -52,8 +57,9 @@ public extension RequestStream {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Metadata == Void, Decoder.Data == Response {
+    Encoder.Metadata == Void, Encoder.Data == Request,
+    Decoder.Metadata == Void, Decoder.Data == Response 
+    {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()
@@ -69,8 +75,9 @@ public extension RequestChannel {
     init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
-Encoder.Metadata == Void, Encoder.Data == Request,
-Decoder.Metadata == Void, Decoder.Data == Response {
+    Encoder.Metadata == Void, Encoder.Data == Request,
+    Decoder.Metadata == Void, Decoder.Data == Response 
+    {
         let coder = makeCoder()
         encoder = coder.encoder.eraseToAnyEncoder()
         decoder = coder.decoder.eraseToAnyDecoder()

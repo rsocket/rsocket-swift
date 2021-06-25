@@ -20,6 +20,10 @@ import NIO
 public struct CompositeMetadata {
     public var mimeType: MIMEType
     public var data: Data
+    public init(mimeType: MIMEType, data: Data) {
+        self.mimeType = mimeType
+        self.data = data
+    }
 }
 
 public struct RootCompositeMetadataEncoder: MetadataEncoder {

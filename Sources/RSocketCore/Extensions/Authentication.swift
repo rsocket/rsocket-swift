@@ -16,13 +16,16 @@
 
 import NIO
 
-struct AuthenticationType: RawRepresentable, Hashable {
-    public private(set) var rawValue: String
+public struct AuthenticationType: RawRepresentable, Hashable {
+    public let rawValue: String
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
 }
 
-struct WellKnownAuthenticationTypeCode: RawRepresentable {
+public struct WellKnownAuthenticationTypeCode: RawRepresentable, Hashable {
     /// rawValue is guaranteed to be between 0 and 127.
-    public var rawValue: UInt8
+    public let rawValue: UInt8
     public init?(rawValue: UInt8) {
         guard rawValue & 0b1000_0000 == 0 else { return nil }
         self.rawValue = rawValue
@@ -37,100 +40,104 @@ extension WellKnownAuthenticationTypeCode: ExpressibleByIntegerLiteral {
     }
 }
 
-extension AuthenticationType {
+public extension AuthenticationType {
     static let simple = Self(rawValue: "simple")
     static let bearer = Self(rawValue: "bearer")
 }
 
-extension WellKnownAuthenticationTypeCode {
+public extension WellKnownAuthenticationTypeCode {
     static let simple: Self = 0x00
     static let bearer: Self = 0x01
 }
 
-extension AuthenticationType {
+public extension AuthenticationType {
     static let wellKnownAuthenticationTypes: [(WellKnownAuthenticationTypeCode, AuthenticationType)] = [
         (.simple, .simple),
         (.bearer, .bearer),
     ]
 }
 
-struct Authentication {
-    var type: AuthenticationType
-    var payload: ByteBuffer
+public struct Authentication {
+    public var type: AuthenticationType
+    public var payload: ByteBuffer
 }
 
 
-struct BearerAuthenticationDecoder: MetadataDecoder {
+public struct BearerAuthenticationDecoder: MetadataDecoder {
     var authenticationDecoder: AuthenticationDecoder = .init()
-    var mimeType: MIMEType { authenticationDecoder.mimeType }
-    func decode(from buffer: inout ByteBuffer) throws -> String {
+    public var mimeType: MIMEType { authenticationDecoder.mimeType }
+    public func decode(from buffer: inout ByteBuffer) throws -> String {
         fatalError("not implemented")
     }
 }
 
-extension MetadataDecoder where Self == BearerAuthenticationDecoder {
+public extension MetadataDecoder where Self == BearerAuthenticationDecoder {
     static var bearerAuthentication: Self { .init() }
 }
 
-struct BearerAuthenticationEncoder: MetadataEncoder {
+public struct BearerAuthenticationEncoder: MetadataEncoder {
     var authenticationEncoder: AuthenticationEncoder = .init()
-    var mimeType: MIMEType { authenticationEncoder.mimeType }
-    func encode(_ metadata: String, into buffer: inout ByteBuffer) throws {
+    public var mimeType: MIMEType { authenticationEncoder.mimeType }
+    public func encode(_ metadata: String, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-extension MetadataEncoder where Self == BearerAuthenticationEncoder {
+public extension MetadataEncoder where Self == BearerAuthenticationEncoder {
     static var bearerAuthentication: Self { .init() }
 }
 
-struct SimpleAuthentication {
-    var username: String
-    var password: String
+public struct SimpleAuthentication {
+    public var username: String
+    public var password: String
+    public init(username: String, password: String) {
+        self.username = username
+        self.password = password
+    }
 }
 
-struct SimpleAuthenticationDecoder: MetadataDecoder {
+public struct SimpleAuthenticationDecoder: MetadataDecoder {
     var authenticationDecoder: AuthenticationDecoder = .init()
-    var mimeType: MIMEType { authenticationDecoder.mimeType }
-    func decode(from buffer: inout ByteBuffer) throws -> SimpleAuthentication {
+    public var mimeType: MIMEType { authenticationDecoder.mimeType }
+    public func decode(from buffer: inout ByteBuffer) throws -> SimpleAuthentication {
         fatalError("not implemented")
     }
 }
 
-extension MetadataDecoder where Self == SimpleAuthenticationDecoder {
+public extension MetadataDecoder where Self == SimpleAuthenticationDecoder {
     static var simpleAuthentication: Self { .init() }
 }
 
-struct SimpleAuthenticationEncoder: MetadataEncoder {
+public struct SimpleAuthenticationEncoder: MetadataEncoder {
     var authenticationEncoder: AuthenticationEncoder = .init()
-    var mimeType: MIMEType { authenticationEncoder.mimeType }
-    func encode(_ metadata: SimpleAuthentication, into buffer: inout ByteBuffer) throws {
+    public var mimeType: MIMEType { authenticationEncoder.mimeType }
+    public func encode(_ metadata: SimpleAuthentication, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-extension MetadataEncoder where Self == SimpleAuthenticationEncoder {
+public extension MetadataEncoder where Self == SimpleAuthenticationEncoder {
     static var simpleAuthentication: Self { .init() }
 }
 
-struct AuthenticationDecoder: MetadataDecoder {
-    var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
-    func decode(from buffer: inout ByteBuffer) throws -> Authentication {
+public struct AuthenticationDecoder: MetadataDecoder {
+    public var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
+    public func decode(from buffer: inout ByteBuffer) throws -> Authentication {
         fatalError("not implemented")
     }
 }
 
-extension MetadataDecoder where Self == AuthenticationDecoder {
+public extension MetadataDecoder where Self == AuthenticationDecoder {
     static var authentication: Self { .init() }
 }
 
-struct AuthenticationEncoder: MetadataEncoder {
-    var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
-    func encode(_ metadata: Authentication, into buffer: inout ByteBuffer) throws {
+public struct AuthenticationEncoder: MetadataEncoder {
+    public var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
+    public func encode(_ metadata: Authentication, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-extension MetadataEncoder where Self == AuthenticationEncoder {
+public extension MetadataEncoder where Self == AuthenticationEncoder {
     static var authentication: Self { .init() }
 }

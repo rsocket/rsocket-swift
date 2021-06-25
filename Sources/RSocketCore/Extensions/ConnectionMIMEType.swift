@@ -17,4 +17,8 @@
 public struct ConnectionMIMEType {
     public var metadata: MIMEType
     public var data: MIMEType
+    public init(metadata: MIMEType, data: MIMEType) {
+        self.metadata = metadata
+        self.data = data
+    }
 }

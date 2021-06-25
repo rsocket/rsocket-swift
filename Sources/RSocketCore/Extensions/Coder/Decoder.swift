@@ -18,7 +18,7 @@ import Foundation
 public protocol DecoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    mutating func decodedPayload(
+    mutating func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Metadata, Data)
@@ -27,7 +27,7 @@ public protocol DecoderProtocol {
 
 public struct Decoder: DecoderProtocol {
     public init() {}
-    public func decodedPayload(
+    public func decode(
         _ payload: Payload, 
         mimeType: ConnectionMIMEType
     ) throws -> (Data?, Data) {
@@ -42,19 +42,19 @@ public struct AnyDecoder<Metadata, Data>: DecoderProtocol {
     ) where Decoder: DecoderProtocol, Decoder.Metadata == Metadata, Decoder.Data == Data {
         _decoderBox = _AnyDecoderBox(decoder: decoder)
     }
-    public mutating func decodedPayload(
+    public mutating func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Metadata, Data) {
         if !isKnownUniquelyReferenced(&_decoderBox) {
             _decoderBox = _decoderBox.copy()
         }
-        return try _decoderBox.decodedPayload(payload, mimeType: mimeType)
+        return try _decoderBox.decode(payload, mimeType: mimeType)
     }
 }
 
 class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
-    func decodedPayload(
+    func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Metadata, Data) {
@@ -70,11 +70,11 @@ final class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Me
     internal init(decoder: Decoder) {
         self.decoder = decoder
     }
-    override func decodedPayload(
+    override func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Decoder.Metadata, Decoder.Data) {
-        try decoder.decodedPayload(payload, mimeType: mimeType)
+        try decoder.decode(payload, mimeType: mimeType)
     }
     override func copy() -> _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
         _AnyDecoderBox(decoder: decoder)
@@ -99,33 +99,33 @@ public extension Decoders {
     struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        public mutating func decodedPayload(
+        public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             return try transform(metadata, data)
         }
     }
     struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Metadata) throws -> Metadata
-        public mutating func decodedPayload(
+        public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Decoder.Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             return (try transform(metadata), data)
         }
     }
     struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Data) throws -> Data
-        public mutating func decodedPayload(
+        public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Decoder.Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             return (metadata, try transform(data))
         }
     }
@@ -138,11 +138,11 @@ public extension Decoders {
         public typealias Data = Decoder.Data
         var decoder: Decoder
         let metadataDecoder: MetadataDecoder
-        public mutating func decodedPayload(
+        public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             let decodedMetadata = try metadata.decodeMetadata(using: metadataDecoder)
             return (decodedMetadata, data)
         }
@@ -156,11 +156,11 @@ public extension Decoders {
         public typealias Data = Decoder.Data
         var decoder: Decoder
         let metadataDecoder: CompositeMetadataDecoder
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             let decodedMetadata = try metadataDecoder.decode(from: metadata)
             return (decodedMetadata, data)
         }
@@ -173,11 +173,11 @@ public extension Decoders {
         public typealias Data = Decoder.Data
         var decoder: Decoder
         let metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             let decodedMetadata = try metadata.map { try metadataDecoder.decode(from: $0) }
             return (decodedMetadata ?? [], data)
         }
@@ -191,11 +191,11 @@ public extension Decoders {
         public typealias Data = DataDecoder.Data
         var decoder: Decoder
         let dataDecoder: DataDecoder
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
             let decodedData = try dataDecoder.decode(from: data)
             return (metadata, decodedData)
         }
@@ -212,11 +212,11 @@ public extension Decoders {
         let dataMIMETypeDecoder: DataMIMETypeDecoder
         let dataDecoder: DataDecoder
         var lastSeenDataMIMEType: MIMEType?
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload,
             mimeType connectionMIMEType: ConnectionMIMEType
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decodedPayload(payload, mimeType: connectionMIMEType)
+            let (metadata, data) = try decoder.decode(payload, mimeType: connectionMIMEType)
             if let dataMIMEType = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) {
                 lastSeenDataMIMEType = dataMIMEType
             }

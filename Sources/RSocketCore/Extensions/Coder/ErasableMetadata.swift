@@ -33,11 +33,11 @@ public extension Decoders {
     Decoder: DecoderProtocol
     {
         var decoder: Decoder
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload, 
             mimeType: ConnectionMIMEType
         ) throws -> (Void, Decoder.Data) {
-            let (_, data) = try decoder.decodedPayload(payload, mimeType: mimeType)
+            let (_, data) = try decoder.decode(payload, mimeType: mimeType)
             return ((), data)
         }
     }
@@ -45,11 +45,11 @@ public extension Decoders {
     Decoder: DecoderProtocol
     {
         var decoder: Decoder
-        mutating public func decodedPayload(
+        mutating public func decode(
             _ payload: Payload, 
             mimeType: ConnectionMIMEType
         ) throws -> (Void, (Decoder.Metadata, Decoder.Data)) {
-            return ((), try decoder.decodedPayload(payload, mimeType: mimeType))
+            return ((), try decoder.decode(payload, mimeType: mimeType))
         }
     }
 }
@@ -69,12 +69,12 @@ public extension Encoders {
     Encoder.Metadata: ErasableMetadata
     {
         var encoder: Encoder
-        public mutating func encodedPayload(
+        public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: Encoder.Metadata.erasedValue, 
                 data: data, 
                 mimeType: mimeType
@@ -85,13 +85,13 @@ public extension Encoders {
     Encoder: EncoderProtocol
     {
         var encoder: Encoder
-        public mutating func encodedPayload(
+        public mutating func encode(
             metadata: Void, 
             data: (Encoder.Metadata, Encoder.Data), 
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
             let (metadata, data) = data
-            return try encoder.encodedPayload(
+            return try encoder.encode(
                 metadata: metadata, 
                 data: data, 
                 mimeType: mimeType
@@ -103,12 +103,12 @@ public extension Encoders {
     {
         var encoder: Encoder
         let metadata: Encoder.Metadata
-        public mutating func encodedPayload(
+        public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: self.metadata, 
                 data: data, 
                 mimeType: mimeType

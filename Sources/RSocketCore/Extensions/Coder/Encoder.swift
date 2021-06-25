@@ -18,7 +18,7 @@ import Foundation
 public protocol EncoderProtocol {
     associatedtype Metadata
     associatedtype Data
-    mutating func encodedPayload(
+    mutating func encode(
         metadata: Metadata,
         data: Data,
         mimeType: ConnectionMIMEType
@@ -26,7 +26,7 @@ public protocol EncoderProtocol {
 }
 
 public struct Encoder: EncoderProtocol {
-    public func encodedPayload(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
+    public func encode(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
         .init(metadata: metadata, data: data)
     }
 }
@@ -38,7 +38,7 @@ public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
     ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
         _encoderBox = _AnyEncoderBox(encoder: encoder)
     }
-    mutating public func encodedPayload(
+    mutating public func encode(
         metadata: Metadata,
         data: Data,
         mimeType: ConnectionMIMEType
@@ -46,12 +46,12 @@ public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
         if !isKnownUniquelyReferenced(&_encoderBox) {
             _encoderBox = _encoderBox.copy()
         }
-        return try _encoderBox.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
+        return try _encoderBox.encode(metadata: metadata, data: data, mimeType: mimeType)
     }
 }
 
 class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
-    func encodedPayload(
+    func encode(
         metadata: Metadata,
         data: Data,
         mimeType: ConnectionMIMEType
@@ -68,12 +68,12 @@ final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Me
     internal init(encoder: Encoder) {
         self.encoder = encoder
     }
-    override func encodedPayload(
+    override func encode(
         metadata: Metadata,
         data: Data,
         mimeType: ConnectionMIMEType
     ) throws -> Payload {
-        try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
+        try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
     }
     override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
         _AnyEncoderBox(encoder: encoder)
@@ -95,35 +95,35 @@ public extension Encoders {
     struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
             let (metadata, data) = try transform(metadata, data)
-            return try encoder.encodedPayload(metadata: metadata, data: data, mimeType: mimeType)
+            return try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
         }
     }
     struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Metadata) throws -> Encoder.Metadata
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Encoder.Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(metadata: try transform(metadata), data: data, mimeType: mimeType)
+            try encoder.encode(metadata: try transform(metadata), data: data, mimeType: mimeType)
         }
     }
     struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Data) throws -> Encoder.Data
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Encoder.Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(metadata: metadata, data: try transform(data), mimeType: mimeType)
+            try encoder.encode(metadata: metadata, data: try transform(data), mimeType: mimeType)
         }
     }
     struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
@@ -135,12 +135,12 @@ public extension Encoders {
         public typealias Data = Encoder.Data
         var encoder: Encoder
         let metadataEncoder: MetadataEncoder
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: try Encoder.Metadata.encodeMetadata(metadata, using: metadataEncoder), 
                 data: data, 
                 mimeType: mimeType
@@ -159,12 +159,12 @@ public extension Encoders {
         var encoder: Encoder
         let metadataEncoder: MetadataEncoder
         let staticMetadata: MetadataEncoder.Metadata
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: try Encoder.Metadata.encodeMetadata(
                     staticMetadata, 
                     using: metadataEncoder, 
@@ -184,12 +184,12 @@ public extension Encoders {
         public typealias Data = Encoder.Data
         var encoder: Encoder
         let metadataEncoder: MetadataEncoder
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: metadataEncoder.encodeMetadata(metadata), 
                 data: data, 
                 mimeType: mimeType
@@ -205,12 +205,12 @@ public extension Encoders {
         public typealias Data = DataEncoder.Data
         var encoder: Encoder
         let dataEncoder: DataEncoder
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType: ConnectionMIMEType
         ) throws -> Payload {
-            try encoder.encodedPayload(
+            try encoder.encode(
                 metadata: metadata, 
                 data: try dataEncoder.encode(data), 
                 mimeType: mimeType
@@ -229,7 +229,7 @@ public extension Encoders {
         let dataEncoder: DataEncoder
         let dataMIMETypeEncoder: DataMIMETypeEncoder
         let alwaysEncodeDataMIMEType: Bool
-        mutating public func encodedPayload(
+        mutating public func encode(
             metadata: Metadata,
             data: Data,
             mimeType connectionMIMEType: ConnectionMIMEType
@@ -244,7 +244,7 @@ public extension Encoders {
             } else {
                 newMetadata = metadata
             }
-            return try encoder.encodedPayload(
+            return try encoder.encode(
                 metadata: newMetadata, 
                 data: try dataEncoder.encode(data, as: dataMIMEType), 
                 mimeType: connectionMIMEType

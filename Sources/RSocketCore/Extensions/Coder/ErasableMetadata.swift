@@ -15,7 +15,10 @@
  */
 
 
-/// ``ErasableMetadata`` is a marker protocol. All Types conforming to ``ErasableMetadata`` will be erased by default when using a ``CoderBuilder``, ``EncoderBuilder`` or ``DecoderBuilder``. A user can always manually opt-out or opt-in by using ``preserveMetadata()`` or ``eraseMetadata()``.
+/// `ErasableMetadata` is a marker protocol used by `CoderBuilder`, `EncoderBuilder` or `DecoderBuilder` to automatically erase or preserve Metadata. 
+/// If a type conforms to `ErasableMetadata` like `Data?` or `[CompositeMetadata]` and is the last Metadata, it is erased i.e. ignored by decoders and initialized with a default value by encoders. 
+/// If Metadata is another type, it is automatically preserved and available by the caller i.e. when sending a request you also need to provide the metadata and the response contains the Metadata in addition to the Data. 
+/// A user can always manually opt-out or opt-in by using ``preserveMetadata()`` or ``eraseMetadata()`` or ``setMetadata(_:)``.
 public protocol ErasableMetadata {
     static var erasedValue: Self { get }
 }

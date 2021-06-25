@@ -1,32 +1,17 @@
 import ArgumentParser
 import Foundation
 import ReactiveSwift
-@testable import RSocketCore
+import RSocketCore
 import RSocketNIOChannel
-@testable import RSocketReactiveSwift
+import RSocketReactiveSwift
 import RSocketWSTransport
 
-extension DataEncoder {
-    static var utf8: DataEncoder<String> {
-        .init(mimeType: .textPlain) { string in
-            Data(string.utf8)
-        }
-    }
-}
+func route(_ route: String) -> Data {
+    let encodedRoute = Data(route.utf8)
+    precondition(encodedRoute.count <= Int(UInt8.max), "route is to long to be encoded")
+    let encodedRouteLength = Data([UInt8(encodedRoute.count)])
 
-extension DataDecoder {
-    static var utf8: DataDecoder<String> {
-        .init(mimeType: .textPlain) { data in
-            String(decoding: data, as: UTF8.self)
-        }
-    }
-    static var prettyPrintedJSON: DataDecoder<String> {
-        .init(mimeType: .textPlain) { data in
-            let json = try JSONSerialization.jsonObject(with: data, options: [])
-            let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
-            return String(decoding: data, as: UTF8.self)
-        }
-    }
+    return encodedRouteLength + encodedRoute
 }
 
 extension URL: ExpressibleByArgument {
@@ -61,19 +46,21 @@ struct TwitterClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
-        
-        let request = Request()
-            .useCompositeMetadata()
-            .encodeMetadata(["searchTweets"], using: .routing)
-            .encodeData(using: .utf8)
-            .decodeData(using: .prettyPrintedJSON)
-            .eraseMetadata()
 
-        try client.requester.requestStream(request, data: searchString)
-            .logEvents(identifier: "route.searchTweets")
-            .take(first: limit)
-            .wait()
-            .get()
+        try client.requester.requestStream(payload: Payload(
+            metadata: route("searchTweets"),
+            data: Data(searchString.utf8)
+        ))
+        .attemptMap { payload -> String in
+            // pretty print json
+            let json = try JSONSerialization.jsonObject(with: payload.data, options: [])
+            let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
+            return String(decoding: data, as: UTF8.self)
+        }
+        .logEvents(identifier: "route.searchTweets")
+        .take(first: limit)
+        .wait()
+        .get()
     }
 }
 

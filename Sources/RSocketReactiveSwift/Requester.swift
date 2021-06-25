@@ -15,7 +15,7 @@
  */
 
 import ReactiveSwift
-@testable import RSocketCore
+import RSocketCore
 import Foundation
 
 internal struct RequesterAdapter: RSocket {
@@ -63,45 +63,6 @@ internal struct RequesterAdapter: RSocket {
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)
             stream.start(lifetime: lifetime, output: output, payloadProducer: payloadProducer)
         }
-    }
-}
-
-extension RSocket {
-    func fireAndForget<InputData>(
-        _ request: Request<Void, InputData, Never, Never>,
-        data: InputData
-    ) throws {
-        fireAndForget(payload: try request.payload(for: data))
-    }
-    func requestResponse<InputData, OutputData>(
-        _ request: AnyRequest<InputData, OutputData>,
-        data: InputData
-    ) -> SignalProducer<OutputData, Swift.Error> {
-        SignalProducer {
-            requestResponse(payload: try request.payload(for: data))
-                .attemptMap{ try request.output(from: $0) }
-        }.flatten(.latest)
-    }
-    func requestStream<InputData, OutputData>(
-        _ request: AnyRequest<InputData, OutputData>,
-        data: InputData
-    ) -> SignalProducer<OutputData, Swift.Error> {
-        SignalProducer {
-            requestStream(payload: try request.payload(for: data))
-                .attemptMap{ try request.output(from: $0) }
-        }.flatten(.latest)
-    }
-    func requestChannel<InputData, OutputData>(
-        _ request: AnyRequest<InputData, OutputData>,
-        data: InputData,
-        dataProducer: SignalProducer<InputData, Swift.Error>?
-    ) -> SignalProducer<OutputData, Swift.Error> {
-        SignalProducer {
-            requestChannel(
-                payload: try request.payload(for: data),
-                payloadProducer: dataProducer?.attemptMap { try request.payload(for: $0) }
-            ).attemptMap{ try request.output(from: $0) }
-        }.flatten(.latest)
     }
 }
 

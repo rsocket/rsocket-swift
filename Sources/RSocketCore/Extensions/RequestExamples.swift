@@ -68,7 +68,7 @@ fileprivate enum Requests {
         Encoder()
             .useCompositeMetadata()
             .encodeStaticMetadata(["price"], using: RoutingEncoder())
-            .encodeStaticMetadata([.json], using: AcceptableDataMIMETypeEncoder())
+            .encodeStaticMetadata([.applicationJson], using: AcceptableDataMIMETypeEncoder())
             .encodeData(using: JSONDataEncoder(type: Stock.self))
             .mapData(Stock.init(isin:))
             .mapData(ISIN.init(isin:))

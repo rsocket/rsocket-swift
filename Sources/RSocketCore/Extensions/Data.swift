@@ -67,7 +67,7 @@ extension DataDecoderProtocol {
 
 public struct JSONDataDecoder<Data: Decodable>: DataDecoderProtocol {
     let decoder: JSONDecoder
-    public var mimeType: MIMEType { .json }
+    public var mimeType: MIMEType { .applicationJson }
     public init(type: Data.Type = Data.self, decoder: JSONDecoder = .init()) {
         self.decoder = decoder
     }
@@ -78,7 +78,7 @@ public struct JSONDataDecoder<Data: Decodable>: DataDecoderProtocol {
 
 public struct JSONDataEncoder<Data: Encodable>: DataEncoderProtocol {
     let encoder: JSONEncoder
-    public var mimeType: MIMEType { .json }
+    public var mimeType: MIMEType { .applicationJson }
     public init(type: Data.Type = Data.self, encoder: JSONEncoder = .init()) {
         self.encoder = encoder
     }
@@ -93,7 +93,7 @@ extension DataEncoders {
     public struct Map<Encoder: DataEncoderProtocol, Data>: DataEncoderProtocol {
         let encoder: Encoder
         let transform: (Data) -> Encoder.Data
-        public var mimeType: MIMEType { .json }
+        public var mimeType: MIMEType { .applicationJson }
         public func encode(_ data: Data, into buffer: inout ByteBuffer) throws {
             try encoder.encode(transform(data), into: &buffer)
         }
@@ -101,7 +101,7 @@ extension DataEncoders {
     public struct TryMap<Encoder: DataEncoderProtocol, Data>: DataEncoderProtocol {
         let encoder: Encoder
         let transform: (Data) throws -> Encoder.Data
-        public var mimeType: MIMEType { .json }
+        public var mimeType: MIMEType { .applicationJson }
         public func encode(_ data: Data, into buffer: inout ByteBuffer) throws {
             try encoder.encode(try transform(data), into: &buffer)
         }

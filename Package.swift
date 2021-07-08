@@ -99,7 +99,7 @@ let package = Package(
         ]),
         
         // Examples
-        .target(
+        .executableTarget(
             name: "TimerClientExample",
             dependencies: [
                 "RSocketCore",
@@ -111,7 +111,7 @@ let package = Package(
             ],
             path: "Sources/Examples/TimerClient"
         ),
-        .target(
+        .executableTarget(
             name: "TwitterClientExample",
             dependencies: [
                 "RSocketCore",
@@ -123,7 +123,7 @@ let package = Package(
             ],
             path: "Sources/Examples/TwitterClient"
         ),
-        .target(
+        .executableTarget(
             name: "VanillaClientExample",
             dependencies: [
                 "RSocketCore",

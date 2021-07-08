@@ -23,6 +23,7 @@ public protocol MetadataDecodable {
 
 
 extension Data: MetadataDecodable {
+    @inlinable
     public func decodeMetadata<Decoder>(
         using metadataDecoder: Decoder
     ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
@@ -31,6 +32,7 @@ extension Data: MetadataDecodable {
 }
 
 extension Optional: MetadataDecodable where Wrapped: MetadataDecodable {
+    @inlinable
     public func decodeMetadata<Decoder>(
         using metadataDecoder: Decoder
     ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
@@ -42,6 +44,7 @@ extension Optional: MetadataDecodable where Wrapped: MetadataDecodable {
 }
 
 extension Array: MetadataDecodable where Element == CompositeMetadata {
+    @inlinable
     public func decodeMetadata<Decoder>(
         using metadataDecoder: Decoder
     ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {

@@ -30,11 +30,19 @@ public struct CompositeMetadata {
 
 public struct RootCompositeMetadataEncoder: MetadataEncoder {
     public typealias Metadata = [CompositeMetadata]
+    
+    @inlinable
     public var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
-    let mimeTypeEncoder: MIMETypeEncoder
+    
+    @usableFromInline
+    internal let mimeTypeEncoder: MIMETypeEncoder
+    
+    @inlinable
     public init(mimeTypeEncoder: MIMETypeEncoder = MIMETypeEncoder()) {
         self.mimeTypeEncoder = mimeTypeEncoder
     }
+    
+    @inlinable
     public func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
@@ -46,7 +54,8 @@ public extension MetadataEncoder where Self == RootCompositeMetadataEncoder {
 }
 
 extension CompositeMetadata {
-    static func encoded<Encoder>(
+    @inlinable
+    public static func encoded<Encoder>(
         _ metadata: Encoder.Metadata,
         using encoder: Encoder
     ) throws -> Self where Encoder: MetadataEncoder {
@@ -71,17 +80,25 @@ extension RangeReplaceableCollection where Element == CompositeMetadata {
 
 public struct RootCompositeMetadataDecoder: MetadataDecoder {
     public typealias Metadata = [CompositeMetadata]
+    
+    @inlinable
     public var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
-    let mimeTypeDecoder: MIMETypeEncoder
+    
+    @usableFromInline
+    internal let mimeTypeDecoder: MIMETypeEncoder
+    
+    @inlinable
     public init(mimeTypeDecoder: MIMETypeEncoder = MIMETypeEncoder()) {
         self.mimeTypeDecoder = mimeTypeDecoder
     }
+    
+    @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> Metadata {
         fatalError("not implemented")
     }
 }
 
-extension MetadataDecoder where Self == RootCompositeMetadataDecoder {
+public extension MetadataDecoder where Self == RootCompositeMetadataDecoder {
     static var compositeMetadata: Self { .init() }
 }
 
@@ -95,6 +112,7 @@ extension Sequence where Element == CompositeMetadata {
         }
         return try decoder.decode(from: data)
     }
+    @inlinable
     func decodeFirst<Decoder>(
         using decoder: Decoder
     ) throws -> Decoder.Metadata where Decoder: MetadataDecoder {
@@ -119,7 +137,10 @@ A: MetadataDecoder,
 B: MetadataDecoder
 {
     public typealias Metadata = (A.Metadata, B.Metadata)
-    let decoder: (A, B)
+    @usableFromInline
+    internal let decoder: (A, B)
+    
+    @inlinable
     public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
         (
             try compositeMetadata.decodeFirst(using: decoder.0),
@@ -134,7 +155,11 @@ B: MetadataDecoder,
 C: MetadataDecoder
 {
     public typealias Metadata = (A.Metadata, B.Metadata, C.Metadata)
-    let decoder: (A, B, C)
+    
+    @usableFromInline
+    internal let decoder: (A, B, C)
+    
+    @inlinable
     public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
         (
             try compositeMetadata.decodeFirst(using: decoder.0),
@@ -178,7 +203,11 @@ A: MetadataEncoder,
 B: MetadataEncoder
 {
     public typealias Metadata = (A.Metadata, B.Metadata)
-    let encoder: (A, B)
+    
+    @usableFromInline
+    internal let encoder: (A, B)
+    
+    @inlinable
     public func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
         [
             try CompositeMetadata.encoded(metadata.0, using: encoder.0),
@@ -193,7 +222,12 @@ B: MetadataEncoder,
 C: MetadataEncoder
 {
     public typealias Metadata = (A.Metadata, B.Metadata, C.Metadata)
-    let encoder: (A, B, C)
+    
+    
+    @usableFromInline
+    internal let encoder: (A, B, C)
+    
+    @inlinable
     public func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
         [
             try CompositeMetadata.encoded(metadata.0, using: encoder.0),

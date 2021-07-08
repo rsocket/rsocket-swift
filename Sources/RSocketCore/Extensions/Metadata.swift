@@ -30,6 +30,7 @@ public protocol MetadataDecoder: CompositeMetadataDecoder {
 }
 
 extension MetadataEncoder {
+    @inlinable
     func encode(_ metadata: Metadata) throws -> Data {
         var buffer = ByteBuffer()
         try self.encode(metadata, into: &buffer)
@@ -51,12 +52,14 @@ extension MetadataDecoder {
 
 
 extension MetadataDecoder {
+    @inlinable
     public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
         try compositeMetadata.decodeFirst(using: self)
     }
 }
 
 extension MetadataEncoder {
+    @inlinable
     public func encodeMetadata(_ metadata: Metadata) throws -> [CompositeMetadata] {
         [try CompositeMetadata.encoded(metadata, using: self)]
     }

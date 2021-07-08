@@ -95,8 +95,8 @@ extension AnyDecoder {
 /// Namespace for types conforming to the ``DecoderProtocol`` protocol
 public enum Decoders {}
 
-public extension Decoders {
-    struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
+extension Decoders {
+    public struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
         public mutating func decode(
@@ -107,7 +107,19 @@ public extension Decoders {
             return try transform(metadata, data)
         }
     }
-    struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
+}
+
+extension DecoderProtocol {
+    public func map<NewMetadata, NewData>(
+        _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
+    ) -> Decoders.Map<Self, NewMetadata, NewData> {
+        .init(decoder: self, transform: transform)
+    }
+}
+
+
+extension Decoders {
+    public struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Metadata) throws -> Metadata
         public mutating func decode(
@@ -118,7 +130,19 @@ public extension Decoders {
             return (try transform(metadata), data)
         }
     }
-    struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
+}
+
+extension DecoderProtocol {
+    public func mapMetadata<NewMetadata>(
+        _ transform: @escaping (Metadata) throws -> NewMetadata
+    ) -> Decoders.MapMetadata<Self, NewMetadata> {
+        .init(decoder: self, transform: transform)
+    }
+}
+
+
+extension Decoders {
+    public struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
         var decoder: Decoder
         let transform: (Decoder.Data) throws -> Data
         public mutating func decode(
@@ -129,7 +153,19 @@ public extension Decoders {
             return (metadata, try transform(data))
         }
     }
-    struct MetadataDecoder<Decoder, MetadataDecoder>: DecoderProtocol where
+}
+
+extension DecoderProtocol {
+    public func mapData<NewData>(
+        _ transform: @escaping (Data) throws -> NewData
+    ) -> Decoders.MapData<Self, NewData> {
+        .init(decoder: self, transform: transform)
+    }
+}
+
+
+extension Decoders {
+    public struct MetadataDecoder<Decoder, MetadataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Metadata: MetadataDecodable,
     MetadataDecoder: RSocketCore.MetadataDecoder
@@ -147,7 +183,18 @@ public extension Decoders {
             return (decodedMetadata, data)
         }
     }
-    struct CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>: DecoderProtocol where
+}
+
+extension DecoderProtocol {
+    public func decodeMetadata<MetadataDecoder>(
+        using metadataDecoder: MetadataDecoder
+    ) -> Decoders.MetadataDecoder<Self, MetadataDecoder> {
+        .init(decoder: self, metadataDecoder: metadataDecoder)
+    }
+}
+
+extension Decoders {
+    public struct CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Metadata == [CompositeMetadata],
     CompositeMetadataDecoder: RSocketCore.CompositeMetadataDecoder
@@ -165,7 +212,19 @@ public extension Decoders {
             return (decodedMetadata, data)
         }
     }
-    struct RootCompositeMetadataDecoder<Decoder>: DecoderProtocol where
+}
+
+extension DecoderProtocol {
+    public func decodeMetadata<CompositeMetadataDecoder>(
+        @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
+    ) -> Decoders.CompositeMetadataDecoder<Self, CompositeMetadataDecoder> {
+        .init(decoder: self, metadataDecoder: metadataDecoder())
+    }
+}
+
+
+extension Decoders {
+    public struct RootCompositeMetadataDecoder<Decoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Metadata == Foundation.Data?
     {
@@ -182,7 +241,19 @@ public extension Decoders {
             return (decodedMetadata ?? [], data)
         }
     }
-    struct DataDecoder<Decoder, DataDecoder>: DecoderProtocol where
+}
+
+extension DecoderProtocol {
+    public func useCompositeMetadata(
+        metadataDecoder: RootCompositeMetadataDecoder = .init()
+    ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == Foundation.Data? {
+        .init(decoder: self, metadataDecoder: metadataDecoder)
+    }
+}
+
+
+extension Decoders {
+    public struct DataDecoder<Decoder, DataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Data == Foundation.Data,
     DataDecoder: DataDecoderProtocol
@@ -200,7 +271,20 @@ public extension Decoders {
             return (metadata, decodedData)
         }
     }
-    struct MultiDataDecoder<Decoder, DataDecoder>: DecoderProtocol where
+}
+
+extension DecoderProtocol {
+    /// unconditionally decodes data with the given `decoder`
+    public func decodeData<DataDecoder>(
+        using dataDecoder: DataDecoder
+    ) -> Decoders.DataDecoder<Self, DataDecoder> {
+        .init(decoder: self, dataDecoder: dataDecoder)
+    }
+}
+
+
+extension Decoders {
+    public struct MultiDataDecoder<Decoder, DataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Metadata == [CompositeMetadata],
     Decoder.Data == Foundation.Data,
@@ -227,47 +311,11 @@ public extension Decoders {
     }
 }
 
-public extension DecoderProtocol {
-    func map<NewMetadata, NewData>(
-        _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
-    ) -> Decoders.Map<Self, NewMetadata, NewData> {
-        .init(decoder: self, transform: transform)
-    }
-    func mapMetadata<NewMetadata>(
-        _ transform: @escaping (Metadata) throws -> NewMetadata
-    ) -> Decoders.MapMetadata<Self, NewMetadata> {
-        .init(decoder: self, transform: transform)
-    }
-    func mapData<NewData>(
-        _ transform: @escaping (Data) throws -> NewData
-    ) -> Decoders.MapData<Self, NewData> {
-        .init(decoder: self, transform: transform)
-    }
-    func decodeMetadata<MetadataDecoder>(
-        using metadataDecoder: MetadataDecoder
-    ) -> Decoders.MetadataDecoder<Self, MetadataDecoder> {
-        .init(decoder: self, metadataDecoder: metadataDecoder)
-    }
-    func decodeMetadata<CompositeMetadataDecoder>(
-        @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
-    ) -> Decoders.CompositeMetadataDecoder<Self, CompositeMetadataDecoder> {
-        .init(decoder: self, metadataDecoder: metadataDecoder())
-    }
-    /// unconditionally decodes data with the given `decoder`
-    func decodeData<DataDecoder>(
-        using dataDecoder: DataDecoder
-    ) -> Decoders.DataDecoder<Self, DataDecoder> {
-        .init(decoder: self, dataDecoder: dataDecoder)
-    }
-    func decodeData<DataDecoder>(
+extension DecoderProtocol {
+    public func decodeData<DataDecoder>(
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
         @MultiDataDecoderBuilder dataDecoder: () -> DataDecoder
     ) -> Decoders.MultiDataDecoder<Self, DataDecoder> {
         .init(decoder: self, dataMIMETypeDecoder: dataMIMETypeDecoder, dataDecoder: dataDecoder())
-    }
-    func useCompositeMetadata(
-        metadataDecoder: RootCompositeMetadataDecoder = .init()
-    ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == Foundation.Data? {
-        .init(decoder: self, metadataDecoder: metadataDecoder)
     }
 }

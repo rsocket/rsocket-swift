@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import Foundation
 
 public protocol EncoderProtocol {
@@ -26,84 +27,13 @@ public protocol EncoderProtocol {
 }
 
 public struct Encoder: EncoderProtocol {
+    @inlinable
+    public init() {}
+    
+    @inlinable
     public func encode(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
         .init(metadata: metadata, data: data)
     }
-}
-
-public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
-    @usableFromInline
-    internal var _encoderBox: _AnyEncoderBase<Metadata, Data>
-    
-    @inlinable
-    internal init<Encoder>(
-        _ encoder: Encoder
-    ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
-        _encoderBox = _AnyEncoderBox(encoder: encoder)
-    }
-    
-    @inlinable
-    mutating public func encode(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        if !isKnownUniquelyReferenced(&_encoderBox) {
-            _encoderBox = _encoderBox.copy()
-        }
-        return try _encoderBox.encode(metadata: metadata, data: data, mimeType: mimeType)
-    }
-}
-
-@usableFromInline
-internal class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
-    @usableFromInline
-    func encode(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
-    }
-    @usableFromInline
-    func copy() -> _AnyEncoderBase<Metadata, Data> {
-        fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
-    }
-}
-
-@usableFromInline
-final internal class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
-    @usableFromInline 
-    internal var encoder: Encoder
-    
-    @usableFromInline 
-    internal init(encoder: Encoder) {
-        self.encoder = encoder
-    }
-    
-    @usableFromInline 
-    internal override func encode(
-        metadata: Metadata,
-        data: Data,
-        mimeType: ConnectionMIMEType
-    ) throws -> Payload {
-        try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
-    }
-    
-    @usableFromInline 
-    internal override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
-        _AnyEncoderBox(encoder: encoder)
-    }
-}
-
-extension AnyEncoder {
-    @inlinable
-    public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { self }
-}
-
-extension EncoderProtocol {
-    @inlinable
-    public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
 }
 
 /// Namespace for types conforming to the ``EncoderProtocol`` protocol

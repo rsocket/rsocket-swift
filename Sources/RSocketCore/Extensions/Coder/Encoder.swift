@@ -32,12 +32,17 @@ public struct Encoder: EncoderProtocol {
 }
 
 public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
-    var _encoderBox: _AnyEncoderBase<Metadata, Data>
-    init<Encoder>(
+    @usableFromInline
+    internal var _encoderBox: _AnyEncoderBase<Metadata, Data>
+    
+    @inlinable
+    internal init<Encoder>(
         _ encoder: Encoder
     ) where Encoder: EncoderProtocol, Encoder.Metadata == Metadata, Encoder.Data == Data {
         _encoderBox = _AnyEncoderBox(encoder: encoder)
     }
+    
+    @inlinable
     mutating public func encode(
         metadata: Metadata,
         data: Data,
@@ -50,7 +55,9 @@ public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
     }
 }
 
-class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
+@usableFromInline
+internal class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
+    @usableFromInline
     func encode(
         metadata: Metadata,
         data: Data,
@@ -58,33 +65,44 @@ class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
     ) throws -> Payload {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
+    @usableFromInline
     func copy() -> _AnyEncoderBase<Metadata, Data> {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
 }
 
-final class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
-    var encoder: Encoder
+@usableFromInline
+final internal class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+    @usableFromInline 
+    internal var encoder: Encoder
+    
+    @usableFromInline 
     internal init(encoder: Encoder) {
         self.encoder = encoder
     }
-    override func encode(
+    
+    @usableFromInline 
+    internal override func encode(
         metadata: Metadata,
         data: Data,
         mimeType: ConnectionMIMEType
     ) throws -> Payload {
         try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
     }
-    override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
+    
+    @usableFromInline 
+    internal override func copy() -> _AnyEncoderBase<Encoder.Metadata, Encoder.Data> {
         _AnyEncoderBox(encoder: encoder)
     }
 }
 
 extension AnyEncoder {
+    @inlinable
     public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { self }
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func eraseToAnyEncoder() -> AnyEncoder<Metadata, Data> { .init(self) }
 }
 
@@ -93,8 +111,22 @@ public enum Encoders {}
 
 extension Encoders {
     public struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
-        var encoder: Encoder
-        let transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
+        @usableFromInline 
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
+        
+        @usableFromInline
+        internal init(
+            encoder: Encoder, 
+            transform: @escaping (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
+        ) {
+            self.encoder = encoder
+            self.transform = transform
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -107,6 +139,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func map<NewMetadata, NewData>(
         _ transform: @escaping (NewMetadata, NewData) throws -> (Metadata, Data)
     ) -> Encoders.Map<Self, NewMetadata, NewData> {
@@ -117,8 +150,19 @@ extension EncoderProtocol {
 
 extension Encoders {
     public struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
-        var encoder: Encoder
-        let transform: (Metadata) throws -> Encoder.Metadata
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let transform: (Metadata) throws -> Encoder.Metadata
+        
+        @usableFromInline
+        internal init(encoder: Encoder, transform: @escaping (Metadata) throws -> Encoder.Metadata) {
+            self.encoder = encoder
+            self.transform = transform
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Encoder.Data,
@@ -130,6 +174,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func mapMetadata<NewMetadata>(
         _ transform: @escaping (NewMetadata) throws -> Metadata
     ) -> Encoders.MapMetadata<Self, NewMetadata> {
@@ -140,8 +185,19 @@ extension EncoderProtocol {
 
 extension Encoders {
     public struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
-        var encoder: Encoder
-        let transform: (Data) throws -> Encoder.Data
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let transform: (Data) throws -> Encoder.Data
+        
+        @usableFromInline
+        internal init(encoder: Encoder, transform: @escaping (Data) throws -> Encoder.Data) {
+            self.encoder = encoder
+            self.transform = transform
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Encoder.Metadata,
             data: Data,
@@ -153,6 +209,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func mapData<NewData>(
         _ transform: @escaping (NewData) throws -> Data
     ) -> Encoders.MapData<Self, NewData> {
@@ -169,8 +226,20 @@ extension Encoders {
     {
         public typealias Metadata = MetadataEncoder.Metadata
         public typealias Data = Encoder.Data
-        var encoder: Encoder
-        let metadataEncoder: MetadataEncoder
+        
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let metadataEncoder: MetadataEncoder
+        
+        @usableFromInline
+        internal init(encoder: Encoder, metadataEncoder: MetadataEncoder) {
+            self.encoder = encoder
+            self.metadataEncoder = metadataEncoder
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -186,6 +255,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func encodeMetadata<MetadataEncoder>(
         using metadataEncoder: MetadataEncoder
     ) -> Encoders.MetadataEncoder<Self, MetadataEncoder> {
@@ -203,6 +273,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func useCompositeMetadata(
         metadataEncoder: RootCompositeMetadataEncoder = .init()
     ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == Foundation.Data? {
@@ -220,9 +291,24 @@ extension Encoders {
     {
         public typealias Metadata = Encoder.Metadata.CombinableMetadata
         public typealias Data = Encoder.Data
-        var encoder: Encoder
-        let metadataEncoder: MetadataEncoder
-        let staticMetadata: MetadataEncoder.Metadata
+        
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let metadataEncoder: MetadataEncoder
+        
+        @usableFromInline
+        internal let staticMetadata: MetadataEncoder.Metadata
+        
+        @usableFromInline
+        internal init(encoder: Encoder, metadataEncoder: MetadataEncoder, staticMetadata: MetadataEncoder.Metadata) {
+            self.encoder = encoder
+            self.metadataEncoder = metadataEncoder
+            self.staticMetadata = staticMetadata
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -243,6 +329,7 @@ extension Encoders {
 
 extension EncoderProtocol {
     /// adds the given metadata to the composition
+    @inlinable
     public func encodeStaticMetadata<MetadataEncoder>(
         _ staticMetadata: MetadataEncoder.Metadata,
         using metadataEncoder: MetadataEncoder
@@ -260,8 +347,20 @@ extension Encoders {
     {
         public typealias Metadata = MetadataEncoder.Metadata
         public typealias Data = Encoder.Data
-        var encoder: Encoder
-        let metadataEncoder: MetadataEncoder
+        
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let metadataEncoder: MetadataEncoder
+        
+        @usableFromInline
+        internal init(encoder: Encoder, metadataEncoder: MetadataEncoder) {
+            self.encoder = encoder
+            self.metadataEncoder = metadataEncoder
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -277,6 +376,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func encodeMetadata<MetadataEncoder>(
         @CompositeMetadataEncoderBuilder metadataEncoder: () -> MetadataEncoder
     ) -> Encoders.CompositeMetadataEncoder<Self, MetadataEncoder> {
@@ -293,8 +393,20 @@ extension Encoders {
     {
         public typealias Metadata = Encoder.Metadata
         public typealias Data = DataEncoder.Data
-        var encoder: Encoder
-        let dataEncoder: DataEncoder
+        
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let dataEncoder: DataEncoder
+        
+        @usableFromInline
+        internal init(encoder: Encoder, dataEncoder: DataEncoder) {
+            self.encoder = encoder
+            self.dataEncoder = dataEncoder
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -310,6 +422,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func encodeData<DataEncoder>(
         using dataEncoder: DataEncoder
     ) -> Encoders.DataEncoder<Self, DataEncoder> {
@@ -327,10 +440,33 @@ extension Encoders {
     {
         public typealias Metadata = Encoder.Metadata
         public typealias Data = (MIMEType, DataEncoder.Data)
-        var encoder: Encoder
-        let dataEncoder: DataEncoder
-        let dataMIMETypeEncoder: DataMIMETypeEncoder
-        let alwaysEncodeDataMIMEType: Bool
+        
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let dataEncoder: DataEncoder
+        
+        @usableFromInline
+        internal let dataMIMETypeEncoder: DataMIMETypeEncoder
+        
+        @usableFromInline
+        internal let alwaysEncodeDataMIMEType: Bool
+        
+        @usableFromInline
+        internal init(
+            encoder: Encoder, 
+            dataEncoder: DataEncoder, 
+            dataMIMETypeEncoder: DataMIMETypeEncoder, 
+            alwaysEncodeDataMIMEType: Bool
+        ) {
+            self.encoder = encoder
+            self.dataEncoder = dataEncoder
+            self.dataMIMETypeEncoder = dataMIMETypeEncoder
+            self.alwaysEncodeDataMIMEType = alwaysEncodeDataMIMEType
+        }
+        
+        @inlinable
         mutating public func encode(
             metadata: Metadata,
             data: Data,
@@ -356,6 +492,7 @@ extension Encoders {
 }
 
 extension EncoderProtocol {
+    @inlinable
     public func encodeData<Encoder>(
         alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),

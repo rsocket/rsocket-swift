@@ -58,6 +58,7 @@ extension CompositeMetadata {
 }
 
 extension RangeReplaceableCollection where Element == CompositeMetadata {
+    @usableFromInline
     func encoded<Encoder>(
         _ metadata: Encoder.Metadata,
         using encoder: Encoder

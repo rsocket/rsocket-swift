@@ -33,6 +33,7 @@ extension DataEncoderProtocol {
 }
 
 extension DataEncoderProtocol {
+    @usableFromInline
     func encode(_ data: Data) throws -> Foundation.Data {
         var buffer = ByteBuffer()
         try self.encode(data, into: &buffer)
@@ -172,6 +173,7 @@ extension MultiDataEncoderProtocol {
 }
 
 extension MultiDataEncoderProtocol {
+    @usableFromInline
     func encode(_ data: Data, as mimeType: MIMEType) throws -> Foundation.Data {
         var buffer = ByteBuffer()
         try self.encode(data, as: mimeType, into: &buffer)

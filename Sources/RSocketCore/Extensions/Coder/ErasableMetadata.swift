@@ -31,11 +31,19 @@ extension Array: ErasableMetadata {
     public static var erasedValue: Array<Element> { [] }
 }
 
-public extension Decoders {
-    struct EraseMetadata<Decoder>: DecoderProtocol where 
+extension Decoders {
+    public struct EraseMetadata<Decoder>: DecoderProtocol where 
     Decoder: DecoderProtocol
     {
-        var decoder: Decoder
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal init(decoder: Decoder) {
+            self.decoder = decoder
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload, 
             mimeType: ConnectionMIMEType
@@ -44,10 +52,29 @@ public extension Decoders {
             return ((), data)
         }
     }
-    struct PreserveMetadata<Decoder>: DecoderProtocol where 
+}
+
+extension DecoderProtocol {
+    @inlinable
+    public func eraseMetadata() -> Decoders.EraseMetadata<Self> {
+        .init(decoder: self)
+    }
+}
+
+
+extension Decoders {
+    public struct PreserveMetadata<Decoder>: DecoderProtocol where 
     Decoder: DecoderProtocol
     {
-        var decoder: Decoder
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal init(decoder: Decoder) {
+            self.decoder = decoder
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload, 
             mimeType: ConnectionMIMEType
@@ -58,20 +85,27 @@ public extension Decoders {
 }
 
 extension DecoderProtocol {
-    func preserveMetadata() -> Decoders.PreserveMetadata<Self> {
-        .init(decoder: self)
-    }
-    func eraseMetadata() -> Decoders.EraseMetadata<Self> {
+    @inlinable
+    public func preserveMetadata() -> Decoders.PreserveMetadata<Self> {
         .init(decoder: self)
     }
 }
 
-public extension Encoders {
-    struct EraseMetadata<Encoder>: EncoderProtocol where 
+
+extension Encoders {
+    public struct EraseMetadata<Encoder>: EncoderProtocol where 
     Encoder: EncoderProtocol,
     Encoder.Metadata: ErasableMetadata
     {
-        var encoder: Encoder
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal init(encoder: Encoder) {
+            self.encoder = encoder
+        }
+        
+        @inlinable
         public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
@@ -84,10 +118,29 @@ public extension Encoders {
             )
         }
     }
-    struct PreserveMetadata<Encoder>: EncoderProtocol where 
+}
+
+extension EncoderProtocol {
+    @inlinable
+    public func eraseMetadata() -> Encoders.EraseMetadata<Self> where Metadata: ErasableMetadata {
+        .init(encoder: self)
+    }
+}
+
+
+extension Encoders {
+    public struct PreserveMetadata<Encoder>: EncoderProtocol where 
     Encoder: EncoderProtocol
     {
-        var encoder: Encoder
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal init(encoder: Encoder) {
+            self.encoder = encoder
+        }
+        
+        @inlinable
         public mutating func encode(
             metadata: Void, 
             data: (Encoder.Metadata, Encoder.Data), 
@@ -101,11 +154,33 @@ public extension Encoders {
             )
         }
     }
-    struct SetMetadata<Encoder>: EncoderProtocol where 
+}
+
+extension EncoderProtocol {
+    @inlinable
+    public func preserveMetadata() -> Encoders.PreserveMetadata<Self> {
+        .init(encoder: self)
+    }
+}
+
+
+extension Encoders {
+    public struct SetMetadata<Encoder>: EncoderProtocol where 
     Encoder: EncoderProtocol
     {
-        var encoder: Encoder
-        let metadata: Encoder.Metadata
+        @usableFromInline
+        internal var encoder: Encoder
+        
+        @usableFromInline
+        internal let metadata: Encoder.Metadata
+        
+        @usableFromInline
+        internal init(encoder: Encoder, metadata: Encoder.Metadata) {
+            self.encoder = encoder
+            self.metadata = metadata
+        }
+        
+        @inlinable
         public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
@@ -120,14 +195,9 @@ public extension Encoders {
     }
 }
 
-public extension EncoderProtocol {
-    func preserveMetadata() -> Encoders.PreserveMetadata<Self> {
-        .init(encoder: self)
-    }
-    func eraseMetadata() -> Encoders.EraseMetadata<Self> where Metadata: ErasableMetadata {
-        .init(encoder: self)
-    }
-    func setMetadata(_ metadata: Metadata) -> Encoders.SetMetadata<Self> {
+extension EncoderProtocol {
+    @inlinable
+    public func setMetadata(_ metadata: Metadata) -> Encoders.SetMetadata<Self> {
         .init(encoder: self, metadata: metadata)
     }
 }

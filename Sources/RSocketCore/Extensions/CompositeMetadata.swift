@@ -26,6 +26,8 @@ public struct CompositeMetadata {
     }
 }
 
+// MARK: Root Composite Metadata Encoder
+
 public struct RootCompositeMetadataEncoder: MetadataEncoder {
     public typealias Metadata = [CompositeMetadata]
     public var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
@@ -63,6 +65,8 @@ extension RangeReplaceableCollection where Element == CompositeMetadata {
         self + CollectionOfOne(try CompositeMetadata.encoded(metadata, using: encoder))
     }
 }
+
+// MARK: Root Composite Metadata Decoder
 
 public struct RootCompositeMetadataDecoder: MetadataDecoder {
     public typealias Metadata = [CompositeMetadata]

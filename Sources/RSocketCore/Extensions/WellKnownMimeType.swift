@@ -15,7 +15,7 @@
  */
 
 public struct WellKnownMIMETypeCode: RawRepresentable, Hashable {
-    /// rawValue is guaranteed to be between 0 and 127.
+    /// rawValue is guaranteed to be in the range `0...127`.
     public var rawValue: UInt8
     public init?(rawValue: UInt8) {
         guard rawValue & 0b1000_0000 == 0 else { return nil }

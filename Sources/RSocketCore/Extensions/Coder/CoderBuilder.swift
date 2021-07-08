@@ -35,14 +35,14 @@ public enum CoderBuilder: DecoderBuilderProtocol, EncoderBuilderProtocol {
     }
 }
 
-public extension CoderBuilder {
-    static func buildExpression<Decoder, Encoder>(
+extension CoderBuilder {
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<Decoder, Encoder> where Decoder.Metadata == Void, Encoder.Metadata == Void {
         coder
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.PreserveMetadata<Decoder>, 
@@ -53,7 +53,7 @@ public extension CoderBuilder {
             .mapEncoder { $0.preserveMetadata() }
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.EraseMetadata<Decoder>, 
@@ -64,7 +64,7 @@ public extension CoderBuilder {
             .mapDecoder { $0.eraseMetadata() }
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoder, 
@@ -73,7 +73,7 @@ public extension CoderBuilder {
         coder.mapEncoder { $0.preserveMetadata() }
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.PreserveMetadata<Decoder>, 
@@ -82,7 +82,7 @@ public extension CoderBuilder {
         coder.mapDecoder { $0.preserveMetadata() }
     }
 
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.EraseMetadata<Decoder>, 
@@ -91,7 +91,7 @@ public extension CoderBuilder {
         coder.mapDecoder { $0.eraseMetadata() }
     }
 
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoder, 
@@ -100,7 +100,7 @@ public extension CoderBuilder {
         coder.mapEncoder { $0.eraseMetadata() }
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.EraseMetadata<Decoder>, 
@@ -111,7 +111,7 @@ public extension CoderBuilder {
             .mapEncoder { $0.preserveMetadata() }
     }
     
-    static func buildExpression<Decoder, Encoder>(
+    public static func buildExpression<Decoder, Encoder>(
         _ coder: Coder<Decoder, Encoder>
     ) -> Coder<
         Decoders.PreserveMetadata<Decoder>, 

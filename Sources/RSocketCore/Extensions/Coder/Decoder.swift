@@ -36,12 +36,17 @@ public struct Decoder: DecoderProtocol {
 }
 
 public struct AnyDecoder<Metadata, Data>: DecoderProtocol {
-    var _decoderBox: _AnyDecoderBase<Metadata, Data>
-    init<Decoder>(
+    @usableFromInline
+    internal var _decoderBox: _AnyDecoderBase<Metadata, Data>
+    
+    @inlinable
+    internal init<Decoder>(
         _ decoder: Decoder
     ) where Decoder: DecoderProtocol, Decoder.Metadata == Metadata, Decoder.Data == Data {
         _decoderBox = _AnyDecoderBox(decoder: decoder)
     }
+    
+    @inlinable
     public mutating func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
@@ -53,41 +58,54 @@ public struct AnyDecoder<Metadata, Data>: DecoderProtocol {
     }
 }
 
-class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
+@usableFromInline
+internal class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
+    @inlinable
     func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Metadata, Data) {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
+    @inlinable
     func copy() -> _AnyDecoderBase<Metadata, Data> {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
 }
 
-final class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
-    var decoder: Decoder
+@usableFromInline
+final internal class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
+    @usableFromInline
+    internal var decoder: Decoder
+    
+    @usableFromInline
     internal init(decoder: Decoder) {
         self.decoder = decoder
     }
-    override func decode(
+    
+    @inlinable
+    override internal func decode(
         _ payload: Payload,
         mimeType: ConnectionMIMEType
     ) throws -> (Decoder.Metadata, Decoder.Data) {
         try decoder.decode(payload, mimeType: mimeType)
     }
-    override func copy() -> _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
+    
+    @inlinable
+    override internal func copy() -> _AnyDecoderBase<Decoder.Metadata, Decoder.Data> {
         _AnyDecoderBox(decoder: decoder)
     }
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func eraseToAnyDecoder() -> AnyDecoder<Metadata, Data> {
         .init(self)
     }
 }
 
 extension AnyDecoder {
+    @inlinable
     public func eraseToAnyDecoder() -> AnyDecoder<Metadata, Data> { self }
 }
 
@@ -97,8 +115,22 @@ public enum Decoders {}
 
 extension Decoders {
     public struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
-        var decoder: Decoder
-        let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
+        
+        @usableFromInline
+        internal init(
+            decoder: Decoder, 
+            transform: @escaping (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
+        ) {
+            self.decoder = decoder
+            self.transform = transform
+        }
+        
+        @inlinable
         public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -110,6 +142,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func map<NewMetadata, NewData>(
         _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
     ) -> Decoders.Map<Self, NewMetadata, NewData> {
@@ -120,8 +153,22 @@ extension DecoderProtocol {
 
 extension Decoders {
     public struct MapMetadata<Decoder: DecoderProtocol, Metadata>: DecoderProtocol {
-        var decoder: Decoder
-        let transform: (Decoder.Metadata) throws -> Metadata
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let transform: (Decoder.Metadata) throws -> Metadata
+        
+        @usableFromInline
+        internal init(
+            decoder: Decoder, 
+            transform: @escaping (Decoder.Metadata) throws -> Metadata
+        ) {
+            self.decoder = decoder
+            self.transform = transform
+        }
+        
+        @inlinable
         public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -133,6 +180,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func mapMetadata<NewMetadata>(
         _ transform: @escaping (Metadata) throws -> NewMetadata
     ) -> Decoders.MapMetadata<Self, NewMetadata> {
@@ -143,8 +191,23 @@ extension DecoderProtocol {
 
 extension Decoders {
     public struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
-        var decoder: Decoder
-        let transform: (Decoder.Data) throws -> Data
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let transform: (Decoder.Data) throws -> Data
+        
+        @usableFromInline
+        internal init(
+            decoder: Decoder, 
+            transform: @escaping (Decoder.Data) throws -> Data
+        ) {
+            self.decoder = decoder
+            self.transform = transform
+        }
+        
+        @inlinable
         public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -156,6 +219,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func mapData<NewData>(
         _ transform: @escaping (Data) throws -> NewData
     ) -> Decoders.MapData<Self, NewData> {
@@ -172,8 +236,20 @@ extension Decoders {
     {
         public typealias Metadata = MetadataDecoder.Metadata?
         public typealias Data = Decoder.Data
-        var decoder: Decoder
-        let metadataDecoder: MetadataDecoder
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let metadataDecoder: MetadataDecoder
+        
+        @usableFromInline
+        internal init(decoder: Decoder, metadataDecoder: MetadataDecoder) {
+            self.decoder = decoder
+            self.metadataDecoder = metadataDecoder
+        }
+        
+        @inlinable
         public mutating func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -186,6 +262,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func decodeMetadata<MetadataDecoder>(
         using metadataDecoder: MetadataDecoder
     ) -> Decoders.MetadataDecoder<Self, MetadataDecoder> {
@@ -201,8 +278,23 @@ extension Decoders {
     {
         public typealias Metadata = CompositeMetadataDecoder.Metadata
         public typealias Data = Decoder.Data
-        var decoder: Decoder
-        let metadataDecoder: CompositeMetadataDecoder
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let metadataDecoder: CompositeMetadataDecoder
+        
+        @usableFromInline
+        internal init(
+            decoder: Decoder, 
+            metadataDecoder: CompositeMetadataDecoder
+        ) {
+            self.decoder = decoder
+            self.metadataDecoder = metadataDecoder
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -215,6 +307,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func decodeMetadata<CompositeMetadataDecoder>(
         @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
     ) -> Decoders.CompositeMetadataDecoder<Self, CompositeMetadataDecoder> {
@@ -230,8 +323,20 @@ extension Decoders {
     {
         public typealias Metadata = [CompositeMetadata]
         public typealias Data = Decoder.Data
-        var decoder: Decoder
-        let metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let metadataDecoder: RSocketCore.RootCompositeMetadataDecoder
+        
+        @usableFromInline
+        internal init(decoder: Decoder, metadataDecoder: RSocketCore.RootCompositeMetadataDecoder) {
+            self.decoder = decoder
+            self.metadataDecoder = metadataDecoder
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -244,6 +349,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func useCompositeMetadata(
         metadataDecoder: RootCompositeMetadataDecoder = .init()
     ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == Foundation.Data? {
@@ -260,8 +366,20 @@ extension Decoders {
     {
         public typealias Metadata = Decoder.Metadata
         public typealias Data = DataDecoder.Data
-        var decoder: Decoder
-        let dataDecoder: DataDecoder
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let dataDecoder: DataDecoder
+        
+        @usableFromInline
+        internal init(decoder: Decoder, dataDecoder: DataDecoder) {
+            self.decoder = decoder
+            self.dataDecoder = dataDecoder
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload,
             mimeType: ConnectionMIMEType
@@ -275,6 +393,7 @@ extension Decoders {
 
 extension DecoderProtocol {
     /// unconditionally decodes data with the given `decoder`
+    @inlinable
     public func decodeData<DataDecoder>(
         using dataDecoder: DataDecoder
     ) -> Decoders.DataDecoder<Self, DataDecoder> {
@@ -292,10 +411,33 @@ extension Decoders {
     {
         public typealias Metadata = Decoder.Metadata
         public typealias Data = DataDecoder.Data
-        var decoder: Decoder
-        let dataMIMETypeDecoder: DataMIMETypeDecoder
-        let dataDecoder: DataDecoder
-        var lastSeenDataMIMEType: MIMEType?
+        
+        @usableFromInline
+        internal var decoder: Decoder
+        
+        @usableFromInline
+        internal let dataMIMETypeDecoder: DataMIMETypeDecoder
+        
+        @usableFromInline
+        internal let dataDecoder: DataDecoder
+        
+        @usableFromInline
+        internal var lastSeenDataMIMEType: MIMEType?
+        
+        @inlinable
+        internal init(
+            decoder: Decoder, 
+            dataMIMETypeDecoder: DataMIMETypeDecoder, 
+            dataDecoder: DataDecoder, 
+            lastSeenDataMIMEType: MIMEType? = nil
+        ) {
+            self.decoder = decoder
+            self.dataMIMETypeDecoder = dataMIMETypeDecoder
+            self.dataDecoder = dataDecoder
+            self.lastSeenDataMIMEType = lastSeenDataMIMEType
+        }
+        
+        @inlinable
         mutating public func decode(
             _ payload: Payload,
             mimeType connectionMIMEType: ConnectionMIMEType
@@ -312,6 +454,7 @@ extension Decoders {
 }
 
 extension DecoderProtocol {
+    @inlinable
     public func decodeData<DataDecoder>(
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
         @MultiDataDecoderBuilder dataDecoder: () -> DataDecoder

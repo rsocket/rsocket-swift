@@ -85,6 +85,7 @@ extension MetadataDecoder where Self == RootCompositeMetadataDecoder {
 }
 
 extension Sequence where Element == CompositeMetadata {
+    @inlinable
     func decodeFirstIfPresent<Decoder>(
         using decoder: Decoder
     ) throws -> Decoder.Metadata? where Decoder: MetadataDecoder {

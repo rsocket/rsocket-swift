@@ -38,6 +38,7 @@ extension MetadataEncoder {
 }
 
 extension MetadataDecoder {
+    @inlinable
     func decode(from data: Data) throws -> Metadata {
         var buffer = ByteBuffer(data: data)
         let metadata = try self.decode(from: &buffer)

@@ -30,25 +30,25 @@ extension Coder {
     }
 }
 
-public extension Coder {
-    func mapDecoder<NewDecoder>(
+extension Coder {
+    public func mapDecoder<NewDecoder>(
         _ transform: (Decoder) -> NewDecoder
     ) -> Coder<NewDecoder, Encoder> {
         .init(decoder: transform(decoder), encoder: encoder)
     }
-    func mapEncoder<NewEncoder>(
+    public func mapEncoder<NewEncoder>(
         _ transform: (Encoder) -> NewEncoder
     ) -> Coder<Decoder, NewEncoder> {
         .init(decoder: decoder, encoder: transform(encoder))
     }
 }
 
-public extension Coder {
+extension Coder {
     /// Decodes data using one of the given `decoder`s, depending on the MIME Type of the Data.
     ///
     /// In addition, this methods encodes all MIME Types of all `decoder`s using the given `acceptableDataMIMETypeEncoder`.
     /// This makes it possible for a requester to support multiple response data MIME Types at the same time and let the responder choose the best one.
-    func decodeData<DataDecoder>(
+    public func decodeData<DataDecoder>(
         acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
         @MultiDataDecoderBuilder decoder: () -> DataDecoder
@@ -68,8 +68,8 @@ public extension Coder {
 
 // MARK: - Coder decode and encode convenience methods
 
-public extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
-    func useCompositeMetadata(
+extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
+    public func useCompositeMetadata(
         metadataDecoder: RootCompositeMetadataDecoder = .init(),
         metadataEncoder: RootCompositeMetadataEncoder = .init()
     ) -> Coder<
@@ -83,19 +83,19 @@ public extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data
 
 // MARK: - Coder decode convenience methods
 
-public extension Coder {
-    func decodeMetadata<MetadataDecoder>(
+extension Coder {
+    public func decodeMetadata<MetadataDecoder>(
         using metadataDecoder: MetadataDecoder
     ) -> Coder<Decoders.MetadataDecoder<Decoder, MetadataDecoder>, Encoder> {
         mapDecoder { $0.decodeMetadata(using: metadataDecoder) }
     }
-    func decodeMetadata<CompositeMetadataDecoder>(
+    public func decodeMetadata<CompositeMetadataDecoder>(
         @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
     ) -> Coder<Decoders.CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>, Encoder> {
         mapDecoder { $0.decodeMetadata(metadataDecoder: metadataDecoder) }
     }
     /// unconditionally decodes data with the given `decoder`
-    func decodeData<DataDecoder>(
+    public func decodeData<DataDecoder>(
         using dataDecoder: DataDecoder
     ) -> Coder<Decoders.DataDecoder<Decoder, DataDecoder>, Encoder> {
         mapDecoder { $0.decodeData(using: dataDecoder) }
@@ -104,30 +104,33 @@ public extension Coder {
 
 // MARK: - Coder encode convenience methods
 
-public extension Coder {
-    func encodeMetadata<MetadataEncoder>(
+extension Coder {
+    public func encodeMetadata<MetadataEncoder>(
         using metadataEncoder: MetadataEncoder
     ) -> Coder<Decoder, Encoders.MetadataEncoder<Encoder, MetadataEncoder>> {
         mapEncoder { $0.encodeMetadata(using: metadataEncoder) }
     }
-    func encodeMetadata<CompositeMetadataEncoder>(
+    
+    public func encodeMetadata<CompositeMetadataEncoder>(
         @CompositeMetadataEncoderBuilder metadataEncoder: () -> CompositeMetadataEncoder
     ) -> Coder<Decoder, Encoders.CompositeMetadataEncoder<Encoder, CompositeMetadataEncoder>> {
         mapEncoder { $0.encodeMetadata(metadataEncoder: metadataEncoder) }
     }
-    func encodeStaticMetadata<MetadataEncoder>(
+    
+    public func encodeStaticMetadata<MetadataEncoder>(
         _ staticMetadata: MetadataEncoder.Metadata,
         using metadataEncoder: MetadataEncoder
     ) -> Coder<Decoder, Encoders.StaticMetadataEncoder<Encoder, MetadataEncoder>> {
         mapEncoder { $0.encodeStaticMetadata(staticMetadata, using: metadataEncoder) }
     }
     
-    func encodeData<DataEncoder>(
+    public func encodeData<DataEncoder>(
         using dataEncoder: DataEncoder
     ) -> Coder<Decoder, Encoders.DataEncoder<Encoder, DataEncoder>> {
         mapEncoder { $0.encodeData(using: dataEncoder) }
     }
-    func encodeData<DataEncoder>(
+    
+    public func encodeData<DataEncoder>(
         alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
         @MultiDataEncoderBuilder encoder: () -> DataEncoder

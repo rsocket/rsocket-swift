@@ -21,6 +21,15 @@ public struct Coder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: E
     public let encoder: Encoder
 }
 
+extension Coder {
+    public init() where
+    Decoder == RSocketCore.Decoder,
+    Encoder == RSocketCore.Encoder
+    {
+        self.init(decoder: .init(), encoder: .init())
+    }
+}
+
 public extension Coder {
     func mapDecoder<NewDecoder>(
         _ transform: (Decoder) -> NewDecoder
@@ -130,15 +139,5 @@ public extension Coder {
                 encoder: encoder
             ) 
         }
-    }
-}
-
-
-extension Coder {
-    public init() where
-    Decoder == RSocketCore.Decoder,
-    Encoder == RSocketCore.Encoder
-    {
-        self.init(decoder: .init(), encoder: .init())
     }
 }

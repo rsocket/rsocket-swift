@@ -91,8 +91,8 @@ extension EncoderProtocol {
 /// Namespace for types conforming to the ``EncoderProtocol`` protocol
 public enum Encoders {}
 
-public extension Encoders {
-    struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
+extension Encoders {
+    public struct Map<Encoder: EncoderProtocol, Metadata, Data>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Metadata, Data) throws -> (Encoder.Metadata, Encoder.Data)
         mutating public func encode(
@@ -104,7 +104,19 @@ public extension Encoders {
             return try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
         }
     }
-    struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
+}
+
+extension EncoderProtocol {
+    public func map<NewMetadata, NewData>(
+        _ transform: @escaping (NewMetadata, NewData) throws -> (Metadata, Data)
+    ) -> Encoders.Map<Self, NewMetadata, NewData> {
+        .init(encoder: self, transform: transform)
+    }
+}
+
+
+extension Encoders {
+    public struct MapMetadata<Encoder: EncoderProtocol, Metadata>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Metadata) throws -> Encoder.Metadata
         mutating public func encode(
@@ -115,7 +127,19 @@ public extension Encoders {
             try encoder.encode(metadata: try transform(metadata), data: data, mimeType: mimeType)
         }
     }
-    struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
+}
+
+extension EncoderProtocol {
+    public func mapMetadata<NewMetadata>(
+        _ transform: @escaping (NewMetadata) throws -> Metadata
+    ) -> Encoders.MapMetadata<Self, NewMetadata> {
+        .init(encoder: self, transform: transform)
+    }
+}
+
+
+extension Encoders {
+    public struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
         var encoder: Encoder
         let transform: (Data) throws -> Encoder.Data
         mutating public func encode(
@@ -126,7 +150,19 @@ public extension Encoders {
             try encoder.encode(metadata: metadata, data: try transform(data), mimeType: mimeType)
         }
     }
-    struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+}
+
+extension EncoderProtocol {
+    public func mapData<NewData>(
+        _ transform: @escaping (NewData) throws -> Data
+    ) -> Encoders.MapData<Self, NewData> {
+        .init(encoder: self, transform: transform)
+    }
+}
+
+
+extension Encoders {
+    public struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
     Encoder.Metadata: MetadataEncodable,
     MetadataEncoder: RSocketCore.MetadataEncoder
@@ -147,9 +183,37 @@ public extension Encoders {
             )
         }
     }
-    typealias RootCompositeMetadataEncoder<Encoder> = MetadataEncoder<Encoder, RSocketCore.RootCompositeMetadataEncoder> where Encoder: EncoderProtocol, Encoder.Metadata == Foundation.Data?
-    
-    struct StaticMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+}
+
+extension EncoderProtocol {
+    public func encodeMetadata<MetadataEncoder>(
+        using metadataEncoder: MetadataEncoder
+    ) -> Encoders.MetadataEncoder<Self, MetadataEncoder> {
+        .init(encoder: self, metadataEncoder: metadataEncoder)
+    }
+}
+
+
+
+extension Encoders {
+    public typealias RootCompositeMetadataEncoder<Encoder> = 
+        MetadataEncoder<Encoder, RSocketCore.RootCompositeMetadataEncoder> where 
+        Encoder: EncoderProtocol, 
+        Encoder.Metadata == Foundation.Data?
+}
+
+extension EncoderProtocol {
+    public func useCompositeMetadata(
+        metadataEncoder: RootCompositeMetadataEncoder = .init()
+    ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == Foundation.Data? {
+        encodeMetadata(using: metadataEncoder)
+    }
+}
+
+
+
+extension Encoders {
+    public struct StaticMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
     Encoder.Metadata: MetadataEncodable,
     MetadataEncoder: RSocketCore.MetadataEncoder
@@ -175,7 +239,21 @@ public extension Encoders {
             )
         }
     }
-    struct CompositeMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
+}
+
+extension EncoderProtocol {
+    /// adds the given metadata to the composition
+    public func encodeStaticMetadata<MetadataEncoder>(
+        _ staticMetadata: MetadataEncoder.Metadata,
+        using metadataEncoder: MetadataEncoder
+    ) -> Encoders.StaticMetadataEncoder<Self, MetadataEncoder> {
+        .init(encoder: self, metadataEncoder: metadataEncoder, staticMetadata: staticMetadata)
+    }
+}
+
+
+extension Encoders {
+    public struct CompositeMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
     Encoder.Metadata == [CompositeMetadata],
     MetadataEncoder: RSocketCore.CompositeMetadataEncoder
@@ -196,7 +274,19 @@ public extension Encoders {
             )
         }
     }
-    struct DataEncoder<Encoder, DataEncoder>: EncoderProtocol where
+}
+
+extension EncoderProtocol {
+    public func encodeMetadata<MetadataEncoder>(
+        @CompositeMetadataEncoderBuilder metadataEncoder: () -> MetadataEncoder
+    ) -> Encoders.CompositeMetadataEncoder<Self, MetadataEncoder> {
+            .init(encoder: self, metadataEncoder: metadataEncoder())
+    }
+}
+
+
+extension Encoders {
+    public struct DataEncoder<Encoder, DataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
     Encoder.Data == Data,
     DataEncoder: RSocketCore.DataEncoderProtocol
@@ -217,7 +307,19 @@ public extension Encoders {
             )
         }
     }
-    struct MultiDataEncoder<Encoder, DataEncoder>: EncoderProtocol where
+}
+
+extension EncoderProtocol {
+    public func encodeData<DataEncoder>(
+        using dataEncoder: DataEncoder
+    ) -> Encoders.DataEncoder<Self, DataEncoder> {
+        .init(encoder: self, dataEncoder: dataEncoder)
+    }
+}
+
+
+extension Encoders {
+    public struct MultiDataEncoder<Encoder, DataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
     Encoder.Data == Foundation.Data,
     Encoder.Metadata == [CompositeMetadata],
@@ -254,49 +356,7 @@ public extension Encoders {
 }
 
 extension EncoderProtocol {
-    func map<NewMetadata, NewData>(
-        _ transform: @escaping (NewMetadata, NewData) throws -> (Metadata, Data)
-    ) -> Encoders.Map<Self, NewMetadata, NewData> {
-        .init(encoder: self, transform: transform)
-    }
-    func mapMetadata<NewMetadata>(
-        _ transform: @escaping (NewMetadata) throws -> Metadata
-    ) -> Encoders.MapMetadata<Self, NewMetadata> {
-        .init(encoder: self, transform: transform)
-    }
-    func mapData<NewData>(
-        _ transform: @escaping (NewData) throws -> Data
-    ) -> Encoders.MapData<Self, NewData> {
-        .init(encoder: self, transform: transform)
-    }
-    func encodeMetadata<MetadataEncoder>(
-        using metadataEncoder: MetadataEncoder
-    ) -> Encoders.MetadataEncoder<Self, MetadataEncoder> {
-        .init(encoder: self, metadataEncoder: metadataEncoder)
-    }
-    func useCompositeMetadata(
-        metadataEncoder: RootCompositeMetadataEncoder = .init()
-    ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == Foundation.Data? {
-        encodeMetadata(using: metadataEncoder)
-    }
-    /// adds the given metadata to the composition
-    func encodeStaticMetadata<MetadataEncoder>(
-        _ staticMetadata: MetadataEncoder.Metadata,
-        using metadataEncoder: MetadataEncoder
-    ) -> Encoders.StaticMetadataEncoder<Self, MetadataEncoder> {
-        .init(encoder: self, metadataEncoder: metadataEncoder, staticMetadata: staticMetadata)
-    }
-    func encodeMetadata<MetadataEncoder>(
-        @CompositeMetadataEncoderBuilder metadataEncoder: () -> MetadataEncoder
-    ) -> Encoders.CompositeMetadataEncoder<Self, MetadataEncoder> {
-            .init(encoder: self, metadataEncoder: metadataEncoder())
-    }
-    func encodeData<DataEncoder>(
-        using dataEncoder: DataEncoder
-    ) -> Encoders.DataEncoder<Self, DataEncoder> {
-        .init(encoder: self, dataEncoder: dataEncoder)
-    }
-    func encodeData<Encoder>(
+    public func encodeData<Encoder>(
         alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),
         @MultiDataEncoderBuilder encoder: () -> Encoder

@@ -16,7 +16,7 @@
 
 /**
  This file contains examples of the `Coder`, `Encoder` and `Decoder` API. 
- This all those examples should eventually be moved to documentation and also tests. 
+ All those examples should eventually be moved to documentation and/or tests. 
  For now they are here to make sure we do not accidentally break any public API during development.
  */
 

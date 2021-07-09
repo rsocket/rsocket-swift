@@ -19,11 +19,14 @@ public struct MetadataPush<Metadata> {
 }
 
 extension MetadataPush {
+    @inlinable
     public init<Encoder>(
         using metadataEncoder: Encoder
     ) where Encoder: MetadataEncoder, Encoder.Metadata == Metadata {
         encoder = metadataEncoder.eraseToAnyMetadataEncoder()
     }
+    
+    @inlinable
     public init<Encoder>(
         @CompositeMetadataEncoderBuilder _ makeEncoder: () -> Encoder
     ) where 
@@ -35,11 +38,11 @@ extension MetadataPush {
 }
 
 public struct FireAndForget<Request> {
-    let encoder: AnyEncoder<Void, Request>
+    public let encoder: AnyEncoder<Void, Request>
 }
 
-public extension FireAndForget {
-    init<Encoder>(
+extension FireAndForget {
+    public init<Encoder>(
         @EncoderBuilder _ makeEncoder: () -> Encoder
     ) where 
     Encoder: EncoderProtocol, 
@@ -51,12 +54,13 @@ public extension FireAndForget {
 }
 
 public struct RequestResponse<Request, Response> {
-    let encoder: AnyEncoder<Void, Request>
-    let decoder: AnyDecoder<Void, Response>
+    public let encoder: AnyEncoder<Void, Request>
+    public let decoder: AnyDecoder<Void, Response>
 }
 
-public extension RequestResponse {
-    init<Encoder, Decoder>(
+extension RequestResponse {
+    @inlinable
+    public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
     Encoder.Metadata == Void, Encoder.Data == Request,
@@ -69,12 +73,13 @@ public extension RequestResponse {
 }
 
 public struct RequestStream<Request, Response> {
-    let encoder: AnyEncoder<Void, Request>
-    let decoder: AnyDecoder<Void, Response>
+    public let encoder: AnyEncoder<Void, Request>
+    public let decoder: AnyDecoder<Void, Response>
 }
 
-public extension RequestStream {
-    init<Encoder, Decoder>(
+extension RequestStream {
+    @inlinable
+    public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
     Encoder.Metadata == Void, Encoder.Data == Request,
@@ -87,12 +92,13 @@ public extension RequestStream {
 }
 
 public struct RequestChannel<Request, Response> {
-    let encoder: AnyEncoder<Void, Request>
-    let decoder: AnyDecoder<Void, Response>
+    public let encoder: AnyEncoder<Void, Request>
+    public let decoder: AnyDecoder<Void, Response>
 }
 
-public extension RequestChannel {
-    init<Encoder, Decoder>(
+extension RequestChannel {
+    @inlinable
+    public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
     Encoder.Metadata == Void, Encoder.Data == Request,

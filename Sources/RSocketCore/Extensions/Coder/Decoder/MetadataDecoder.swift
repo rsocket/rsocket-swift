@@ -23,38 +23,12 @@ public protocol MetadataEncoder: CompositeMetadataEncoder {
     func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws
 }
 
-public protocol MetadataDecoder: CompositeMetadataDecoder {
-    associatedtype Metadata
-    var mimeType: MIMEType { get }
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata
-}
-
 extension MetadataEncoder {
     @inlinable
     func encode(_ metadata: Metadata) throws -> Data {
         var buffer = ByteBuffer()
         try self.encode(metadata, into: &buffer)
         return buffer.readData(length: buffer.readableBytes) ?? Data()
-    }
-}
-
-extension MetadataDecoder {
-    @inlinable
-    func decode(from data: Data) throws -> Metadata {
-        var buffer = ByteBuffer(data: data)
-        let metadata = try self.decode(from: &buffer)
-        guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
-        }
-        return metadata
-    }
-}
-
-
-extension MetadataDecoder {
-    @inlinable
-    public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
-        try compositeMetadata.decodeFirst(using: self)
     }
 }
 

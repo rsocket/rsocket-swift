@@ -26,25 +26,36 @@ public struct SimpleAuthentication {
 }
 
 public struct SimpleAuthenticationDecoder: MetadataDecoder {
-    var authenticationDecoder: AuthenticationDecoder = .init()
+    @usableFromInline
+    internal var authenticationDecoder: AuthenticationDecoder = .init()
+    
+    @inlinable
     public var mimeType: MIMEType { authenticationDecoder.mimeType }
+    
+    @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> SimpleAuthentication {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataDecoder where Self == SimpleAuthenticationDecoder {
-    static var simpleAuthentication: Self { .init() }
+
+extension MetadataDecoder where Self == SimpleAuthenticationDecoder {
+    public static var simpleAuthentication: Self { .init() }
 }
 
 public struct SimpleAuthenticationEncoder: MetadataEncoder {
-    var authenticationEncoder: AuthenticationEncoder = .init()
+    @usableFromInline
+    internal var authenticationEncoder: AuthenticationEncoder = .init()
+    
+    @inlinable
     public var mimeType: MIMEType { authenticationEncoder.mimeType }
+    
+    @inlinable
     public func encode(_ metadata: SimpleAuthentication, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataEncoder where Self == SimpleAuthenticationEncoder {
-    static var simpleAuthentication: Self { .init() }
+extension MetadataEncoder where Self == SimpleAuthenticationEncoder {
+    public static var simpleAuthentication: Self { .init() }
 }

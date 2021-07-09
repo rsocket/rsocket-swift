@@ -17,25 +17,36 @@
 import NIO
 
 public struct BearerAuthenticationDecoder: MetadataDecoder {
-    var authenticationDecoder: AuthenticationDecoder = .init()
+    @usableFromInline
+    internal var authenticationDecoder: AuthenticationDecoder = .init()
+    
+    @inlinable
     public var mimeType: MIMEType { authenticationDecoder.mimeType }
+    
+    @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> String {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataDecoder where Self == BearerAuthenticationDecoder {
-    static var bearerAuthentication: Self { .init() }
+extension MetadataDecoder where Self == BearerAuthenticationDecoder {
+    public static var bearerAuthentication: Self { .init() }
 }
 
+
 public struct BearerAuthenticationEncoder: MetadataEncoder {
-    var authenticationEncoder: AuthenticationEncoder = .init()
+    @usableFromInline
+    internal var authenticationEncoder: AuthenticationEncoder = .init()
+    
+    @inlinable
     public var mimeType: MIMEType { authenticationEncoder.mimeType }
+    
+    @inlinable
     public func encode(_ metadata: String, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataEncoder where Self == BearerAuthenticationEncoder {
-    static var bearerAuthentication: Self { .init() }
+extension MetadataEncoder where Self == BearerAuthenticationEncoder {
+    public static var bearerAuthentication: Self { .init() }
 }

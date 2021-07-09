@@ -17,26 +17,34 @@
 import Foundation
 import NIO
 
-struct RoutingEncoder: MetadataEncoder {
-    typealias Metadata = [String]
-    var mimeType: MIMEType { .messageXRSocketRoutingV0 }
-    func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
+public struct RoutingEncoder: MetadataEncoder {
+    public typealias Metadata = [String]
+    
+    @inlinable
+    public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
+    
+    @inlinable
+    public func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-struct RoutingDecoder: MetadataDecoder {
-    typealias Metadata = [String]
-    var mimeType: MIMEType { .messageXRSocketRoutingV0 }
-    func decode(from buffer: inout ByteBuffer) throws -> Metadata {
+public struct RoutingDecoder: MetadataDecoder {
+    public typealias Metadata = [String]
+    
+    @inlinable
+    public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
+    
+    @inlinable
+    public func decode(from buffer: inout ByteBuffer) throws -> Metadata {
         fatalError("not implemented")
     }
 }
 
 extension MetadataEncoder where Self == RoutingEncoder {
-    static var routing: Self { .init() }
+    public static var routing: Self { .init() }
 }
 
 extension MetadataDecoder where Self == RoutingDecoder {
-    static var routing: Self { .init() }
+    public static var routing: Self { .init() }
 }

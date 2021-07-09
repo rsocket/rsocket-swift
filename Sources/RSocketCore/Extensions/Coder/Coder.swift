@@ -19,9 +19,16 @@ import Foundation
 public struct Coder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
     public let decoder: Decoder
     public let encoder: Encoder
+    
+    @usableFromInline
+    internal init(decoder: Decoder, encoder: Encoder) {
+        self.decoder = decoder
+        self.encoder = encoder
+    }
 }
 
 extension Coder {
+    @inlinable
     public init() where
     Decoder == RSocketCore.Decoder,
     Encoder == RSocketCore.Encoder
@@ -31,11 +38,14 @@ extension Coder {
 }
 
 extension Coder {
+    @inlinable
     public func mapDecoder<NewDecoder>(
         _ transform: (Decoder) -> NewDecoder
     ) -> Coder<NewDecoder, Encoder> {
         .init(decoder: transform(decoder), encoder: encoder)
     }
+    
+    @inlinable
     public func mapEncoder<NewEncoder>(
         _ transform: (Encoder) -> NewEncoder
     ) -> Coder<Decoder, NewEncoder> {
@@ -48,6 +58,7 @@ extension Coder {
     ///
     /// In addition, this methods encodes all MIME Types of all `decoder`s using the given `acceptableDataMIMETypeEncoder`.
     /// This makes it possible for a requester to support multiple response data MIME Types at the same time and let the responder choose the best one.
+    @inlinable
     public func decodeData<DataDecoder>(
         acceptableDataMIMETypeEncoder: AcceptableDataMIMETypeEncoder = .init(),
         dataMIMETypeDecoder: DataMIMETypeDecoder = .init(),
@@ -69,6 +80,7 @@ extension Coder {
 // MARK: - Coder decode and encode convenience methods
 
 extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
+    @inlinable
     public func useCompositeMetadata(
         metadataDecoder: RootCompositeMetadataDecoder = .init(),
         metadataEncoder: RootCompositeMetadataEncoder = .init()
@@ -84,17 +96,22 @@ extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
 // MARK: - Coder decode convenience methods
 
 extension Coder {
+    @inlinable
     public func decodeMetadata<MetadataDecoder>(
         using metadataDecoder: MetadataDecoder
     ) -> Coder<Decoders.MetadataDecoder<Decoder, MetadataDecoder>, Encoder> {
         mapDecoder { $0.decodeMetadata(using: metadataDecoder) }
     }
+    
+    @inlinable
     public func decodeMetadata<CompositeMetadataDecoder>(
         @CompositeMetadataDecoderBuilder metadataDecoder: () -> CompositeMetadataDecoder
     ) -> Coder<Decoders.CompositeMetadataDecoder<Decoder, CompositeMetadataDecoder>, Encoder> {
         mapDecoder { $0.decodeMetadata(metadataDecoder: metadataDecoder) }
     }
+    
     /// unconditionally decodes data with the given `decoder`
+    @inlinable
     public func decodeData<DataDecoder>(
         using dataDecoder: DataDecoder
     ) -> Coder<Decoders.DataDecoder<Decoder, DataDecoder>, Encoder> {
@@ -105,18 +122,21 @@ extension Coder {
 // MARK: - Coder encode convenience methods
 
 extension Coder {
+    @inlinable
     public func encodeMetadata<MetadataEncoder>(
         using metadataEncoder: MetadataEncoder
     ) -> Coder<Decoder, Encoders.MetadataEncoder<Encoder, MetadataEncoder>> {
         mapEncoder { $0.encodeMetadata(using: metadataEncoder) }
     }
     
+    @inlinable
     public func encodeMetadata<CompositeMetadataEncoder>(
         @CompositeMetadataEncoderBuilder metadataEncoder: () -> CompositeMetadataEncoder
     ) -> Coder<Decoder, Encoders.CompositeMetadataEncoder<Encoder, CompositeMetadataEncoder>> {
         mapEncoder { $0.encodeMetadata(metadataEncoder: metadataEncoder) }
     }
     
+    @inlinable
     public func encodeStaticMetadata<MetadataEncoder>(
         _ staticMetadata: MetadataEncoder.Metadata,
         using metadataEncoder: MetadataEncoder
@@ -124,12 +144,14 @@ extension Coder {
         mapEncoder { $0.encodeStaticMetadata(staticMetadata, using: metadataEncoder) }
     }
     
+    @inlinable
     public func encodeData<DataEncoder>(
         using dataEncoder: DataEncoder
     ) -> Coder<Decoder, Encoders.DataEncoder<Encoder, DataEncoder>> {
         mapEncoder { $0.encodeData(using: dataEncoder) }
     }
     
+    @inlinable
     public func encodeData<DataEncoder>(
         alwaysEncodeDataMIMEType: Bool = false,
         dataMIMETypeEncoder: DataMIMETypeEncoder = .init(),

@@ -22,23 +22,29 @@ public struct Authentication {
 }
 
 public struct AuthenticationDecoder: MetadataDecoder {
+    @inlinable
     public var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
+    
+    @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> Authentication {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataDecoder where Self == AuthenticationDecoder {
-    static var authentication: Self { .init() }
+extension MetadataDecoder where Self == AuthenticationDecoder {
+    public static var authentication: Self { .init() }
 }
 
 public struct AuthenticationEncoder: MetadataEncoder {
+    @inlinable
     public var mimeType: MIMEType { .messageXRSocketAuthenticationV0 }
+    
+    @inlinable
     public func encode(_ metadata: Authentication, into buffer: inout ByteBuffer) throws {
         fatalError("not implemented")
     }
 }
 
-public extension MetadataEncoder where Self == AuthenticationEncoder {
-    static var authentication: Self { .init() }
+extension MetadataEncoder where Self == AuthenticationEncoder {
+    public static var authentication: Self { .init() }
 }

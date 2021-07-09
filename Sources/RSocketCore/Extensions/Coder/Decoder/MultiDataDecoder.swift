@@ -130,4 +130,13 @@ public enum MultiDataDecoderBuilder {
     ) -> MultiDataDecoderTuple3<A, B, C> {
         .init(decoder: (a, b, c))
     }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
+    }
 }

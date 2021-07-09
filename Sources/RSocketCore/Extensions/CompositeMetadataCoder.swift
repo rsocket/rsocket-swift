@@ -189,6 +189,15 @@ public enum CompositeMetadataDecoderBuilder {
     ) -> CompositeMetadataDecoderTuple3<A, B, C> {
         .init(decoder: (a, b, c))
     }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
+    }
 }
 
 // MARK: - Composite Metadata Payload Encoder
@@ -257,5 +266,14 @@ public enum CompositeMetadataEncoderBuilder {
         _ c: C
     ) -> CompositeMetadataEncoderTuple3<A, B, C> {
         .init(encoder: (a, b, c))
+    }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
     }
 }

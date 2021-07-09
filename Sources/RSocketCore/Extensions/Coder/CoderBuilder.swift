@@ -33,6 +33,15 @@ public enum CoderBuilder: DecoderBuilderProtocol, EncoderBuilderProtocol {
     ) -> Coder<Decoder, Encoder> {
         coder
     }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
+    }
 }
 
 extension CoderBuilder {

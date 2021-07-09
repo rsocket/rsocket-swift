@@ -111,6 +111,23 @@ fileprivate enum Requests {
             .encodeData(using: JSONDataEncoder(type: ISIN.self))
             .decodeData(using: JSONDataDecoder(type: Price.self))
     }
+    
+    /// Works with `RequestStream` and `RequestChannel` too
+    static let priceStream2 = RequestStream<ISIN, Price> {
+        if Bool.random() {
+            Coder()
+                .useCompositeMetadata()
+                .encodeStaticMetadata(["price"], using: RoutingEncoder())
+                .encodeData(using: JSONDataEncoder(type: ISIN.self))
+                .decodeData(using: JSONDataDecoder(type: Price.self))
+        } else {
+            Coder()
+                .useCompositeMetadata()
+                .encodeStaticMetadata(["price"], using: RoutingEncoder())
+                .encodeData(using: JSONDataEncoder(type: ISIN.self))
+                .decodeData(using: JSONDataDecoder(type: Price.self))
+        }
+    }
     static let advancedRequest = RequestResponse<(([String], MIMEType), (MIMEType, Price)), (([String], [MIMEType], MIMEType), Stock)> {
         Coder()
             .useCompositeMetadata()

@@ -114,4 +114,13 @@ public enum MultiDataEncoderBuilder {
     ) -> MultiDataEncoderTuple3<A, B, C> {
         .init(encoder: (a, b, c))
     }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
+    }
 }

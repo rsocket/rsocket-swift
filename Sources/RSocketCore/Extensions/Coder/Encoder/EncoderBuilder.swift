@@ -21,6 +21,15 @@ public enum EncoderBuilder: EncoderBuilderProtocol {
     ) -> Encoder where Encoder: EncoderProtocol {
         encoder
     }
+    public static func buildLimitedAvailability<T>(_ component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(first component: T) -> T {
+        component
+    }
+    public static func buildEither<T>(second component: T) -> T {
+        component
+    }
 }
 
 public protocol EncoderBuilderProtocol {}

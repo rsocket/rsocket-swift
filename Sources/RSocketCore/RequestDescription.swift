@@ -14,6 +14,26 @@
  * limitations under the License.
  */
 
+public struct MetadataPush<Metadata> {
+    public let encoder: AnyMetadataEncoder<Metadata>
+}
+
+extension MetadataPush {
+    public init<Encoder>(
+        using metadataEncoder: Encoder
+    ) where Encoder: MetadataEncoder, Encoder.Metadata == Metadata {
+        encoder = metadataEncoder.eraseToAnyMetadataEncoder()
+    }
+    public init<Encoder>(
+        @CompositeMetadataEncoderBuilder _ makeEncoder: () -> Encoder
+    ) where 
+    Encoder: MetadataEncoder, 
+    Encoder.Metadata == Metadata
+    {
+        encoder = makeEncoder().eraseToAnyMetadataEncoder()
+    }
+}
+
 public struct FireAndForget<Request> {
     let encoder: AnyEncoder<Void, Request>
 }

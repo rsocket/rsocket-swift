@@ -31,12 +31,12 @@ public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
     mutating public func encode(
         metadata: Metadata,
         data: Data,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> Payload {
         if !isKnownUniquelyReferenced(&_encoderBox) {
             _encoderBox = _encoderBox.copy()
         }
-        return try _encoderBox.encode(metadata: metadata, data: data, mimeType: mimeType)
+        return try _encoderBox.encode(metadata: metadata, data: data, encoding: encoding)
     }
 }
 
@@ -56,7 +56,7 @@ internal class _AnyEncoderBase<Metadata, Data>: EncoderProtocol {
     func encode(
         metadata: Metadata,
         data: Data,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> Payload {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
@@ -80,9 +80,9 @@ final internal class _AnyEncoderBox<Encoder: EncoderProtocol>: _AnyEncoderBase<E
     internal override func encode(
         metadata: Metadata,
         data: Data,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> Payload {
-        try encoder.encode(metadata: metadata, data: data, mimeType: mimeType)
+        try encoder.encode(metadata: metadata, data: data, encoding: encoding)
     }
     
     @usableFromInline 

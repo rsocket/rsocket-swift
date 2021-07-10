@@ -22,7 +22,7 @@ public protocol EncoderProtocol {
     mutating func encode(
         metadata: Metadata,
         data: Data,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> Payload
 }
 
@@ -31,7 +31,7 @@ public struct Encoder: EncoderProtocol {
     public init() {}
     
     @inlinable
-    public func encode(metadata: Data?, data: Data, mimeType: ConnectionMIMEType) throws -> Payload {
+    public func encode(metadata: Data?, data: Data, encoding: ConnectionEncoding) throws -> Payload {
         .init(metadata: metadata, data: data)
     }
 }

@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
-public struct ConnectionMIMEType {
+/// encoding configuration of metadata and data which is send to the server during setup
+public struct ConnectionEncoding {
+    /// default encoding uses `.octetStream` for metadata and data
+    public static let `default` = ConnectionEncoding()
+    
+    /// MIME Type for encoding of Metadata
     public var metadata: MIMEType
+    
+    /// MIME Type for encoding of Data
     public var data: MIMEType
-    public init(metadata: MIMEType, data: MIMEType) {
+    
+    public init(
+        metadata: MIMEType = .default, 
+        data: MIMEType = .default
+    ) {
         self.metadata = metadata
         self.data = data
     }

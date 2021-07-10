@@ -30,12 +30,12 @@ public struct AnyDecoder<Metadata, Data>: DecoderProtocol {
     @inlinable
     public mutating func decode(
         _ payload: Payload,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> (Metadata, Data) {
         if !isKnownUniquelyReferenced(&_decoderBox) {
             _decoderBox = _decoderBox.copy()
         }
-        return try _decoderBox.decode(payload, mimeType: mimeType)
+        return try _decoderBox.decode(payload, encoding: encoding)
     }
 }
 
@@ -56,7 +56,7 @@ internal class _AnyDecoderBase<Metadata, Data>: DecoderProtocol {
     @inlinable
     func decode(
         _ payload: Payload,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> (Metadata, Data) {
         fatalError("\(#function) in \(Self.self) is an abstract method and needs to be overridden")
     }
@@ -79,9 +79,9 @@ final internal class _AnyDecoderBox<Decoder: DecoderProtocol>: _AnyDecoderBase<D
     @inlinable
     override internal func decode(
         _ payload: Payload,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> (Decoder.Metadata, Decoder.Data) {
-        try decoder.decode(payload, mimeType: mimeType)
+        try decoder.decode(payload, encoding: encoding)
     }
     
     @inlinable

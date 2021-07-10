@@ -37,9 +37,9 @@ extension Decoders {
         @inlinable
         public mutating func decode(
             _ payload: Payload,
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> (Decoder.Metadata, Data) {
-            let (metadata, data) = try decoder.decode(payload, mimeType: mimeType)
+            let (metadata, data) = try decoder.decode(payload, encoding: encoding)
             return (metadata, try transform(data))
         }
     }

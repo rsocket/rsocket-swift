@@ -21,7 +21,7 @@ public protocol DecoderProtocol {
     associatedtype Data
     mutating func decode(
         _ payload: Payload,
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> (Metadata, Data)
 }
 
@@ -33,7 +33,7 @@ public struct Decoder: DecoderProtocol {
     @inlinable
     public func decode(
         _ payload: Payload, 
-        mimeType: ConnectionMIMEType
+        encoding: ConnectionEncoding
     ) throws -> (Data?, Data) {
         (payload.metadata, payload.data)
     }

@@ -55,12 +55,12 @@ extension Encoders {
         mutating public func encode(
             metadata: Metadata,
             data: Data,
-            mimeType connectionMIMEType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> Payload {
             let (dataMIMEType, data) = data
             
             let shouldEncodeDataMIMEType = alwaysEncodeDataMIMEType || 
-                connectionMIMEType.data != dataMIMEType
+                encoding.data != dataMIMEType
             let newMetadata: [CompositeMetadata]
             if shouldEncodeDataMIMEType {
                 newMetadata = try metadata.encoded(dataMIMEType, using: dataMIMETypeEncoder)
@@ -70,7 +70,7 @@ extension Encoders {
             return try encoder.encode(
                 metadata: newMetadata, 
                 data: try dataEncoder.encode(data, as: dataMIMEType), 
-                mimeType: connectionMIMEType
+                encoding: encoding
             )
         }
     }

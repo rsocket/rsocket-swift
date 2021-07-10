@@ -46,9 +46,9 @@ extension Decoders {
         @inlinable
         mutating public func decode(
             _ payload: Payload, 
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> (Void, Decoder.Data) {
-            let (_, data) = try decoder.decode(payload, mimeType: mimeType)
+            let (_, data) = try decoder.decode(payload, encoding: encoding)
             return ((), data)
         }
     }
@@ -77,9 +77,9 @@ extension Decoders {
         @inlinable
         mutating public func decode(
             _ payload: Payload, 
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> (Void, (Decoder.Metadata, Decoder.Data)) {
-            return ((), try decoder.decode(payload, mimeType: mimeType))
+            return ((), try decoder.decode(payload, encoding: encoding))
         }
     }
 }
@@ -109,12 +109,12 @@ extension Encoders {
         public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> Payload {
             try encoder.encode(
                 metadata: Encoder.Metadata.erasedValue, 
                 data: data, 
-                mimeType: mimeType
+                encoding: encoding
             )
         }
     }
@@ -144,13 +144,13 @@ extension Encoders {
         public mutating func encode(
             metadata: Void, 
             data: (Encoder.Metadata, Encoder.Data), 
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> Payload {
             let (metadata, data) = data
             return try encoder.encode(
                 metadata: metadata, 
                 data: data, 
-                mimeType: mimeType
+                encoding: encoding
             )
         }
     }
@@ -184,12 +184,12 @@ extension Encoders {
         public mutating func encode(
             metadata: Void, 
             data: Encoder.Data, 
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> Payload {
             try encoder.encode(
                 metadata: self.metadata, 
                 data: data, 
-                mimeType: mimeType
+                encoding: encoding
             )
         }
     }

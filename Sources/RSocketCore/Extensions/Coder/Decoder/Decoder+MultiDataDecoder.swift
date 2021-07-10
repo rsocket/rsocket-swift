@@ -54,13 +54,13 @@ extension Decoders {
         @inlinable
         mutating public func decode(
             _ payload: Payload,
-            mimeType connectionMIMEType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decode(payload, mimeType: connectionMIMEType)
+            let (metadata, data) = try decoder.decode(payload, encoding: encoding)
             if let dataMIMEType = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) {
                 lastSeenDataMIMEType = dataMIMEType
             }
-            let dataMIMEType = lastSeenDataMIMEType ?? connectionMIMEType.data
+            let dataMIMEType = lastSeenDataMIMEType ?? encoding.data
             let decodedData = try dataDecoder.decodeMIMEType(dataMIMEType, from: data)
             return (metadata, decodedData)
         }

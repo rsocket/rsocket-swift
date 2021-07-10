@@ -41,12 +41,12 @@ extension Encoders {
         mutating public func encode(
             metadata: Metadata,
             data: Data,
-            mimeType: ConnectionMIMEType
+            encoding: ConnectionEncoding
         ) throws -> Payload {
             try encoder.encode(
                 metadata: metadata, 
                 data: try dataEncoder.encode(data), 
-                mimeType: mimeType
+                encoding: encoding
             )
         }
     }

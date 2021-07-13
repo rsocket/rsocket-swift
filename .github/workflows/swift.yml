@@ -11,17 +11,15 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        xcode: [
-            '/Applications/Xcode_12.5.1.app/Contents/Developer',
-            '/Applications/Xcode_13.0.app/Contents/Developer',
-        ]
+        xcode: ['12.5.1', '13.0']
 
     steps:
     - uses: actions/checkout@v2
-        
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ matrix.xcode }}
     - name: Test on iOS Simulator
-      env:
-        DEVELOPER_DIR: ${{ matrix.xcode }}
+
       run: >
         xcodebuild test
         -scheme RSocket-Package
@@ -32,8 +30,6 @@ jobs:
         -destination:'platform=iOS Simulator,name=iPhone 12'
         
     - name: Test on macOS
-      env:
-        DEVELOPER_DIR: ${{ matrix.xcode }}
       run: >
         xcodebuild test
         -scheme RSocket-Package
@@ -46,13 +42,13 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        xcode: [
-            '/Applications/Xcode_12.5.1.app/Contents/Developer',
-            '/Applications/Xcode_13.0.app/Contents/Developer',
-        ]
+        xcode: ['12.5.1', '13.0']
 
     steps:
     - uses: actions/checkout@v2
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ matrix.xcode }}
     - name: Build & Run Performance Tests on macOS
       env:
         DEVELOPER_DIR: ${{ matrix.xcode }}

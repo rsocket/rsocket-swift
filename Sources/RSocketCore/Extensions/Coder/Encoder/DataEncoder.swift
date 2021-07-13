@@ -1,4 +1,3 @@
-ODataEncoder.swift
 /*
  * Copyright 2015-present the original author or authors.
  *

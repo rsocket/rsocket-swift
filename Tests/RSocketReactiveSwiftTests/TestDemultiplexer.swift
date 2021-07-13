@@ -48,11 +48,13 @@ extension TestDemultiplexer {
         serverResponder: RSocketCore.RSocket?,
         clientResponder: RSocketCore.RSocket?
     ) -> (server: TestDemultiplexer, client: TestDemultiplexer) {
+        let serverResponder = serverResponder ?? DefaultRSocket(encoding: .default)
+        let clientResponder = clientResponder ?? DefaultRSocket(encoding: .default)
         var client: TestDemultiplexer!
         let eventLoop = EmbeddedEventLoop()
         let server = TestDemultiplexer(
             connectionSide: .server,
-            requester: .init(streamIdGenerator: .server, eventLoop: eventLoop, sendFrame: { frame in
+            requester: .init(streamIdGenerator: .server, encoding: .default, eventLoop: eventLoop, sendFrame: { frame in
                 client.receiveFrame(frame: frame)
             }),
             responder: .init(responderSocket: serverResponder, eventLoop: eventLoop, sendFrame: { frame in
@@ -60,7 +62,7 @@ extension TestDemultiplexer {
             }))
         client = TestDemultiplexer(
             connectionSide: .client,
-            requester: .init(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: { frame in
+            requester: .init(streamIdGenerator: .client, encoding: .default, eventLoop: eventLoop, sendFrame: { frame in
                 server.receiveFrame(frame: frame)
             }),
             responder: .init(responderSocket: clientResponder, eventLoop: eventLoop, sendFrame: { frame in

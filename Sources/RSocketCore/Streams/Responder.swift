@@ -23,12 +23,12 @@ internal final class Responder {
     private let eventLoop: EventLoop
     private let lateFrameHandler: ((Frame) -> ())?
     internal init(
-        responderSocket: RSocket? = nil,
+        responderSocket: RSocket,
         eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void,
         lateFrameHandler: ((Frame) -> ())? = nil
     ) {
-        self.responderSocket = responderSocket ?? DefaultRSocket()
+        self.responderSocket = responderSocket
         self.sendFrame = sendFrame
         self.eventLoop = eventLoop
         self.lateFrameHandler = lateFrameHandler

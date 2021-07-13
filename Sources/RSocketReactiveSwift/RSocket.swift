@@ -30,6 +30,28 @@ public protocol RSocket {
     ) -> SignalProducer<Payload, Swift.Error>
 }
 
+public protocol RequesterRSocket {
+    func execute<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws
+    
+    func execute<Data>(_ fireAndForget: FireAndForget<Data>, data: Data) throws
+    
+    func execute<Request, Response>(
+        _ requestResponse: RequestResponse<Request, Response>, 
+        data: Request
+    ) -> SignalProducer<Response, Swift.Error>
+    
+    func execute<Request, Response>(
+        _ requestStream: RequestStream<Request, Response>, 
+        data: Request
+    ) -> SignalProducer<Response, Swift.Error>
+    
+    func execute<Request, Response>(
+        _ requestResponse: RequestChannel<Request, Response>, 
+        initialData: Request,
+        dataProducer: SignalProducer<Request, Swift.Error>?
+    ) -> SignalProducer<Response, Swift.Error>
+}
+
 public typealias Payload = RSocketCore.Payload
 
 public typealias Error = RSocketCore.Error

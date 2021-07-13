@@ -18,11 +18,17 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-internal struct RequesterAdapter: RSocket {
+internal struct RequesterAdapter {
     internal let requester: RSocketCore.RSocket
     
     internal init(requester: RSocketCore.RSocket) {
         self.requester = requester
+    }
+}
+
+extension RequesterAdapter: RSocket {    
+    internal var encoding: ConnectionEncoding {
+        requester.encoding
     }
     
     internal func metadataPush(metadata: Data) {
@@ -63,6 +69,58 @@ internal struct RequesterAdapter: RSocket {
             let output = requester.channel(payload: payload, initialRequestN: .max, isCompleted: isComplete, responderStream: stream)
             stream.start(lifetime: lifetime, output: output, payloadProducer: payloadProducer)
         }
+    }
+}
+
+extension RequesterAdapter: RequesterRSocket {
+    func execute<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws {
+        let metadata = try metadataPush.encoder.encode(metadata)
+        self.metadataPush(metadata: metadata)
+    }
+    
+    func execute<Data>(_ fireAndForget: FireAndForget<Data>, data: Data) throws {
+        var encoder = fireAndForget.encoder
+        let payload = try encoder.encode(data, encoding: encoding)
+        self.fireAndForget(payload: payload)
+    }
+    
+    func execute<Request, Response>(
+        _ requestResponse: RequestResponse<Request, Response>, 
+        data: Request
+    ) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestResponse.encoder
+            var decoder = requestResponse.decoder
+            let payload = try encoder.encode(data, encoding: encoding)
+            return self.requestResponse(payload: payload).attemptMap { response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
+    }
+    
+    func execute<Request, Response>(_ requestStream: RequestStream<Request, Response>, data: Request) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestStream.encoder
+            var decoder = requestStream.decoder
+            let payload = try encoder.encode(data, encoding: encoding)
+            return self.requestStream(payload: payload).attemptMap { response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
+    }
+    
+    func execute<Request, Response>(_ requestResponse: RequestChannel<Request, Response>, initialData: Request, dataProducer: SignalProducer<Request, Swift.Error>?) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestResponse.encoder
+            var decoder = requestResponse.decoder
+            let payload = try encoder.encode(initialData, encoding: encoding)
+            let payloadProducer = dataProducer?.attemptMap { data in
+                try encoder.encode(data, encoding: encoding)
+            }
+            return self.requestChannel(payload: payload, payloadProducer: payloadProducer).attemptMap{ response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
     }
 }
 
@@ -138,6 +196,7 @@ extension RequestStreamOperator: UnidirectionalStream {
     func onRequestN(_ requestN: Int32) {
         /// TODO: We need to make the behaviour configurable (e.g. buffering, blocking, dropping, sending) because ReactiveSwift does not support demand.
     }
+    
 
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         guard canBeIgnored == false else { return }

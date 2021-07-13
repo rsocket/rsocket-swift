@@ -26,6 +26,16 @@ public protocol EncoderProtocol {
     ) throws -> Payload
 }
 
+extension EncoderProtocol where Metadata == Void {
+    @inlinable
+    public mutating func encode(
+        _ data: Data,
+        encoding: ConnectionEncoding
+    ) throws -> Payload {
+        try encode(metadata: (), data: data, encoding: encoding)
+    }
+}
+
 public struct Encoder: EncoderProtocol {
     @inlinable
     public init() {}

@@ -25,7 +25,7 @@ public protocol MetadataEncoder: CompositeMetadataEncoder {
 
 extension MetadataEncoder {
     @inlinable
-    func encode(_ metadata: Metadata) throws -> Data {
+    public func encode(_ metadata: Metadata) throws -> Data {
         var buffer = ByteBuffer()
         try self.encode(metadata, into: &buffer)
         return buffer.readData(length: buffer.readableBytes) ?? Data()

@@ -21,7 +21,7 @@ import RSocketCore
 final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
     private let bootstrap: NIO.ClientBootstrap
-    private let config: ClientConfiguration
+    public let config: ClientConfiguration
     private let transport: Transport
     private let sslContext: NIOSSLContext?
 

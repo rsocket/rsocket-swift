@@ -34,7 +34,8 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
         responder: RSocketReactiveSwift.RSocket? = nil
     ) -> SignalProducer<ReactiveSwiftClient, Swift.Error> {
         SignalProducer { observer, lifetime in
-            let future = connect(to: endpoint, payload: payload, responder: responder?.coreAdapter)
+            let responder = responder.map { ResponderAdapter(responder: $0, encoding: config.encoding) }
+            let future = connect(to: endpoint, payload: payload, responder: responder)
                 .map(ReactiveSwiftClient.init)
             future.whenComplete { result in
                 switch result {
@@ -46,11 +47,5 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
                 }
             }
         }
-    }
-}
-
-private extension RSocketReactiveSwift.RSocket {
-    var coreAdapter: RSocketCore.RSocket {
-        ResponderAdapter(responder: self)
     }
 }

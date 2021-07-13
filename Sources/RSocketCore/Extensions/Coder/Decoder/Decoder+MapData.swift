@@ -18,7 +18,6 @@ import Foundation
 
 extension Decoders {
     public struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
-        
         @usableFromInline
         internal var decoder: Decoder
         

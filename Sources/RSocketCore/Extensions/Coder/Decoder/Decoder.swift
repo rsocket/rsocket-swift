@@ -25,6 +25,15 @@ public protocol DecoderProtocol {
     ) throws -> (Metadata, Data)
 }
 
+extension DecoderProtocol where Metadata == Void {
+    @inlinable
+    public mutating func decode(
+        _ payload: Payload,
+        encoding: ConnectionEncoding
+    ) throws -> Data {
+        try decode(payload, encoding: encoding).1
+    }
+}
 
 public struct Decoder: DecoderProtocol {
     @inlinable
@@ -39,11 +48,5 @@ public struct Decoder: DecoderProtocol {
     }
 }
 
-
 /// Namespace for types conforming to the ``DecoderProtocol`` protocol
 public enum Decoders {}
-
-
-
-
-

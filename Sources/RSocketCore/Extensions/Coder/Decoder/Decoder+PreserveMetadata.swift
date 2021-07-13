@@ -14,41 +14,31 @@
  * limitations under the License.
  */
 
-import Foundation
-
 extension Decoders {
-    public struct MapData<Decoder: DecoderProtocol, Data>: DecoderProtocol {
+    public struct PreserveMetadata<Decoder>: DecoderProtocol where
+    Decoder: DecoderProtocol
+    {
         @usableFromInline
         internal var decoder: Decoder
-        
+
         @usableFromInline
-        internal let transform: (Decoder.Data) throws -> Data
-        
-        @usableFromInline
-        internal init(
-            decoder: Decoder, 
-            transform: @escaping (Decoder.Data) throws -> Data
-        ) {
+        internal init(decoder: Decoder) {
             self.decoder = decoder
-            self.transform = transform
         }
-        
+
         @inlinable
-        public mutating func decode(
+        mutating public func decode(
             _ payload: Payload,
             encoding: ConnectionEncoding
-        ) throws -> (Decoder.Metadata, Data) {
-            let (metadata, data) = try decoder.decode(payload, encoding: encoding)
-            return (metadata, try transform(data))
+        ) throws -> (Void, (Decoder.Metadata, Decoder.Data)) {
+            return ((), try decoder.decode(payload, encoding: encoding))
         }
     }
 }
 
 extension DecoderProtocol {
     @inlinable
-    public func mapData<NewData>(
-        _ transform: @escaping (Data) throws -> NewData
-    ) -> Decoders.MapData<Self, NewData> {
-        .init(decoder: self, transform: transform)
+    public func preserveMetadata() -> Decoders.PreserveMetadata<Self> {
+        .init(decoder: self)
     }
 }

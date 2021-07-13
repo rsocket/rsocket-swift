@@ -25,7 +25,6 @@ public protocol DecoderProtocol {
     ) throws -> (Metadata, Data)
 }
 
-
 public struct Decoder: DecoderProtocol {
     @inlinable
     public init() {}
@@ -39,11 +38,5 @@ public struct Decoder: DecoderProtocol {
     }
 }
 
-
 /// Namespace for types conforming to the ``DecoderProtocol`` protocol
 public enum Decoders {}
-
-
-
-
-

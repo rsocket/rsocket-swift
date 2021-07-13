@@ -26,7 +26,7 @@ public protocol MultiDataDecoderProtocol {
 
 extension MultiDataDecoderProtocol {
     @inlinable
-    func decodeMIMEType(_ mimeType: MIMEType, from buffer: inout ByteBuffer) throws -> Data {
+    internal func decodeMIMEType(_ mimeType: MIMEType, from buffer: inout ByteBuffer) throws -> Data {
         guard let data = try decodeMIMETypeIfSupported(mimeType, from: &buffer) else {
             throw Error.invalid(message: "\(mimeType) not supported")
         }
@@ -36,7 +36,7 @@ extension MultiDataDecoderProtocol {
 
 extension MultiDataDecoderProtocol {
     @inlinable
-    func decodeMIMEType(_ mimeType: MIMEType, from data: Foundation.Data) throws -> Data {
+    internal func decodeMIMEType(_ mimeType: MIMEType, from data: Foundation.Data) throws -> Data {
         var buffer = ByteBuffer(data: data)
         let data = try self.decodeMIMEType(mimeType, from: &buffer)
         guard buffer.readableBytes == 0 else {

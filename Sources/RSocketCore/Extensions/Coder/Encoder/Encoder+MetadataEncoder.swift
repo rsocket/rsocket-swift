@@ -61,8 +61,6 @@ extension EncoderProtocol {
     }
 }
 
-
-
 extension Encoders {
     public typealias RootCompositeMetadataEncoder<Encoder> = 
         MetadataEncoder<Encoder, RSocketCore.RootCompositeMetadataEncoder> where 

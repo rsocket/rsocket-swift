@@ -37,7 +37,7 @@ extension DataDecoderProtocol {
 
 extension DataDecoderProtocol {
     @inlinable
-    func decode(from data: Foundation.Data) throws -> Data {
+    internal func decode(from data: Foundation.Data) throws -> Data {
         var buffer = ByteBuffer(data: data)
         let data = try self.decode(from: &buffer)
         guard buffer.readableBytes == 0 else {

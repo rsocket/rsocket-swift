@@ -27,7 +27,7 @@ public protocol MultiDataEncoderProtocol {
 
 extension MultiDataEncoderProtocol {
     @inlinable
-    func encode(_ data: Data, as mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
+    internal func encode(_ data: Data, as mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
         guard try encodeIfSupported(data, as: mimeType, into: &buffer) else {
             throw Error.invalid(message: "could not encode data as \(mimeType)")
         }
@@ -35,8 +35,8 @@ extension MultiDataEncoderProtocol {
 }
 
 extension MultiDataEncoderProtocol {
-    @usableFromInline
-    func encode(_ data: Data, as mimeType: MIMEType) throws -> Foundation.Data {
+    @inlinable
+    internal func encode(_ data: Data, as mimeType: MIMEType) throws -> Foundation.Data {
         var buffer = ByteBuffer()
         try self.encode(data, as: mimeType, into: &buffer)
         return buffer.readData(length: buffer.readableBytes) ?? .init()

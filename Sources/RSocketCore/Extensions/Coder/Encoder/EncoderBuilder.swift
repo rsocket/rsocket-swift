@@ -16,7 +16,7 @@
 
 @resultBuilder
 public enum EncoderBuilder: EncoderBuilderProtocol {
-    static func buildBlock<Encoder>(
+    public static func buildBlock<Encoder>(
         _ encoder: Encoder
     ) -> Encoder where Encoder: EncoderProtocol {
         encoder

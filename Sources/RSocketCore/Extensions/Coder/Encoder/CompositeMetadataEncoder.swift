@@ -47,7 +47,6 @@ C: MetadataEncoder
 {
     public typealias Metadata = (A.Metadata, B.Metadata, C.Metadata)
     
-    
     @usableFromInline
     internal let encoder: (A, B, C)
     

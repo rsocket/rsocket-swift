@@ -19,14 +19,12 @@ import Foundation
 /// A Metadata Push frame can be used to send asynchronous metadata notifications from a Requester or Responder to its peer
 internal struct MetadataPushFrameBody: Hashable {
     /// Metadata of this frame
-    internal let metadata: Data
+    internal var metadata: Data
 }
 
 extension MetadataPushFrameBody: FrameBodyBoundToConnection {
     func body() -> FrameBody { .metadataPush(self) }
-    func header(additionalFlags: FrameFlags) -> FrameHeader {
-        var flags = additionalFlags
-        flags.insert(.metadata)
-        return FrameHeader(streamId: .connection, type: .metadataPush, flags: flags)
+    func header() -> FrameHeader {
+        return FrameHeader(streamId: .connection, type: .metadataPush, flags: .metadata)
     }
 }

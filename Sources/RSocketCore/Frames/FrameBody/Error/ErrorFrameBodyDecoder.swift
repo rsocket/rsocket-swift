@@ -30,7 +30,7 @@ internal struct ErrorFrameBodyDecoder: FrameBodyDecoding {
         } else {
             message = ""
         }
-        let error = Error(code: code, message: message)
+        let error = Error(code: .init(rawValue: code), message: message)
         return ErrorFrameBody(error: error)
     }
 }

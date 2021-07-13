@@ -21,12 +21,12 @@ internal struct RequestNFrameBody: Hashable {
 
      Value MUST be > `0`.
      */
-    internal let requestN: Int32
+    internal var requestN: Int32
 }
 
 extension RequestNFrameBody: FrameBodyBoundToStream {
     func body() -> FrameBody { .requestN(self) }
-    func header(withStreamId streamId: StreamID, additionalFlags: FrameFlags) -> FrameHeader {
-        FrameHeader(streamId: streamId, type: .requestN, flags: additionalFlags)
+    func header(withStreamId streamId: StreamID) -> FrameHeader {
+        FrameHeader(streamId: streamId, type: .requestN, flags: [])
     }
 }

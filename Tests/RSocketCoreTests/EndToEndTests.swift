@@ -32,12 +32,9 @@ protocol NIOServerTCPBootstrapProtocol {
 extension ServerBootstrap: NIOServerTCPBootstrapProtocol{}
 
 class EndToEndTests: XCTestCase {
-    static let defaultClientSetup = ClientSetupConfig(
-        timeBetweenKeepaliveFrames: 500,
-        maxLifetime: 5000,
-        metadataEncodingMimeType: "utf8",
-        dataEncodingMimeType: "utf8"
-    )
+    static let defaultClientSetup = ClientConfiguration.mobileToServer
+        .set(\.timeout.timeBetweenKeepaliveFrames, to: 100)
+        .set(\.timeout.maxLifetime, to: 1000)
 
     let host = "127.0.0.1"
     var clientEventLoopGroup: EventLoopGroup { clientMultiThreadedEventLoopGroup as EventLoopGroup }
@@ -56,7 +53,7 @@ class EndToEndTests: XCTestCase {
     func makeServerBootstrap(
         responderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
-        maximumFrameSize: Int32? = nil,
+        maximumFrameSize: Int? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) -> NIOServerTCPBootstrapProtocol {
@@ -86,8 +83,8 @@ class EndToEndTests: XCTestCase {
     }
     func makeClientBootstrap(
         responderSocket: RSocket = TestRSocket(),
-        config: ClientSetupConfig = EndToEndTests.defaultClientSetup,
-        maximumFrameSize: Int32? = nil,
+        config: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        setupPayload: Payload = .empty,
         connectedPromise: EventLoopPromise<RSocket>? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -100,8 +97,8 @@ class EndToEndTests: XCTestCase {
                 ]).flatMap {
                     channel.pipeline.addRSocketClientHandlers(
                         config: config,
+                        setupPayload: setupPayload,
                         responder: responderSocket,
-                        maximumFrameSize: maximumFrameSize,
                         connectedPromise: connectedPromise,
                         requesterLateFrameHandler: { XCTFail("client requester did receive late frame \($0)", file: file, line: line) },
                         responderLateFrameHandler: { XCTFail("client responder did receive late frame \($0)", file: file, line: line) }
@@ -123,8 +120,8 @@ class EndToEndTests: XCTestCase {
         serverResponderSocket: RSocket = TestRSocket(),
         shouldAcceptClient: ClientAcceptorCallback? = nil,
         clientResponderSocket: RSocket = TestRSocket(),
-        clientConfig: ClientSetupConfig = EndToEndTests.defaultClientSetup,
-        maximumFrameSize: Int32? = nil,
+        clientConfig: ClientConfiguration = EndToEndTests.defaultClientSetup,
+        maximumFrameSize: Int? = nil,
         file: StaticString = #file,
         line: UInt = #line
     ) throws -> RSocket {
@@ -139,7 +136,6 @@ class EndToEndTests: XCTestCase {
         return try makeClientBootstrap(
             responderSocket: clientResponderSocket,
             config: clientConfig,
-            maximumFrameSize: maximumFrameSize,
             connectedPromise: clientConnected
         )
         .connect(host: host, port: port)
@@ -147,19 +143,22 @@ class EndToEndTests: XCTestCase {
         .wait()
     }
     func testClientServerSetup() throws {
-        let setup = ClientSetupConfig(
-            timeBetweenKeepaliveFrames: 500,
-            maxLifetime: 5000,
-            metadataEncodingMimeType: "utf8",
-            dataEncodingMimeType: "utf8")
-        
+        let setup = ClientConfiguration(
+            timeout: .init(
+                timeBetweenKeepaliveFrames: 500,
+                maxLifetime: 5000
+            ), encoding: .init(
+                metadata: .json,
+                data: .rsocketRoutingV0
+            )
+        )
         let clientDidConnect = self.expectation(description: "client did connect to server")
         
         let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
-            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, setup.timeBetweenKeepaliveFrames)
-            XCTAssertEqual(clientInfo.maxLifetime, setup.maxLifetime)
-            XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.metadataEncodingMimeType)
-            XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.dataEncodingMimeType)
+            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int32(setup.timeout.timeBetweenKeepaliveFrames))
+            XCTAssertEqual(clientInfo.maxLifetime, Int32(setup.timeout.maxLifetime))
+            XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.encoding.metadata.rawValue)
+            XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.encoding.data.rawValue)
             clientDidConnect.fulfill()
             return .accept
         })

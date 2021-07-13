@@ -1,4 +1,4 @@
-#if compiler(>=5.5) && $AsyncAwait
+#if compiler(>=5.5)
 import Foundation
 import NIO
 import RSocketCore

@@ -52,11 +52,6 @@ let package = Package(
             "RSocketCore",
             .product(name: "NIO", package: "swift-nio"),
             .product(name: "_NIOConcurrency", package: "swift-nio"),
-        ], swiftSettings: [
-            .unsafeFlags([
-                "-Xfrontend",
-                "-enable-experimental-concurrency",
-            ])
         ]),
 
         // Channel

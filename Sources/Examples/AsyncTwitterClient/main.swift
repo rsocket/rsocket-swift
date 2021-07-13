@@ -51,16 +51,13 @@ struct TwitterClientExample: ParsableCommand {
     }
     func runAsync() async throws {
         let bootstrap = ClientBootstrap(
-                config: ClientSetupConfig(
-                        timeBetweenKeepaliveFrames: 0,
-                        maxLifetime: 30_000,
-                        metadataEncodingMimeType: "message/x.rsocket.routing.v0",
-                        dataEncodingMimeType: "application/json"
-                ),
-                transport: WSTransport(),
-                timeout: .seconds(30)
+            transport: WSTransport(),
+            config: .mobileToServer
+                .set(\.encoding.metadata, to: .rsocketRoutingV0)
+                .set(\.encoding.data, to: .json),
+            timeout: .seconds(30)
         )
-        let client = try await bootstrap.connect(to: .init(url: url))
+        let client = try await bootstrap.connect(to: .init(url: url), payload: .empty)
 
         let stream = client.requester.requestStream(payload: Payload(
             metadata: route("searchTweets"),

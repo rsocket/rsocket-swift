@@ -186,8 +186,8 @@ public struct AsyncClient {
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension RSocketCore.ClientBootstrap where Client == CoreClient, Responder == RSocketCore.RSocket  {
-    public func connect(to endpoint: Transport.Endpoint) async throws -> AsyncClient {
-        AsyncClient(try await connect(to: endpoint, responder: nil).get())
+    public func connect(to endpoint: Transport.Endpoint, payload: Payload) async throws -> AsyncClient {
+        AsyncClient(try await connect(to: endpoint, payload: payload, responder: nil).get())
     }
 }
 #endif

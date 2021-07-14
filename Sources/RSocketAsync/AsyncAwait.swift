@@ -10,7 +10,7 @@ public protocol RSocket {
     func metadataPush(metadata: Data)
     func fireAndForget(payload: Payload)
     func requestResponse(payload: Payload) async throws -> Payload
-    func requestStream(payload: Payload) -> AsyncStreamSequence
+    func requestStream(payload: Payload) -> AsyncThrowingStream<Payload, Swift.Error>
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
@@ -61,115 +61,54 @@ public struct RequesterAdapter: RSocket {
         }
     }
     
-    public func requestStream(payload: Payload) -> AsyncStreamSequence {
-        AsyncStreamSequence(payload: payload, requester: requester)
-    }
-}
-
-@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-public struct AsyncStreamSequence: AsyncSequence {
-    public typealias AsyncIterator = AsyncStreamIterator
-    
-    public typealias Element = Payload
-    
-    fileprivate init(payload: Payload, requester: RSocketCore.RSocket) {
-        self.payload = payload
-        self.requester = requester
-    }
-    private var payload: Payload
-    private var requester: RSocketCore.RSocket
-    public func makeAsyncIterator() -> AsyncStreamIterator {
-        let stream = AsyncStreamIterator()
-        stream.subscription = requester.stream(payload: payload, initialRequestN: 0, responderStream: stream)
-        return stream
-    }
-}
-
-@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-actor BufferedContinuation<Element, Error: Swift.Error> {
-    typealias Item = Result<Element, Error>
-    let continuation = YieldingContinuation(yielding: Item.self)
-    var buffer = [Item]()
-    
-    public func push(result: Item) async {
-        if !continuation.yield(result) {
-            buffer.append(result)
-        }
-    }
-    public func push(_ element: Element) async {
-        await push(result: .success(element))
-    }
-    public func push(throwing error: Error) async {
-        await push(result: .failure(error))
-    }
-    
-    public func pop() async throws -> Element {
-        if buffer.count > 0 {
-            return try buffer.removeFirst().get()
-        }
-        return try await continuation.next().get()
-    }
-    
-    public func popAsResult() async -> Item {
-        if buffer.count > 0 {
-            return buffer.removeFirst()
-        }
-        return await continuation.next()
-    }
-}
-
-@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-public final class AsyncStreamIterator: AsyncIteratorProtocol, UnidirectionalStream {
-    fileprivate var subscription: Subscription! = nil
-    private var yieldingContinuation = BufferedContinuation<Payload?, Swift.Error>()
-    private var isCompleted = false
-    public func onNext(_ payload: Payload, isCompletion: Bool) {
-        detach { [self] in
-            await yieldingContinuation.push(payload)
-            if isCompletion {
-                await yieldingContinuation.push(nil)
+    public func requestStream(payload: Payload) -> AsyncThrowingStream<Payload, Swift.Error> {
+        AsyncThrowingStream(Payload.self, bufferingPolicy: .unbounded) { continuation in
+            let adapter = AsyncStreamAdapter(continuation: continuation)
+            let subscription = requester.stream(payload: payload, initialRequestN: .max, responderStream: adapter)
+            continuation.onTermination = { @Sendable (reason: AsyncThrowingStream<Payload, Swift.Error>.Continuation.Termination) -> Void in
+                switch reason {
+                case .cancelled:
+                    subscription.onCancel()
+                case .finished: break
+                // TODO: `Termination` should probably be @frozen so we do not have to deal with the @unknown default case
+                @unknown default: break
+                }
             }
         }
     }
-    
-    public func onComplete() {
-        detach { [self] in
-            await yieldingContinuation.push(nil)
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+public final class AsyncStreamAdapter: UnidirectionalStream {
+    private var continuation: AsyncThrowingStream<Payload, Swift.Error>.Continuation
+    init(continuation: AsyncThrowingStream<Payload, Swift.Error>.Continuation) {
+        self.continuation = continuation
+    }
+    public func onNext(_ payload: Payload, isCompletion: Bool) {
+        continuation.yield(payload)
+        if isCompletion {
+            continuation.finish()
         }
     }
-    
+
+    public func onComplete() {
+        continuation.finish()
+    }
+
     public func onRequestN(_ requestN: Int32) {
         assertionFailure("request stream does not support \(#function)")
     }
-    
+
     public func onCancel() {
-        detach { [self] in
-            await yieldingContinuation.push(nil)
-        }
+        continuation.finish()
     }
-    
+
     public func onError(_ error: Error) {
-        detach { [self] in
-            await yieldingContinuation.push(throwing: error)
-        }
+        continuation.yield(with: .failure(error))
     }
-    
+
     public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         assertionFailure("request stream does not support \(#function)")
-    }
-    public func next() async throws -> Payload? {
-        guard !isCompleted else { return nil }
-        subscription.onRequestN(1)
-        let value = await yieldingContinuation.popAsResult()
-        switch value {
-        case .failure, .success(.none):
-            isCompleted = true
-        default: break
-        }
-        return try value.get()
-    }
-    deinit {
-        subscription.onCancel()
     }
 }
 

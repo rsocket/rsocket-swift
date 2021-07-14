@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.4
 
 import PackageDescription
 
@@ -106,7 +106,7 @@ let package = Package(
         ]),
         
         // Examples
-        .target(
+        .executableTarget(
             name: "TimerClientExample",
             dependencies: [
                 "RSocketCore",
@@ -118,7 +118,7 @@ let package = Package(
             ],
             path: "Sources/Examples/TimerClient"
         ),
-        .target(
+        .executableTarget(
             name: "TwitterClientExample",
             dependencies: [
                 "RSocketCore",
@@ -130,7 +130,7 @@ let package = Package(
             ],
             path: "Sources/Examples/TwitterClient"
         ),
-        .target(
+        .executableTarget(
             name: "VanillaClientExample",
             dependencies: [
                 "RSocketCore",
@@ -142,7 +142,7 @@ let package = Package(
             ],
             path: "Sources/Examples/VanillaClient"
         ),
-        .target(
+        .executableTarget(
             name: "AsyncTwitterClientExample",
             dependencies: [
                 "RSocketCore",
@@ -153,7 +153,13 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "_NIOConcurrency", package: "swift-nio"),
             ],
-            path: "Sources/Examples/AsyncTwitterClient"
+            path: "Sources/Examples/AsyncTwitterClient",
+            swiftSettings: [
+                .unsafeFlags([
+                    "-Xfrontend",
+                    "-enable-experimental-concurrency"
+                ])
+            ]
         ),
     ],
     swiftLanguageVersions: [.v5]

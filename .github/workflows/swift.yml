@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-on-macOS-and-iOS:
-    runs-on: macos-latest
+    runs-on: macos-11
     strategy:
       matrix:
         xcode: ['12.5.1', '13.0']
@@ -39,7 +39,7 @@ jobs:
         -destination 'platform=macOS'
         
   performance-tests-on-macOS:
-    runs-on: macos-latest
+    runs-on: macos-11
     strategy:
       matrix:
         xcode: ['12.5.1', '13.0']
@@ -50,8 +50,6 @@ jobs:
       with:
         xcode-version: ${{ matrix.xcode }}
     - name: Build & Run Performance Tests on macOS
-      env:
-        DEVELOPER_DIR: ${{ matrix.xcode }}
       run: >
         swift test
         --configuration=release

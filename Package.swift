@@ -153,13 +153,7 @@ let package = Package(
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "_NIOConcurrency", package: "swift-nio"),
             ],
-            path: "Sources/Examples/AsyncTwitterClient",
-            swiftSettings: [
-                .unsafeFlags([
-                    "-Xfrontend",
-                    "-enable-experimental-concurrency"
-                ])
-            ]
+            path: "Sources/Examples/AsyncTwitterClient"
         ),
     ],
     swiftLanguageVersions: [.v5]

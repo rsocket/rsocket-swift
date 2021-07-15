@@ -25,7 +25,7 @@ final class WebSocketFrameToByteBuffer: ChannelInboundHandler {
         let frame = unwrapInboundIn(data)
         switch frame.opcode {
         case .continuation:
-            /// we currently do not support WebSocket fragmentation
+            assertionFailure("NIOWebSocketFrameAggregator should not let any `.continuation` frames through")
             break
         case .connectionClose:
             /// TODO: We probably want to handle it the same as if an RSocket close frame and close the connection gracefully

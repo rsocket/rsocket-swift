@@ -20,20 +20,6 @@ import NIOHTTP1
 import NIOWebSocket
 import RSocketCore
 
-/// generates 16 bytes randomly and encodes them as a base64 string as defined in RFC6455 https://tools.ietf.org/html/rfc6455#section-4.1
-/// - Returns: base64 encoded string
-fileprivate func randomRequestKey() -> String {
-    /// we may want to use `randomBytes(count:)` once the proposal is accepted: https://forums.swift.org/t/pitch-requesting-larger-amounts-of-randomness-from-systemrandomnumbergenerator/27226
-    let lower = UInt64.random(in: UInt64.min...UInt64.max)
-    let upper = UInt64.random(in: UInt64.min...UInt64.max)
-    let data = withUnsafeBytes(of: lower) { lowerBytes in
-        withUnsafeBytes(of: upper) { upperBytes in
-            Data(lowerBytes) + Data(upperBytes)
-        }
-    }
-    return data.base64EncodedString()
-}
-
 public struct WSTransport {
     public struct Endpoint {
         public var url: URL
@@ -43,7 +29,22 @@ public struct WSTransport {
             self.additionalHTTPHeader = additionalHTTPHeader
         }
     }
-    public init() {}
+
+    private let minNonFinalFragmentSize: Int
+    private let maxAccumulatedFrameCount: Int
+
+    /// WebSocket Transport for RSocket
+    /// - Parameters:
+    ///   - minNonFinalFragmentSize: Minimum size in bytes of a fragment which is not the last fragment of a complete frame. Used to defend agains many really small payloads. Default is `0`.
+    ///   - maxAccumulatedFrameCount: Maximum number of fragments which are allowed to result in a complete frame. Defaults to `Int.max`
+    ///   - Note: Maximum accumulated size in bytes of buffered fragments is configured through `ClientConfiguration.Fragmentation`
+    public init(
+        minNonFinalFragmentSize: Int = 0,
+        maxAccumulatedFrameCount: Int = Int.max
+    ) {
+        self.minNonFinalFragmentSize = minNonFinalFragmentSize
+        self.maxAccumulatedFrameCount = maxAccumulatedFrameCount
+    }
 }
 
 extension WSTransport.Endpoint: Endpoint {
@@ -84,10 +85,14 @@ extension WSTransport: TransportChannelHandler {
             additionalHTTPHeader: endpoint.additionalHTTPHeader
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
-            requestKey: randomRequestKey(),
             maxFrameSize: maximumIncomingFragmentSize,
             upgradePipelineHandler: { channel, _ in
                 channel.pipeline.addHandlers([
+                    NIOWebSocketFrameAggregator(
+                        minNonFinalFragmentSize: minNonFinalFragmentSize,
+                        maxAccumulatedFrameCount: maxAccumulatedFrameCount,
+                        maxAccumulatedFrameSize: maximumIncomingFragmentSize
+                    ),
                     WebSocketFrameToByteBuffer(),
                     WebSocketFrameFromByteBuffer(),
                 ])

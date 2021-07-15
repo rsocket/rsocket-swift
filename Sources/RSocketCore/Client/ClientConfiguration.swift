@@ -70,8 +70,8 @@ public struct ClientConfiguration {
         public var data: MIMEType
         
         public init(
-            metadata: MIMEType = .octetStream,
-            data: MIMEType = .octetStream
+            metadata: MIMEType = .default,
+            data: MIMEType = .default
         ) {
             self.metadata = metadata
             self.data = data

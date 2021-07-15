@@ -148,8 +148,8 @@ class EndToEndTests: XCTestCase {
                 timeBetweenKeepaliveFrames: 500,
                 maxLifetime: 5000
             ), encoding: .init(
-                metadata: .json,
-                data: .rsocketRoutingV0
+                metadata: .applicationJson,
+                data: .messageXRSocketRoutingV0
             )
         )
         let clientDidConnect = self.expectation(description: "client did connect to server")

@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-on-macOS-and-iOS:
-    runs-on: macos-latest
+    runs-on: macos-11
 
     steps:
     - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
         -destination 'platform=macOS'
         
   performance-tests-on-macOS:
-    runs-on: macos-latest
+    runs-on: macos-11
 
     steps:
     - uses: actions/checkout@v2

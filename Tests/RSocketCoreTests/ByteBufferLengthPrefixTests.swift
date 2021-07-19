@@ -21,7 +21,7 @@ import XCTest
 final class ByteBufferLengthPrefixTests: XCTestCase {
     private var buffer = ByteBuffer()
     func testMessageLengthOfZero() throws {
-        let bytesWritten = try buffer.writeLengthPrefix(endianness: .big, as: UInt8.self) { buffer in
+        let bytesWritten = try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
             // write nothing
         }
         XCTAssertEqual(bytesWritten, 1)
@@ -29,7 +29,7 @@ final class ByteBufferLengthPrefixTests: XCTestCase {
         XCTAssertTrue(buffer.readableBytesView.isEmpty)
     }
     func testMessageLengthOfOne() throws {
-        let bytesWritten = try buffer.writeLengthPrefix(endianness: .big, as: UInt8.self) { buffer in
+        let bytesWritten = try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
             buffer.writeString("A")
         }
         XCTAssertEqual(bytesWritten, 2)
@@ -38,7 +38,7 @@ final class ByteBufferLengthPrefixTests: XCTestCase {
         XCTAssertTrue(buffer.readableBytesView.isEmpty)
     }
     func testMessageWithMultipleWrites() throws {
-        let bytesWritten = try buffer.writeLengthPrefix(endianness: .big, as: UInt8.self) { buffer in
+        let bytesWritten = try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
             buffer.writeString("Hello")
             buffer.writeString(" ")
             buffer.writeString("World")
@@ -50,7 +50,7 @@ final class ByteBufferLengthPrefixTests: XCTestCase {
     }
     func testMessageWithMaxLength() throws {
         let messageWithMaxLength = String(repeating: "A", count: 255)
-        let bytesWritten = try buffer.writeLengthPrefix(endianness: .big, as: UInt8.self) { buffer in
+        let bytesWritten = try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
             buffer.writeString(messageWithMaxLength)
         }
         XCTAssertEqual(bytesWritten, 256)
@@ -61,9 +61,29 @@ final class ByteBufferLengthPrefixTests: XCTestCase {
     func testTooLongMessage() throws {
         let messageWithMaxLength = String(repeating: "A", count: 256)
         XCTAssertThrowsError(
-            try buffer.writeLengthPrefix(endianness: .big, as: UInt8.self) { buffer in
+            try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
                 buffer.writeString(messageWithMaxLength)
             }
         )
+    }
+    func testMessageWithBigEndianInteger() throws {
+        let message = String(repeating: "A", count: 256)
+        let bytesWritten = try buffer.writeLengthPrefix(endianness: .big, as: UInt16.self) { buffer in
+            buffer.writeString(message)
+        }
+        XCTAssertEqual(bytesWritten, 258)
+        XCTAssertEqual(buffer.readInteger(endianness: .big, as: UInt16.self), 256)
+        XCTAssertEqual(buffer.readString(length: 256), message)
+        XCTAssertTrue(buffer.readableBytesView.isEmpty)
+    }
+    func testMessageWithLittleEndianInteger() throws {
+        let message = String(repeating: "A", count: 256)
+        let bytesWritten = try buffer.writeLengthPrefix(endianness: .little, as: UInt16.self) { buffer in
+            buffer.writeString(message)
+        }
+        XCTAssertEqual(bytesWritten, 258)
+        XCTAssertEqual(buffer.readInteger(endianness: .little, as: UInt16.self), 256)
+        XCTAssertEqual(buffer.readString(length: 256), message)
+        XCTAssertTrue(buffer.readableBytesView.isEmpty)
     }
 }

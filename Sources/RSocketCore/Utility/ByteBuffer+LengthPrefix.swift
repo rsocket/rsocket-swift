@@ -18,14 +18,8 @@ import NIO
 
 extension ByteBuffer {
     @usableFromInline
-    internal struct LengthPrefixError: Swift.Error {
-        private enum BaseError: Swift.Error {
-            case lengthDoesNotFitExactlyIntoRequiredIntegerFormat
-        }
-        private var baseError: BaseError
-        
-        @usableFromInline
-        internal static let messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat: LengthPrefixError = .init(baseError: .lengthDoesNotFitExactlyIntoRequiredIntegerFormat)
+    internal enum LengthPrefixError: Swift.Error {
+        case messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
     }
 }
 

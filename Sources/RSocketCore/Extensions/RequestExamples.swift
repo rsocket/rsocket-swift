@@ -41,21 +41,21 @@ fileprivate enum Requests {
     /// Routing Metadata is encoded directly without using Composite Metadata. Data is encoded as JSON.
     static let metrics1 = FireAndForget<Metrics> {
         Encoder()
-            .encodeStaticMetadata(["metrics"], using: RoutingEncoder())
+            .encodeStaticMetadata("metrics", using: RoutingEncoder())
             .encodeData(using: JSONDataEncoder(type: Metrics.self))
     }
     /// Routing Metadata is encoded through Composite Metadata. Data is encoded as JSON.
     static let metrics2 = FireAndForget<Metrics> {
         Encoder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["metrics"], using: RoutingEncoder())
+            .encodeStaticMetadata("metrics", using: RoutingEncoder())
             .encodeData(using: JSONDataEncoder(type: Metrics.self))
     }
     /// Same as above but gives the call site the option to encode additional dynamic metadata 
     static let metrics3 = FireAndForget<([CompositeMetadata], Metrics)> {
         Encoder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["metrics"], using: RoutingEncoder())
+            .encodeStaticMetadata("metrics", using: RoutingEncoder())
             .encodeData(using: JSONDataEncoder(type: Metrics.self))
             .preserveMetadata()
     }
@@ -67,7 +67,7 @@ fileprivate enum Requests {
     static let priceRequest1 = RequestResponse<String, Double> {
         Encoder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["price"], using: RoutingEncoder())
+            .encodeStaticMetadata("price", using: RoutingEncoder())
             .encodeStaticMetadata([.applicationJson], using: AcceptableDataMIMETypeEncoder())
             .encodeData(using: JSONDataEncoder(type: Stock.self))
             .mapData(Stock.init(isin:))
@@ -83,7 +83,7 @@ fileprivate enum Requests {
     static let priceRequest2 = RequestResponse<String, Double> {
         Coder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["price"], using: RoutingEncoder())
+            .encodeStaticMetadata("price", using: RoutingEncoder())
             .encodeData(using: JSONDataEncoder(type: ISIN.self).map(ISIN.init(isin:)))
             .decodeData {
                 JSONDataDecoder(type: Price.self).map(\.price)
@@ -94,7 +94,7 @@ fileprivate enum Requests {
     static let priceRequest3 = RequestResponse<(MIMEType, String), Double> {
         Coder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["price"], using: RoutingEncoder())
+            .encodeStaticMetadata("price", using: RoutingEncoder())
             .encodeData {
                 JSONDataEncoder(type: ISIN.self).map(ISIN.init(isin:))
             }
@@ -107,7 +107,7 @@ fileprivate enum Requests {
     static let priceStream1 = RequestStream<ISIN, Price> {
         Coder()
             .useCompositeMetadata()
-            .encodeStaticMetadata(["price"], using: RoutingEncoder())
+            .encodeStaticMetadata("price", using: RoutingEncoder())
             .encodeData(using: JSONDataEncoder(type: ISIN.self))
             .decodeData(using: JSONDataDecoder(type: Price.self))
     }
@@ -117,18 +117,18 @@ fileprivate enum Requests {
         if Bool.random() {
             Coder()
                 .useCompositeMetadata()
-                .encodeStaticMetadata(["price"], using: RoutingEncoder())
+                .encodeStaticMetadata("price", using: RoutingEncoder())
                 .encodeData(using: JSONDataEncoder(type: ISIN.self))
                 .decodeData(using: JSONDataDecoder(type: Price.self))
         } else {
             Coder()
                 .useCompositeMetadata()
-                .encodeStaticMetadata(["price"], using: RoutingEncoder())
+                .encodeStaticMetadata("price", using: RoutingEncoder())
                 .encodeData(using: JSONDataEncoder(type: ISIN.self))
                 .decodeData(using: JSONDataDecoder(type: Price.self))
         }
     }
-    static let advancedRequest = RequestResponse<(([String], MIMEType), (MIMEType, Price)), (([String], [MIMEType], MIMEType), Stock)> {
+    static let advancedRequest = RequestResponse<((RouteMetadata, MIMEType), (MIMEType, Price)), ((RouteMetadata, [MIMEType], MIMEType), Stock)> {
         Coder()
             .useCompositeMetadata()
             .encodeData {

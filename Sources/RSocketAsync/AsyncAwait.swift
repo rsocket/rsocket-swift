@@ -11,6 +11,11 @@ public protocol RSocket {
     func fireAndForget(payload: Payload)
     func requestResponse(payload: Payload) async throws -> Payload
     func requestStream(payload: Payload) -> AsyncThrowingStream<Payload, Swift.Error>
+    func requestChannel<PayloadSequence>(
+        initialPayload: Payload, 
+        payloadStream: PayloadSequence
+    ) -> AsyncThrowingStream<Payload, Swift.Error> 
+    where PayloadSequence: AsyncSequence, PayloadSequence.Element == Payload
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
@@ -76,38 +81,77 @@ public struct RequesterAdapter: RSocket {
             }
         }
     }
+    
+    public func requestChannel<PayloadSequence>(
+        initialPayload: Payload, 
+        payloadStream: PayloadSequence
+    ) -> AsyncThrowingStream<Payload, Swift.Error> where PayloadSequence: AsyncSequence, PayloadSequence.Element == Payload {
+        AsyncThrowingStream(Payload.self, bufferingPolicy: .unbounded) { continuation in
+            let adapter = AsyncStreamAdapter(continuation: continuation)
+            let channel = requester.channel(
+                payload: initialPayload, 
+                initialRequestN: .max, 
+                isCompleted: false, 
+                responderStream: adapter
+            )
+            
+            let task = Task.detached {
+                do {
+                    for try await payload in payloadStream {
+                        channel.onNext(payload, isCompletion: false)
+                    }
+                    channel.onComplete()
+                } catch is CancellationError {
+                    channel.onCancel()
+                } catch {
+                    channel.onError(Error.applicationError(message: error.localizedDescription))
+                }
+            }
+            
+            continuation.onTermination = { @Sendable (reason: AsyncThrowingStream<Payload, Swift.Error>.Continuation.Termination) -> Void in
+                switch reason {
+                case .cancelled:
+                    channel.onCancel()
+                    task.cancel()
+                case .finished: break
+                // TODO: `Termination` should probably be @frozen so we do not have to deal with the @unknown default case
+                @unknown default: break
+                }
+            }
+        }
+    }
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-public final class AsyncStreamAdapter: UnidirectionalStream {
+internal final class AsyncStreamAdapter: UnidirectionalStream {
     private var continuation: AsyncThrowingStream<Payload, Swift.Error>.Continuation
     init(continuation: AsyncThrowingStream<Payload, Swift.Error>.Continuation) {
         self.continuation = continuation
     }
-    public func onNext(_ payload: Payload, isCompletion: Bool) {
+    internal func onNext(_ payload: Payload, isCompletion: Bool) {
         continuation.yield(payload)
         if isCompletion {
             continuation.finish()
         }
     }
 
-    public func onComplete() {
+    internal func onComplete() {
         continuation.finish()
     }
 
-    public func onRequestN(_ requestN: Int32) {
+    internal func onRequestN(_ requestN: Int32) {
         assertionFailure("request stream does not support \(#function)")
     }
 
-    public func onCancel() {
+    internal func onCancel() {
         continuation.finish()
     }
 
-    public func onError(_ error: Error) {
+    internal func onError(_ error: Error) {
         continuation.yield(with: .failure(error))
     }
 
-    public func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
+    internal func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         assertionFailure("request stream does not support \(#function)")
     }
 }

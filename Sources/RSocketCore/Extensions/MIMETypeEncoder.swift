@@ -34,25 +34,28 @@ public struct MIMETypeEncoder {
     
     @inlinable
     public func encode(_ mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+        if let wellKnownMimeType = wellKnownMimeTypes[mimeType] {
+            encodeWellKnown(wellKnownMimeType, into: &buffer)
+        } else {
+            try encodeUnknown(mimeType, into: &buffer)
+        }
+    }
+    
+    @inlinable
+    internal func encodeWellKnown(_ mimeType: WellKnownMIMETypeCode, into buffer: inout ByteBuffer) {
+        buffer.writeInteger(mimeType.withFlagBitSet)
+    }
+    
+    @inlinable
+    internal func encodeUnknown(_ mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
+        do {
+            try buffer.writeLengthPrefix(as: Int8.self) { buffer in
+                buffer.writeString(mimeType.rawValue)
+            } 
+        } catch {
+            throw Error.invalid(message: "MIME Type \(mimeType) too long to encode")
+        }
     }
 }
 
-public struct MIMETypeDecoder {
-    public static let defaultWellKnownMimeTypes = Dictionary(uniqueKeysWithValues: MIMEType.wellKnownMIMETypes)
-    
-    @usableFromInline
-    internal var wellKnownMimeTypes: [WellKnownMIMETypeCode: MIMEType]
-    
-    @inlinable
-    public init(
-        wellKnownMimeTypes: [WellKnownMIMETypeCode : MIMEType] = defaultWellKnownMimeTypes
-    ) {
-        self.wellKnownMimeTypes = wellKnownMimeTypes
-    }
-    
-    @inlinable
-    public func decode(from buffer: inout ByteBuffer) throws -> MIMEType {
-        fatalError("not implemented")
-    }
-}
+

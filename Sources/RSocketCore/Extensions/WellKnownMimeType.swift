@@ -17,9 +17,25 @@
 public struct WellKnownMIMETypeCode: RawRepresentable, Hashable {
     /// rawValue is guaranteed to be in the range `0...127`.
     public var rawValue: UInt8
+    
     public init?(rawValue: UInt8) {
         guard rawValue & 0b1000_0000 == 0 else { return nil }
         self.rawValue = rawValue
+    }
+}
+
+extension WellKnownMIMETypeCode {
+    /// removes the well known MIME Type flag from `flagged`
+    /// - Parameter flagged: Well Known MIME Type Code with the flag bit set
+    @inlinable
+    internal init(withFlagBitSet flagged: Int8) {
+        self.rawValue = UInt8(flagged & 0b0111_1111)
+    }
+    
+    /// Well Known MIME Type Code with the flag bit set
+    @inlinable
+    internal var withFlagBitSet: UInt8 {
+        rawValue | 0b1000_0000
     }
 }
 

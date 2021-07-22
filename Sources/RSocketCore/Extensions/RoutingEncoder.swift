@@ -14,37 +14,28 @@
  * limitations under the License.
  */
 
-import Foundation
 import NIO
 
 public struct RoutingEncoder: MetadataEncoder {
-    public typealias Metadata = [String]
+    public typealias Metadata = RouteMetadata
     
     @inlinable
     public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
     
     @inlinable
-    public func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
-    }
-}
-
-public struct RoutingDecoder: MetadataDecoder {
-    public typealias Metadata = [String]
-    
-    @inlinable
-    public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
-    
-    @inlinable
-    public func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
+    public func encode(_ metadata: RouteMetadata, into buffer: inout ByteBuffer) throws {
+        for tag in metadata.tags {
+            do {
+                try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
+                    buffer.writeString(tag)
+                }
+            } catch {
+                throw Error.invalid(message: "route tag is longer than \(UInt8.max)")
+            }
+        }
     }
 }
 
 extension MetadataEncoder where Self == RoutingEncoder {
-    public static var routing: Self { .init() }
-}
-
-extension MetadataDecoder where Self == RoutingDecoder {
     public static var routing: Self { .init() }
 }

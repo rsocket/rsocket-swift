@@ -35,7 +35,7 @@ public struct MIMETypeDecoder {
         guard let idOrLength = buffer.readInteger(as: Int8.self) else {
             throw Error.invalid(message: "could not read MIME Type id/length")
         }
-        // all Well-know MIME Types have the first bit set to one are therefore negative if interpreted as a signed integer
+        // all Well-know MIME Types have the first bit set to one and are therefore negative if interpreted as a signed integer
         if idOrLength >= 0 {
             return try decodeUnknownOfLength(idOrLength, from: &buffer)
         } else {

@@ -37,8 +37,9 @@ public struct Payload: Hashable {
     }
 }
 
-extension Payload: CustomDebugStringConvertible {
-    public var debugDescription: String {
+// Payload implements `CustomStringConvertible` instead of `CustomDebugStringConvertible` to allow `RSocketTestUtilities` to customize the debug output.
+extension Payload: CustomStringConvertible {
+    public var description: String {
         if metadata == nil && data.isEmpty {
             return ".empty"
         }

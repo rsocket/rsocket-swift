@@ -14,15 +14,27 @@
  * limitations under the License.
  */
 
-import NIO
-import NIOWebSocket
+import Foundation
 
-final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = WebSocketFrame
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: .random(), data: buffer)
-        context.write(wrapOutboundOut(frame), promise: promise)
+public protocol EncoderProtocol {
+    associatedtype Metadata
+    associatedtype Data
+    mutating func encode(
+        metadata: Metadata,
+        data: Data,
+        encoding: ConnectionEncoding
+    ) throws -> Payload
+}
+
+public struct Encoder: EncoderProtocol {
+    @inlinable
+    public init() {}
+    
+    @inlinable
+    public func encode(metadata: Data?, data: Data, encoding: ConnectionEncoding) throws -> Payload {
+        .init(metadata: metadata, data: data)
     }
 }
+
+/// Namespace for types conforming to the ``EncoderProtocol`` protocol
+public enum Encoders {}

@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIO
-import NIOWebSocket
 
-final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = WebSocketFrame
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: .random(), data: buffer)
-        context.write(wrapOutboundOut(frame), promise: promise)
+public struct CompositeMetadata {
+    public var mimeType: MIMEType
+    public var data: Data
+    public init(mimeType: MIMEType, data: Data) {
+        self.mimeType = mimeType
+        self.data = data
     }
 }
+

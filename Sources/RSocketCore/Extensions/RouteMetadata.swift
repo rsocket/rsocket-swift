@@ -14,15 +14,21 @@
  * limitations under the License.
  */
 
-import NIO
-import NIOWebSocket
+public struct RouteMetadata: Hashable {
+    public var tags: [String]
+    public init(tags: [String]) {
+        self.tags = tags
+    }
+}
 
-final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = WebSocketFrame
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: .random(), data: buffer)
-        context.write(wrapOutboundOut(frame), promise: promise)
+extension RouteMetadata: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: String...) {
+        self.init(tags: elements)
+    }
+}
+
+extension RouteMetadata: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.init(tags: [value])
     }
 }

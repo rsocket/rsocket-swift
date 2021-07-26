@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import NIO
-import NIOWebSocket
-
-final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = WebSocketFrame
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: .random(), data: buffer)
-        context.write(wrapOutboundOut(frame), promise: promise)
+public struct AuthenticationType: RawRepresentable, Hashable {
+    public let rawValue: String
+    public init(rawValue: String) {
+        self.rawValue = rawValue
     }
+}
+
+public extension AuthenticationType {
+    static let simple = Self(rawValue: "simple")
+    static let bearer = Self(rawValue: "bearer")
 }

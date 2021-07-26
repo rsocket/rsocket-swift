@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-import NIO
-import NIOWebSocket
-
-final class WebSocketFrameFromByteBuffer: ChannelOutboundHandler {
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = WebSocketFrame
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        let buffer = unwrapOutboundIn(data)
-        let frame = WebSocketFrame(fin: true, opcode: .binary, maskKey: .random(), data: buffer)
-        context.write(wrapOutboundOut(frame), promise: promise)
+/// encoding configuration of metadata and data which is send to the server during setup
+public struct ConnectionEncoding {
+    /// default encoding uses `.octetStream` for metadata and data
+    public static let `default` = ConnectionEncoding()
+    
+    /// MIME Type for encoding of Metadata
+    public var metadata: MIMEType
+    
+    /// MIME Type for encoding of Data
+    public var data: MIMEType
+    
+    public init(
+        metadata: MIMEType = .default, 
+        data: MIMEType = .default
+    ) {
+        self.metadata = metadata
+        self.data = data
     }
 }

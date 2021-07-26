@@ -17,6 +17,12 @@
 import NIO
 
 extension ByteBuffer {
+    enum UInt24Error: Swift.Error {
+        case doesNotFitExactlyIntoUInt24
+    }
+}
+
+extension ByteBuffer {
     @discardableResult
     @inlinable
     internal mutating func setUInt24<T: FixedWidthInteger & UnsignedInteger>(
@@ -56,6 +62,21 @@ extension ByteBuffer {
         let bytesWritten = setUInt24(integer, at: writerIndex, endianness: endianness)
         moveWriterIndex(forwardBy: bytesWritten)
         return bytesWritten
+    }
+    
+    @discardableResult
+    @inlinable
+    internal mutating func writeUInt24WithBoundsCheck<T: FixedWidthInteger>(
+        _ integer: T,
+        endianness: Endianness = .big,
+        as: T.Type = T.self
+    ) throws -> Int {
+        guard let integer = UInt32(exactly: integer),
+              integer < (1 << 24 - 1)
+        else {
+            throw UInt24Error.doesNotFitExactlyIntoUInt24
+        }
+        return writeUInt24(integer, endianness: endianness)
     }
 
     @inlinable

@@ -16,8 +16,6 @@
 
 import NIO
 
-// MARK: Root Composite Metadata Decoder
-
 public struct RootCompositeMetadataDecoder: MetadataDecoder {
     public typealias Metadata = [CompositeMetadata]
     
@@ -25,16 +23,32 @@ public struct RootCompositeMetadataDecoder: MetadataDecoder {
     public var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
     
     @usableFromInline
-    internal let mimeTypeDecoder: MIMETypeEncoder
+    internal let mimeTypeDecoder: MIMETypeDecoder
     
     @inlinable
-    public init(mimeTypeDecoder: MIMETypeEncoder = MIMETypeEncoder()) {
+    public init(mimeTypeDecoder: MIMETypeDecoder = MIMETypeDecoder()) {
         self.mimeTypeDecoder = mimeTypeDecoder
     }
     
     @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> Metadata {
-        fatalError("not implemented")
+        var result: [CompositeMetadata] = []
+        while buffer.readableBytes != 0 {
+            result.append(try decodeSingleCompositeMetadata(from: &buffer))
+        }
+    }
+    
+    @inlinable
+    internal func decodeSingleCompositeMetadata(
+        from buffer: inout ByteBuffer
+    ) throws -> CompositeMetadata {
+        let mimeType = try mimeTypeDecoder.decode(from: &buffer)
+        guard let metadataLength = buffer.readUInt24(),
+              let payload = buffer.readData(length: Int(metadataLength))
+        else {
+            throw Error.invalid(message: "could not read Composite Metadata")
+        }
+        return CompositeMetadata(mimeType: mimeType, data: payload)
     }
 }
 

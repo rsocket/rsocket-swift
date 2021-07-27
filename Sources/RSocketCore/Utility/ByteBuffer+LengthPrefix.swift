@@ -16,6 +16,7 @@
 
 import NIO
 
+@usableFromInline
 internal enum RSocketLengthPrefixError: Swift.Error {
     case messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
 }

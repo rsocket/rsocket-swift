@@ -16,11 +16,9 @@
 
 import NIO
 
-extension ByteBuffer {
-    @usableFromInline
-    internal enum LengthPrefixError: Swift.Error {
-        case messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
-    }
+@usableFromInline
+internal enum RSocketLengthPrefixError: Swift.Error {
+    case messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
 }
 
 extension ByteBuffer {
@@ -46,7 +44,7 @@ extension ByteBuffer {
         totalBytesWritten += messageLength
         
         guard let lengthPrefix = Integer(exactly: messageLength) else {
-            throw LengthPrefixError.messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
+            throw RSocketLengthPrefixError.messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
         }
         setInteger(lengthPrefix, at: lengthPrefixIndex, endianness: endianness, as: Integer.self)
         

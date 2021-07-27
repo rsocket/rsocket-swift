@@ -26,7 +26,7 @@ public struct RoutingEncoder: MetadataEncoder {
     public func encode(_ metadata: RouteMetadata, into buffer: inout ByteBuffer) throws {
         for tag in metadata.tags {
             do {
-                try buffer.writeLengthPrefixed(as: UInt8.self) { buffer in
+                try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
                     buffer.writeString(tag)
                 }
             } catch {

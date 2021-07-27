@@ -49,7 +49,7 @@ public struct MIMETypeEncoder {
     @inlinable
     internal func encodeUnknown(_ mimeType: MIMEType, into buffer: inout ByteBuffer) throws {
         do {
-            try buffer.writeLengthPrefix(as: Int8.self) { buffer in
+            try buffer.writeLengthPrefixed(as: Int8.self) { buffer in
                 buffer.writeString(mimeType.rawValue)
             } 
         } catch {

@@ -38,7 +38,7 @@ public struct RootCompositeMetadataEncoder: MetadataEncoder {
     }
     
     @inlinable
-    public func encodeSingleCompositeMetadata(
+    internal func encodeSingleCompositeMetadata(
         _ metadata: CompositeMetadata, 
         into buffer: inout ByteBuffer
     ) throws {

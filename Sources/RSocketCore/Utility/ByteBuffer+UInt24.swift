@@ -16,10 +16,10 @@
 
 import NIO
 
-extension ByteBuffer {
-    enum UInt24Error: Swift.Error {
-        case doesNotFitExactlyIntoUInt24
-    }
+
+@usableFromInline
+enum UInt24Error: Swift.Error {
+    case doesNotFitExactlyIntoUInt24
 }
 
 extension ByteBuffer {
@@ -72,7 +72,7 @@ extension ByteBuffer {
         as: T.Type = T.self
     ) throws -> Int {
         guard let integer = UInt32(exactly: integer),
-              integer < (1 << 24 - 1)
+              integer <= (1 << 24 - 1)
         else {
             throw UInt24Error.doesNotFitExactlyIntoUInt24
         }

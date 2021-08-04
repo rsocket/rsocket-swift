@@ -36,5 +36,15 @@ public struct Encoder: EncoderProtocol {
     }
 }
 
+extension EncoderProtocol where Metadata == Void {
+    @inlinable
+    public mutating func encode(
+        _ data: Data,
+        encoding: ConnectionEncoding
+    ) throws -> Payload {
+        try encode(metadata: (), data: data, encoding: encoding)
+    }
+}
+
 /// Namespace for types conforming to the ``EncoderProtocol`` protocol
 public enum Encoders {}

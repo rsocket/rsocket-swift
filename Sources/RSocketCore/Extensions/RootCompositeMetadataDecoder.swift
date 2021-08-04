@@ -25,10 +25,10 @@ public struct RootCompositeMetadataDecoder: MetadataDecoder {
     public var mimeType: MIMEType { .messageXRSocketCompositeMetadataV0 }
     
     @usableFromInline
-    internal let mimeTypeDecoder: MIMETypeEncoder
+    internal let mimeTypeDecoder: MIMETypeDecoder
     
     @inlinable
-    public init(mimeTypeDecoder: MIMETypeEncoder = MIMETypeEncoder()) {
+    public init(mimeTypeDecoder: MIMETypeDecoder = MIMETypeDecoder()) {
         self.mimeTypeDecoder = mimeTypeDecoder
     }
     

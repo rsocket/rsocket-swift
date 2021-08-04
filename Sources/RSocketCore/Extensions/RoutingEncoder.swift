@@ -18,6 +18,9 @@ import NIO
 
 public struct RoutingEncoder: MetadataEncoder {
     public typealias Metadata = RouteMetadata
+
+    @inlinable
+    public init() {}
     
     @inlinable
     public var mimeType: MIMEType { .messageXRSocketRoutingV0 }

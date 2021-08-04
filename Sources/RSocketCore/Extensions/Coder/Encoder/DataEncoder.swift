@@ -39,11 +39,7 @@ extension DataDecoderProtocol {
     @inlinable
     internal func decode(from data: Foundation.Data) throws -> Data {
         var buffer = ByteBuffer(data: data)
-        let data = try self.decode(from: &buffer)
-        guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
-        }
-        return data
+        return try self.decode(from: &buffer)
     }
 }
 

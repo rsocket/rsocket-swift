@@ -21,7 +21,7 @@ import RSocketCore
 public struct AsyncClient {
     private let coreClient: RSocketCore.CoreClient
 
-    public var requester: RSocket { RequesterAdapter(requester: coreClient.requester) }
+    public var requester: RequesterRSocket { RequesterRSocket(requester: coreClient.requester) }
 
     public init(_ coreClient: RSocketCore.CoreClient) {
         self.coreClient = coreClient

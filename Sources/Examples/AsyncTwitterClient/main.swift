@@ -5,15 +5,16 @@ import NIO
 import RSocketAsync
 import RSocketCore
 import RSocketNIOChannel
-import RSocketReactiveSwift
 import RSocketWSTransport
 
-func route(_ route: String) -> Data {
-    let encodedRoute = Data(route.utf8)
-    precondition(encodedRoute.count <= Int(UInt8.max), "route is to long to be encoded")
-    let encodedRouteLength = Data([UInt8(encodedRoute.count)])
-
-    return encodedRouteLength + encodedRoute
+struct Tweet: Decodable {
+    struct User: Decodable {
+        let screen_name, name: String
+        let followers_count: Int
+    }
+    let user: User
+    let text: String
+    let reply_count, retweet_count, favorite_count: Int
 }
 
 extension URL: ExpressibleByArgument {
@@ -32,7 +33,7 @@ struct TwitterClientExample: ParsableCommand {
     )
     
     @Argument(help: "used to find tweets that match the given string")
-    var searchString = "spring"
+    var searchString = "swift"
     
     @Option
     var url = URL(string: "wss://demo.rsocket.io/rsocket")!
@@ -59,16 +60,19 @@ struct TwitterClientExample: ParsableCommand {
         )
         let client = try await bootstrap.connect(to: .init(url: url), payload: .empty)
 
-        let stream = client.requester.requestStream(payload: Payload(
-            metadata: route("searchTweets"),
-            data: Data(searchString.utf8)
-        ))
+        let stream = try client.requester(
+            RequestStream {
+                Encoder()
+                    .encodeStaticMetadata("searchTweets", using: .routing)
+                    .mapData { (string: String) in Data(string.utf8) }
+                Decoder()
+                    .decodeData(using: JSONDataDecoder(type: Tweet.self))
+            },
+            request: searchString
+        )
         
-        for try await payload in stream.prefix(limit) {
-            let json = try JSONSerialization.jsonObject(with: payload.data, options: [])
-            let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
-            let string = String(decoding: data, as: UTF8.self)
-            print(string)
+        for try await tweet in stream.prefix(limit) {
+            dump(tweet)
         }
     }
 }

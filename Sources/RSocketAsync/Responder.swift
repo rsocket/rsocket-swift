@@ -21,6 +21,7 @@ import Foundation
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 struct ResponderAdapter: RSocketCore.RSocket {
     var responder: RSocket
+    let encoding: ConnectionEncoding 
     
     func metadataPush(metadata: Data) {
         responder.metadataPush(metadata: metadata)

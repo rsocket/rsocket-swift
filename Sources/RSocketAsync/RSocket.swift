@@ -26,7 +26,7 @@ public protocol RSocket {
     func requestStream(payload: Payload) -> AsyncThrowingStream<Payload, Swift.Error>
     func requestChannel<PayloadSequence>(
         initialPayload: Payload, 
-        payloadStream: PayloadSequence
+        payloadStream: PayloadSequence?
     ) -> AsyncThrowingStream<Payload, Swift.Error> 
     where PayloadSequence: AsyncSequence, PayloadSequence.Element == Payload
 }

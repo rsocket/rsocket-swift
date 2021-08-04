@@ -25,7 +25,7 @@ import RSocketCore
 final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group = NIOTSEventLoopGroup()
     private let bootstrap: NIOTSConnectionBootstrap
-    private let config: ClientConfiguration
+    public let config: ClientConfiguration
     private let transport: Transport
     private let tlsOptions: NWProtocolTLS.Options?
     public init(

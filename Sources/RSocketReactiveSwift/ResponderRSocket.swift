@@ -19,7 +19,7 @@ import ReactiveSwift
 import RSocketCore
 import Foundation
 
-public protocol RSocket {
+public protocol ResponderRSocket {
     func metadataPush(metadata: Data)
     func fireAndForget(payload: Payload)
     func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>

@@ -20,11 +20,14 @@ public protocol Cancellable {
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
 }
 
+public protocol Promise: Cancellable {
+    func onNext(_ payload: Payload)
+}
+
 public protocol Subscription: Cancellable {
     func onRequestN(_ requestN: Int32)
 }
 
-public protocol UnidirectionalStream: Subscription {
-    func onNext(_ payload: Payload, isCompletion: Bool)
+public protocol UnidirectionalStream: Promise, Subscription {
     func onComplete()
 }

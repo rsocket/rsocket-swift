@@ -21,7 +21,7 @@ import RSocketCore
 public final class TestRSocket: RSocket {
     public var metadataPush: ((Data) -> ())? = nil
     public var fireAndForget: ((_ payload: Payload) -> ())? = nil
-    public var requestResponse: ((_ payload: Payload, _ responderOutput: UnidirectionalStream) -> Cancellable)? = nil
+    public var requestResponse: ((_ payload: Payload, _ responderOutput: Promise) -> Cancellable)? = nil
     public var stream: ((_ payload: Payload, _ initialRequestN: Int32, _ responderOutput: UnidirectionalStream) -> Subscription)? = nil
     public var channel: ((_ payload: Payload, _ initialRequestN: Int32, _ isCompleted: Bool, _ responderOutput: UnidirectionalStream) -> UnidirectionalStream)? = nil
     
@@ -31,7 +31,7 @@ public final class TestRSocket: RSocket {
     public init(
         metadataPush: ((Data) -> ())? = nil,
         fireAndForget: ((Payload) -> ())? = nil,
-        requestResponse: ((Payload, UnidirectionalStream) -> Cancellable)? = nil,
+        requestResponse: ((Payload, Promise) -> Cancellable)? = nil,
         stream: ((Payload, Int32, UnidirectionalStream) -> Subscription)? = nil,
         channel: ((Payload, Int32, Bool, UnidirectionalStream) -> UnidirectionalStream)? = nil,
         file: StaticString = #file,
@@ -63,7 +63,7 @@ public final class TestRSocket: RSocket {
         fireAndForget(payload)
     }
     
-    public func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+    public func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
             return TestUnidirectionalStream()

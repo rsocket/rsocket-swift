@@ -217,16 +217,15 @@ class EndToEndTests: XCTestCase {
             serverResponderSocket: TestRSocket(requestResponse: { payload, output in
                 request.fulfill()
                 // just echo back
-                output.onNext(payload, isCompletion: true)
+                output.onNext(payload)
                 return TestUnidirectionalStream()
             })
         )
         
         let response = self.expectation(description: "receive response")
         let helloWorld: Payload = "Hello World"
-        let input = TestUnidirectionalStream { payload, isCompletion in
+        let input = TestUnidirectionalStream{ payload in
             XCTAssertEqual(payload, helloWorld)
-            XCTAssertTrue(isCompletion)
             response.fulfill()
         }
         _ = requester.requestResponse(payload: helloWorld, responderStream: input)
@@ -243,7 +242,7 @@ class EndToEndTests: XCTestCase {
                 request.fulfill()
                 XCTAssertEqual(largePayload, payload)
                 // just echo back
-                output.onNext(payload, isCompletion: true)
+                output.onNext(payload)
                 return TestUnidirectionalStream()
             }),
             maximumFrameSize: 500
@@ -251,9 +250,8 @@ class EndToEndTests: XCTestCase {
         
         let response = self.expectation(description: "receive response")
         
-        let input = TestUnidirectionalStream { payload, isCompletion in
+        let input = TestUnidirectionalStream { payload in
             XCTAssertEqual(payload, largePayload)
-            XCTAssertTrue(isCompletion)
             response.fulfill()
         }
         _ = requester.requestResponse(payload: largePayload, responderStream: input)
@@ -290,7 +288,7 @@ class EndToEndTests: XCTestCase {
                 XCTAssertFalse(isCompletion)
                 echo = TestUnidirectionalStream.echo(to: output)
                 // just echo back
-                output.onNext(payload, isCompletion: false)
+                output.onNext(payload)
                 return echo!
             })
         )
@@ -301,12 +299,12 @@ class EndToEndTests: XCTestCase {
         })
         input.failOnUnexpectedEvent = false
         let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
-        output.onNext(" ", isCompletion: false)
-        output.onNext("W", isCompletion: false)
-        output.onNext("o", isCompletion: false)
-        output.onNext("r", isCompletion: false)
-        output.onNext("l", isCompletion: false)
-        output.onNext("d", isCompletion: false)
+        output.onNext(" ")
+        output.onNext("W")
+        output.onNext("o")
+        output.onNext("r")
+        output.onNext("l")
+        output.onNext("d")
         output.onComplete()
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(["Hello", " ", "W", "o", "r", "l", "d", .complete], input.events)
@@ -326,24 +324,23 @@ class EndToEndTests: XCTestCase {
                 XCTAssertFalse(isCompletion)
                 echo = TestUnidirectionalStream.echo(to: output)
                 // just echo back
-                output.onNext(payload, isCompletion: false)
+                output.onNext(payload)
                 return echo!
             }),
             maximumFrameSize: 50
         )
         
         let response = self.expectation(description: "receive response")
-        let input = TestUnidirectionalStream(onNext: { payload, isComplete in
-            print(isComplete, payload)
-            guard isComplete else { return }
+        let input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
         })
         input.failOnUnexpectedEvent = false
         let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
-        output.onNext(largePayload, isCompletion: true)
+        output.onNext(largePayload)
+        output.onComplete()
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(
-            ["Hello", .next(largePayload, isCompletion: true)],
+            ["Hello", .next(largePayload), .complete],
             input.events
         )
     }
@@ -362,28 +359,27 @@ class EndToEndTests: XCTestCase {
                 XCTAssertFalse(isCompletion)
                 echo = TestUnidirectionalStream.echo(to: output)
                 // just echo back
-                output.onNext(payload, isCompletion: false)
+                output.onNext(payload)
                 return echo!
             }),
             maximumFrameSize: 500
         )
         
         let response = self.expectation(description: "receive response")
-        let input = TestUnidirectionalStream(onNext: { payload, isComplete in
-            print(isComplete, payload)
-            guard isComplete else { return }
+        let input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
         })
         input.failOnUnexpectedEvent = false
         let output = requester.channel(payload: largePayload, initialRequestN: .max, isCompleted: false, responderStream: input)
-        output.onNext("1", isCompletion: false)
-        output.onNext("2", isCompletion: false)
-        output.onNext(largePayload, isCompletion: false)
-        output.onNext("3", isCompletion: false)
-        output.onNext(largePayload, isCompletion: true)
+        output.onNext("1")
+        output.onNext("2")
+        output.onNext(largePayload)
+        output.onNext("3")
+        output.onNext(largePayload)
+        output.onComplete()
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(
-            [.next(largePayload), "1", "2", .next(largePayload), "3", .next(largePayload, isCompletion: true)],
+            [.next(largePayload), "1", "2", .next(largePayload), "3", .next(largePayload), .complete],
             input.events
         )
     }
@@ -396,7 +392,7 @@ class EndToEndTests: XCTestCase {
                 XCTAssertEqual(initialRequestN, .max)
                 XCTAssertFalse(isCompletion)
                 
-                output.onNext(payload, isCompletion: false)
+                output.onNext(payload)
                 output.onError(.applicationError(message: "enough is enough"))
                 
                 return TestUnidirectionalStream()
@@ -406,7 +402,7 @@ class EndToEndTests: XCTestCase {
         let receivedOnNext = self.expectation(description: "receive onNext")
         let receivedOnError = self.expectation(description: "receive onError")
         let input = TestUnidirectionalStream(
-            onNext: { _, _ in receivedOnNext.fulfill() },
+            onNext: { _ in receivedOnNext.fulfill() },
             onError: { _ in receivedOnError.fulfill() })
         let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
         self.wait(for: [request, receivedOnNext, receivedOnError], timeout: 1)
@@ -421,26 +417,27 @@ class EndToEndTests: XCTestCase {
                 request.fulfill()
                 XCTAssertEqual(initialRequestN, .max)
                 XCTAssertEqual(payload, "Hello World!")
-                output.onNext("Hello", isCompletion: false)
-                output.onNext(" ", isCompletion: false)
-                output.onNext("W", isCompletion: false)
-                output.onNext("o", isCompletion: false)
-                output.onNext("r", isCompletion: false)
-                output.onNext("l", isCompletion: false)
-                output.onNext("d", isCompletion: true)
+                output.onNext("Hello")
+                output.onNext(" ")
+                output.onNext("W")
+                output.onNext("o")
+                output.onNext("r")
+                output.onNext("l")
+                output.onNext("d")
+                output.onComplete()
                 return TestUnidirectionalStream()
             })
         )
         
         let response = self.expectation(description: "receive response")
         
-        let input = TestUnidirectionalStream(onNext: { _, isCompletion in
-            guard isCompletion else { return }
+        let input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
         })
+        input.failOnUnexpectedEvent = false
         _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
-        XCTAssertEqual(input.events, ["Hello", " ", "W", "o", "r", "l", .next("d", isCompletion: true)])
+        XCTAssertEqual(input.events, ["Hello", " ", "W", "o", "r", "l", .next("d"), .complete])
     }
     func testStreamFragmentation() throws {
         let largePayload = Payload(
@@ -453,11 +450,12 @@ class EndToEndTests: XCTestCase {
                 request.fulfill()
                 XCTAssertEqual(initialRequestN, .max)
                 XCTAssertEqual(payload, largePayload)
-                output.onNext("1", isCompletion: false)
-                output.onNext("2", isCompletion: false)
-                output.onNext(largePayload, isCompletion: false)
-                output.onNext("3", isCompletion: false)
-                output.onNext(largePayload, isCompletion: true)
+                output.onNext("1")
+                output.onNext("2")
+                output.onNext(largePayload)
+                output.onNext("3")
+                output.onNext(largePayload)
+                output.onComplete()
                 return TestUnidirectionalStream()
             }),
             maximumFrameSize: 500
@@ -465,14 +463,14 @@ class EndToEndTests: XCTestCase {
         
         let response = self.expectation(description: "receive response")
         
-        let input = TestUnidirectionalStream(onNext: { _, isCompletion in
-            guard isCompletion else { return }
+        let input = TestUnidirectionalStream(onComplete: {
             response.fulfill()
         })
+        input.failOnUnexpectedEvent = false
         _ = requester.stream(payload: largePayload, initialRequestN: .max, responderStream: input)
         self.wait(for: [request, response], timeout: 1)
         XCTAssertEqual(
-            ["1", "2", .next(largePayload), "3", .next(largePayload, isCompletion: true)],
+            ["1", "2", .next(largePayload), "3", .next(largePayload), .complete],
             input.events
         )
     }
@@ -484,7 +482,7 @@ class EndToEndTests: XCTestCase {
                 request.fulfill()
                 XCTAssertEqual(initialRequestN, .max)
                 XCTAssertEqual(payload, "Hello World!")
-                output.onNext("Hello", isCompletion: false)
+                output.onNext("Hello")
                 output.onError(.applicationError(message: "enough for today"))
                 return TestUnidirectionalStream()
             })
@@ -493,7 +491,7 @@ class EndToEndTests: XCTestCase {
         let response = self.expectation(description: "receive response")
         let responseError = self.expectation(description: "receive error")
         
-        let input = TestUnidirectionalStream(onNext: { payload, isCompletion in
+        let input = TestUnidirectionalStream(onNext: { payload in
             response.fulfill()
             XCTAssertEqual(payload, "Hello")
         }, onError: { error in

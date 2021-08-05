@@ -15,16 +15,21 @@
  */
 
 final internal class RequesterStream {
+    enum StreamKind {
+        case requestResponse(Promise)
+        case stream(UnidirectionalStream)
+        case channel(UnidirectionalStream)
+    }
     private let id: StreamID
     private var fragmentedFrameAssembler = FragmentedFrameAssembler()
     private var terminationBehaviour: TerminationBehaviour
-    internal let output: UnidirectionalStream
+    internal let output: StreamKind
     internal weak var delegate: StreamDelegate?
 
     internal init(
         id: StreamID,
         terminationBehaviour: TerminationBehaviour,
-        output: UnidirectionalStream,
+        output: StreamKind,
         delegate: StreamDelegate? = nil
     ) {
         self.id = id
@@ -58,6 +63,17 @@ extension RequesterStream: StreamAdapterDelegate {
         delegate?.send(frame: frame)
         if terminationBehaviour.shouldTerminateAfterRequesterSent(frame) {
             delegate?.terminate(streamId: id)
+        }
+    }
+}
+
+extension RequesterStream.StreamKind {
+    func receive(_ frame: Frame) -> Error? {
+        switch self {
+        case let .requestResponse(stream):
+            return stream.receive(frame)
+        case let .stream(stream), let .channel(stream):
+            return stream.receive(frame)
         }
     }
 }

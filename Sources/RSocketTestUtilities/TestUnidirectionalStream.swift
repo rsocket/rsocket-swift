@@ -33,7 +33,7 @@ public final class TestUnidirectionalStream {
     /// if true, the current test will fail if an event is received but no callback is defined to handle the given event.
     /// Default is true.
     public var failOnUnexpectedEvent: Bool
-    public var onNextCallback: ((_ payload: Payload, _ isCompletion: Bool) -> ())?
+    public var onNextCallback: ((_ payload: Payload) -> ())?
     public var onErrorCallback: ((_ error: Error) -> ())?
     public var onCompleteCallback: (() -> ())?
     public var onCancelCallback: (() -> ())?
@@ -43,7 +43,7 @@ public final class TestUnidirectionalStream {
     private let line: UInt
     
     public init(
-        onNext: ((Payload, Bool) -> ())? = nil,
+        onNext: ((Payload) -> ())? = nil,
         onError: ((Error) -> ())? = nil,
         onComplete: (() -> ())? = nil,
         onCancel: (() -> ())? = nil,
@@ -86,9 +86,9 @@ public final class TestUnidirectionalStream {
 }
 
 extension TestUnidirectionalStream: UnidirectionalStream {
-    public func onNext(_ payload: Payload, isCompletion: Bool) {
-        didReceiveEvent(.next(payload, isCompletion: isCompletion), callback: onNextCallback) {
-            $0(payload, isCompletion)
+    public func onNext(_ payload: Payload) {
+        didReceiveEvent(.next(payload), callback: onNextCallback) {
+            $0(payload)
         }
     }
     public func onError(_ error: Error) {
@@ -124,7 +124,7 @@ extension TestUnidirectionalStream: UnidirectionalStream {
 extension TestUnidirectionalStream {
     public static func echo(to output: UnidirectionalStream) -> TestUnidirectionalStream {
         return TestUnidirectionalStream {
-            output.onNext($0, isCompletion: $1)
+            output.onNext($0)
         } onError: {
             output.onError($0)
         } onComplete: {

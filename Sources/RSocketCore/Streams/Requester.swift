@@ -82,7 +82,7 @@ extension Requester: RSocket {
     }
     
     private func createAndAddStream<Body>(
-        responderStream: UnidirectionalStream,
+        responderStream: RequesterStream.StreamKind,
         terminationBehaviour: TerminationBehaviour,
         initialFrame body: Body
     ) -> ThreadSafeStreamAdapter where Body: FrameBodyBoundToStream {
@@ -104,9 +104,9 @@ extension Requester: RSocket {
         return adapter
     }
     
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
         return createAndAddStream(
-            responderStream: responderStream,
+            responderStream: .requestResponse(responderStream),
             terminationBehaviour: RequestResponseTerminationBehaviour(),
             initialFrame: RequestResponseFrameBody(payload: payload)
         )
@@ -114,7 +114,7 @@ extension Requester: RSocket {
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {
         return createAndAddStream(
-            responderStream: responderStream,
+            responderStream: .stream(responderStream),
             terminationBehaviour: StreamTerminationBehaviour(),
             initialFrame: RequestStreamFrameBody(
                 initialRequestN: initialRequestN,
@@ -130,7 +130,7 @@ extension Requester: RSocket {
         responderStream: UnidirectionalStream
     ) -> UnidirectionalStream {
         return createAndAddStream(
-            responderStream: responderStream,
+            responderStream: .channel(responderStream),
             terminationBehaviour: ChannelTerminationBehaviour(),
             initialFrame: RequestChannelFrameBody(
                 isCompleted: isCompleted,

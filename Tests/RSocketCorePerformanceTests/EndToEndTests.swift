@@ -138,7 +138,7 @@ class EndToEndTests: XCTestCase {
             let server = makeServerBootstrap(responderSocket: TestRSocket(requestResponse: { payload, output in
                 request.fulfill()
                 // just echo back
-                output.onNext(payload, isCompletion: true)
+                output.onNext(payload)
                 return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
@@ -151,7 +151,7 @@ class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             let helloWorld: Payload = "Hello World"
-            let input = TestUnidirectionalStream { payload, isCompletion in
+            let input = TestUnidirectionalStream { payload in
                 requestSemaphore.signal()
                 response.fulfill()
             }
@@ -173,7 +173,7 @@ class EndToEndTests: XCTestCase {
                 request.fulfill()
                 echo = TestUnidirectionalStream.echo(to: output)
                 // just echo back
-                output.onNext(payload, isCompletion: false)
+                output.onNext(payload)
                 return echo!
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
@@ -188,19 +188,19 @@ class EndToEndTests: XCTestCase {
             for _ in 0..<requestCount {
                 requestSemaphore.wait()
                 let input = TestUnidirectionalStream(
-                    onNext: { _, _ in },
+                    onNext: { _ in },
                     onComplete: {
                         requestSemaphore.signal()
                         response.fulfill()
                     }
                 )
                 let output = requester.channel(payload: "Hello", initialRequestN: .max, isCompleted: false, responderStream: input)
-                output.onNext(" ", isCompletion: false)
-                output.onNext("W", isCompletion: false)
-                output.onNext("o", isCompletion: false)
-                output.onNext("r", isCompletion: false)
-                output.onNext("l", isCompletion: false)
-                output.onNext("d", isCompletion: false)
+                output.onNext(" ")
+                output.onNext("W")
+                output.onNext("o")
+                output.onNext("r")
+                output.onNext("l")
+                output.onNext("d")
                 output.onComplete()
             }
             self.wait(for: [request, response], timeout: 5)
@@ -214,13 +214,13 @@ class EndToEndTests: XCTestCase {
             request.expectedFulfillmentCount = requestCount
             let server = makeServerBootstrap(responderSocket: TestRSocket(stream: { payload, initialRequestN, output in
                 request.fulfill()
-                output.onNext("Hello", isCompletion: false)
-                output.onNext(" ", isCompletion: false)
-                output.onNext("W", isCompletion: false)
-                output.onNext("o", isCompletion: false)
-                output.onNext("r", isCompletion: false)
-                output.onNext("l", isCompletion: false)
-                output.onNext("d", isCompletion: true)
+                output.onNext("Hello")
+                output.onNext(" ")
+                output.onNext("W")
+                output.onNext("o")
+                output.onNext("r")
+                output.onNext("l")
+                output.onNext("d")
                 return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
@@ -234,8 +234,7 @@ class EndToEndTests: XCTestCase {
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
                 requestSemaphore.wait()
-                let input = TestUnidirectionalStream(onNext: { _, isCompletion in
-                    guard isCompletion else { return }
+                let input = TestUnidirectionalStream(onComplete: {
                     requestSemaphore.signal()
                     response.fulfill()
                 })
@@ -272,7 +271,7 @@ class EndToEndTests: XCTestCase {
             let initialMessage: Payload = "Hello World!"
             (0..<requestCount).forEach { _ in
                 
-                let input = TestUnidirectionalStream(onNext: { _, _ in
+                let input = TestUnidirectionalStream(onNext: { _ in
                     messageSemaphore.signal()
                     receivedMessage.fulfill()
                 }, onComplete: {
@@ -288,7 +287,7 @@ class EndToEndTests: XCTestCase {
             let messagePayload: Payload = "Hello World again..."
             for _ in 0..<messageCount {
                 messageSemaphore.wait()
-                firstOutput.onNext(messagePayload, isCompletion: false)
+                firstOutput.onNext(messagePayload)
             }
             outputs.forEach({ $0.onComplete() })
             self.wait(for: [receivedMessage, response], timeout: 1)

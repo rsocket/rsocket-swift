@@ -43,8 +43,8 @@ extension ThreadSafeStreamAdapter: UnidirectionalStream {
         }
     }
     
-    internal func onNext(_ payload: Payload, isCompletion: Bool) {
-        send(PayloadFrameBody(isCompletion: isCompletion, isNext: true, payload: payload))
+    internal func onNext(_ payload: Payload) {
+        send(PayloadFrameBody(isCompletion: false, isNext: true, payload: payload))
     }
     internal func onError(_ error: Error) {
         send(ErrorFrameBody(error: error))
@@ -60,5 +60,11 @@ extension ThreadSafeStreamAdapter: UnidirectionalStream {
     }
     internal func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         send(ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload))
+    }
+}
+
+extension ThreadSafeStreamAdapter: Promise {
+    internal func onComplete(_ payload: Payload) {
+        send(PayloadFrameBody(isCompletion: true, isNext: true, payload: payload))
     }
 }

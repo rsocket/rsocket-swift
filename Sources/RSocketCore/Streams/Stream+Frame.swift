@@ -35,6 +35,31 @@ extension Cancellable {
         return nil
     }
 }
+
+extension Promise {
+    internal func receive(_ frame: Frame) -> Error? {
+        switch frame.body {
+        case .cancel:
+            onCancel()
+        case let .error(body):
+            onError(body.error)
+        case let .ext(body):
+            onExtension(
+                extendedType: body.extendedType,
+                payload: body.payload,
+                canBeIgnored: body.canBeIgnored
+            )
+        case let .payload(body):
+            onNext(body.payload)
+        default:
+            if !frame.body.canBeIgnored {
+                return .connectionError(message: "Invalid frame type \(frame.body.type) for an active response stream")
+            }
+        }
+        return nil
+    }
+}
+
 extension Subscription {
     internal func receive(_ frame: Frame) -> Error? {
         switch frame.body {
@@ -58,6 +83,7 @@ extension Subscription {
         return nil
     }
 }
+
 extension UnidirectionalStream {
     internal func receive(_ frame: Frame) -> Error? {
         switch frame.body {
@@ -66,10 +92,11 @@ extension UnidirectionalStream {
         case .cancel:
             onCancel()
         case let .payload(body):
+            //assert(!body.isNext && body.payload.metadata == nil && body.payload.data.isEmpty, "isNext is false but payload contains data")
             if body.isNext {
-                onNext(body.payload, isCompletion: body.isCompletion)
-            } else if body.isCompletion {
-                assert(body.payload.metadata == nil && body.payload.data.isEmpty, "isNext is false but payload contains data")
+                onNext(body.payload)
+            }
+            if body.isCompletion {
                 onComplete()
             }
         case let .error(body):

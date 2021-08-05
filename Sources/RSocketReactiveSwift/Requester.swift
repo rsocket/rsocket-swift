@@ -76,18 +76,14 @@ fileprivate struct RequestResponseOperator {
     }
 }
 
-extension RequestResponseOperator: UnidirectionalStream {
-    func onNext(_ payload: Payload, isCompletion: Bool) {
+extension RequestResponseOperator: Promise {
+    func onNext(_ payload: Payload) {
         observer.send(value: payload)
         observer.sendCompleted()
     }
     
     func onError(_ error: Error) {
         observer.send(error: error)
-    }
-    
-    func onComplete() {
-        observer.sendCompleted()
     }
     
     func onCancel() {
@@ -116,11 +112,8 @@ fileprivate struct RequestStreamOperator {
 }
 
 extension RequestStreamOperator: UnidirectionalStream {
-    func onNext(_ payload: Payload, isCompletion: Bool) {
+    func onNext(_ payload: Payload) {
         observer.send(value: payload)
-        if isCompletion {
-            observer.sendCompleted()
-        }
     }
     
     func onError(_ error: Error) {
@@ -164,7 +157,7 @@ fileprivate final class RequestChannelOperator {
         payloadProducerDisposable = payloadProducer?.start { event in
             switch event {
             case let .value(value):
-                output.onNext(value, isCompletion: false)
+                output.onNext(value)
             case let .failed(error):
                 output.onError(Error.applicationError(message: error.localizedDescription))
             case .completed:
@@ -181,12 +174,8 @@ fileprivate final class RequestChannelOperator {
 }
 
 extension RequestChannelOperator: UnidirectionalStream {
-    func onNext(_ payload: Payload, isCompletion: Bool) {
+    func onNext(_ payload: Payload) {
         observer.send(value: payload)
-        if isCompletion {
-            isTerminated = true
-            observer.sendCompleted()
-        }
     }
     
     func onError(_ error: Error) {

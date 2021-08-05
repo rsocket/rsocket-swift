@@ -18,9 +18,10 @@ import Foundation
 
 /// A stream which does not do anything.
 fileprivate final class NoOpStream: UnidirectionalStream {
-    func onNext(_ payload: Payload, isCompletion: Bool) {}
+    func onNext(_ payload: Payload) {}
     func onError(_ error: Error) {}
     func onComplete() {}
+    func onComplete(_ payload: Payload) {}
     func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {}
     func onRequestN(_ requestN: Int32) {}
     func onCancel() {}
@@ -31,7 +32,7 @@ fileprivate final class NoOpStream: UnidirectionalStream {
 internal struct DefaultRSocket: RSocket {
     func metadataPush(metadata: Data) {}
     func fireAndForget(payload: Payload) {}
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
         responderStream.onError(.rejected(message: "not implemented"))
         return NoOpStream()
     }

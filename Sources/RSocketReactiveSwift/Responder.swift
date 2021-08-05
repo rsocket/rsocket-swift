@@ -33,7 +33,7 @@ internal struct ResponderAdapter: RSocketCore.RSocket {
         responder.fireAndForget(payload: payload)
     }
     
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
+    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
         RequestResponseResponder(
             producer: responder.requestResponse(payload: payload),
             output: responderStream
@@ -61,11 +61,26 @@ internal struct ResponderAdapter: RSocketCore.RSocket {
     }
 }
 
+fileprivate extension Promise {
+    func send(event: Signal<Payload, Swift.Error>.Event) {
+        switch event {
+        case let .value(value):
+            onNext(value)
+        case let .failed(error):
+            onError(Error.applicationError(message: error.localizedDescription))
+        case .completed:
+            onCancel()
+        case .interrupted:
+            onCancel()
+        }
+    }
+}
+
 fileprivate extension UnidirectionalStream {
     func send(event: Signal<Payload, Swift.Error>.Event) {
         switch event {
         case let .value(value):
-            onNext(value, isCompletion: false)
+            onNext(value)
         case let .failed(error):
             onError(Error.applicationError(message: error.localizedDescription))
         case .completed:
@@ -78,9 +93,9 @@ fileprivate extension UnidirectionalStream {
 
 fileprivate final class RequestResponseResponder {
     private let disposable: ReactiveSwift.Disposable
-    private let output: UnidirectionalStream
+    private let output: Promise
     
-    init(producer: SignalProducer<Payload, Swift.Error>, output: UnidirectionalStream) {
+    init(producer: SignalProducer<Payload, Swift.Error>, output: Promise) {
         self.output = output
         self.disposable = producer.startWithSignal { signal, disposable in
             var didReceiveEvent = false
@@ -89,11 +104,11 @@ fileprivate final class RequestResponseResponder {
                 didReceiveEvent = true
                 switch event {
                 case let .value(value):
-                    output.onNext(value, isCompletion: true)
+                    output.onNext(value)
                 case let .failed(error):
                     output.onError(Error.applicationError(message: error.localizedDescription))
                 case .completed:
-                    output.onComplete()
+                    output.onCancel()
                 case .interrupted:
                     output.onCancel()
                 }
@@ -187,11 +202,8 @@ fileprivate final class RequestChannelResponder {
 }
 
 extension RequestChannelResponder: UnidirectionalStream {
-    func onNext(_ payload: Payload, isCompletion: Bool) {
+    func onNext(_ payload: Payload) {
         observer.send(value: payload)
-        if isCompletion {
-            observer.sendCompleted()
-        }
     }
 
     func onError(_ error: Error) {

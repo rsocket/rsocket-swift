@@ -157,7 +157,7 @@ class EndToEndTests: XCTestCase {
             }
             for _ in 0..<requestCount {
                 requestSemaphore.wait()
-                _ = requester.requestResponse(payload: helloWorld, responderStream: input)
+                _ = requester.requestResponse(payload: helloWorld, responderPromise: input)
             }
             self.wait(for: [request, response], timeout: 5)
         }

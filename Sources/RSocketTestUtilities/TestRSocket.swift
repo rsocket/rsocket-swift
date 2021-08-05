@@ -63,12 +63,12 @@ public final class TestRSocket: RSocket {
         fireAndForget(payload)
     }
     
-    public func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
+    public func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable {
         guard let requestResponse = requestResponse else {
             XCTFail("requestResponse not expected to be called ", file: file, line: line)
             return TestUnidirectionalStream()
         }
-        return requestResponse(payload, responderStream)
+        return requestResponse(payload, responderPromise)
     }
     
     public func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {

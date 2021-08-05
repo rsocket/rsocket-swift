@@ -50,19 +50,30 @@ final internal class ResponderStream {
         case let .complete(frame):
             switch state {
             case let .waitingForInitialFragments(socket):
-                let adapter = ThreadSafeStreamAdapter(id: id, eventLoop: eventLoop, delegate: self)
                 let streamKind: StreamKind?
                 switch frame.body {
                 case let .requestFnf(body):
                     streamKind = nil
                     socket.fireAndForget(payload: body.payload)
                 case let .requestResponse(body):
+                    let adapter = ThreadSafeStreamAdapter(
+                        id: id, 
+                        eventLoop: eventLoop, 
+                        delegate: self, 
+                        shouldOnNextCompleteStream: true
+                    )
                     terminationBehaviour = RequestResponseTerminationBehaviour()
                     streamKind = .requestResponse(socket.requestResponse(
                         payload: body.payload,
-                        responderStream: adapter
+                        responderPromise: adapter
                     ))
                 case let .requestStream(body):
+                    let adapter = ThreadSafeStreamAdapter(
+                        id: id, 
+                        eventLoop: eventLoop, 
+                        delegate: self, 
+                        shouldOnNextCompleteStream: false
+                    )
                     terminationBehaviour = StreamTerminationBehaviour()
                     streamKind = .stream(socket.stream(
                         payload: body.payload,
@@ -70,6 +81,12 @@ final internal class ResponderStream {
                         responderStream: adapter
                     ))
                 case let .requestChannel(body):
+                    let adapter = ThreadSafeStreamAdapter(
+                        id: id, 
+                        eventLoop: eventLoop, 
+                        delegate: self, 
+                        shouldOnNextCompleteStream: false
+                    )
                     terminationBehaviour = ChannelTerminationBehaviour()
                     streamKind = .channel(socket.channel(
                         payload: body.payload,

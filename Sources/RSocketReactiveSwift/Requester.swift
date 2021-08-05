@@ -36,7 +36,7 @@ internal struct RequesterAdapter: RSocket {
     internal func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> {
         SignalProducer { observer, lifetime in
             let stream = RequestResponseOperator(observer: observer)
-            let output = requester.requestResponse(payload: payload, responderStream: stream)
+            let output = requester.requestResponse(payload: payload, responderPromise: stream)
             lifetime.observeEnded {
                 output.onCancel()
             }

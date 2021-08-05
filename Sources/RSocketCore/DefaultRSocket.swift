@@ -32,8 +32,8 @@ fileprivate final class NoOpStream: UnidirectionalStream {
 internal struct DefaultRSocket: RSocket {
     func metadataPush(metadata: Data) {}
     func fireAndForget(payload: Payload) {}
-    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
-        responderStream.onError(.rejected(message: "not implemented"))
+    func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable {
+        responderPromise.onError(.rejected(message: "not implemented"))
         return NoOpStream()
     }
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription {

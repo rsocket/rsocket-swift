@@ -27,16 +27,22 @@ internal protocol StreamAdapterDelegate: AnyObject {
 internal final class ThreadSafeStreamAdapter {
     internal var id: StreamID!
     private let eventLoop: EventLoop
+    private let shouldOnNextCompleteStream: Bool
     internal weak var delegate: StreamAdapterDelegate?
-    
-    internal init(id: StreamID? = nil, eventLoop: EventLoop, delegate: StreamAdapterDelegate? = nil) {
+    internal init(
+        id: StreamID? = nil, 
+        eventLoop: EventLoop, 
+        delegate: StreamAdapterDelegate? = nil,
+        shouldOnNextCompleteStream: Bool
+    ) {
         self.id = id
         self.eventLoop = eventLoop
         self.delegate = delegate
+        self.shouldOnNextCompleteStream = shouldOnNextCompleteStream
     }
 }
 
-extension ThreadSafeStreamAdapter: UnidirectionalStream {
+extension ThreadSafeStreamAdapter: UnidirectionalStream, Promise {
     private func send<Body>(_ body: Body) where Body: FrameBodyBoundToStream {
         eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             self.delegate?.send(frame: body.asFrame(withStreamId: self.id))
@@ -44,7 +50,7 @@ extension ThreadSafeStreamAdapter: UnidirectionalStream {
     }
     
     internal func onNext(_ payload: Payload) {
-        send(PayloadFrameBody(isCompletion: false, isNext: true, payload: payload))
+        send(PayloadFrameBody(isCompletion: shouldOnNextCompleteStream, isNext: true, payload: payload))
     }
     internal func onError(_ error: Error) {
         send(ErrorFrameBody(error: error))
@@ -60,11 +66,5 @@ extension ThreadSafeStreamAdapter: UnidirectionalStream {
     }
     internal func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool) {
         send(ExtensionFrameBody(canBeIgnored: canBeIgnored, extendedType: extendedType, payload: payload))
-    }
-}
-
-extension ThreadSafeStreamAdapter: Promise {
-    internal func onComplete(_ payload: Payload) {
-        send(PayloadFrameBody(isCompletion: true, isNext: true, payload: payload))
     }
 }

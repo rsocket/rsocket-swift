@@ -86,7 +86,7 @@ extension Requester: RSocket {
         terminationBehaviour: TerminationBehaviour,
         initialFrame body: Body
     ) -> ThreadSafeStreamAdapter where Body: FrameBodyBoundToStream {
-        let adapter = ThreadSafeStreamAdapter(eventLoop: eventLoop)
+        let adapter = ThreadSafeStreamAdapter(eventLoop: eventLoop, shouldOnNextCompleteStream: false)
         eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             let newId = generateNewStreamId()
             let stream = RequesterStream(
@@ -104,9 +104,9 @@ extension Requester: RSocket {
         return adapter
     }
     
-    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
+    func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable {
         return createAndAddStream(
-            responderStream: .requestResponse(responderStream),
+            responderStream: .requestResponse(responderPromise),
             terminationBehaviour: RequestResponseTerminationBehaviour(),
             initialFrame: RequestResponseFrameBody(payload: payload)
         )

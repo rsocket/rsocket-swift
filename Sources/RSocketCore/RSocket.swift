@@ -21,7 +21,7 @@ public protocol RSocket {
     
     func fireAndForget(payload: Payload)
     
-    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable
+    func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable
     
     func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
     

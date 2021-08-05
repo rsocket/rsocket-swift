@@ -33,10 +33,10 @@ internal struct ResponderAdapter: RSocketCore.RSocket {
         responder.fireAndForget(payload: payload)
     }
     
-    func requestResponse(payload: Payload, responderStream: Promise) -> Cancellable {
+    func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable {
         RequestResponseResponder(
             producer: responder.requestResponse(payload: payload),
-            output: responderStream
+            output: responderPromise
         )
     }
     

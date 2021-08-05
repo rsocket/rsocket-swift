@@ -228,7 +228,7 @@ class EndToEndTests: XCTestCase {
             XCTAssertEqual(payload, helloWorld)
             response.fulfill()
         }
-        _ = requester.requestResponse(payload: helloWorld, responderStream: input)
+        _ = requester.requestResponse(payload: helloWorld, responderPromise: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testRequestResponseFragmentation() throws {
@@ -254,7 +254,7 @@ class EndToEndTests: XCTestCase {
             XCTAssertEqual(payload, largePayload)
             response.fulfill()
         }
-        _ = requester.requestResponse(payload: largePayload, responderStream: input)
+        _ = requester.requestResponse(payload: largePayload, responderPromise: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testRequestResponseError() throws {
@@ -274,7 +274,7 @@ class EndToEndTests: XCTestCase {
             XCTAssertEqual(error, .applicationError(message: "I don't like your request"))
             response.fulfill()
         })
-        _ = requester.requestResponse(payload: helloWorld, responderStream: input)
+        _ = requester.requestResponse(payload: helloWorld, responderPromise: input)
         self.wait(for: [request, response], timeout: 1)
     }
     func testChannelEcho() throws {

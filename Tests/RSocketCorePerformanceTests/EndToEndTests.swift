@@ -221,6 +221,7 @@ class EndToEndTests: XCTestCase {
                 output.onNext("r")
                 output.onNext("l")
                 output.onNext("d")
+                output.onComplete()
                 return TestUnidirectionalStream()
             }))
             let port = try! XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
@@ -233,11 +234,17 @@ class EndToEndTests: XCTestCase {
             let response = self.expectation(description: "receive response")
             response.expectedFulfillmentCount = requestCount
             for _ in 0..<requestCount {
-                requestSemaphore.wait()
-                let input = TestUnidirectionalStream(onComplete: {
-                    requestSemaphore.signal()
-                    response.fulfill()
-                })
+                guard requestSemaphore.wait(timeout: .now() + .seconds(1)) == .success else {
+                    XCTFail("timeout")
+                    return
+                }
+                let input = TestUnidirectionalStream(
+                    onNext: { _ in }, 
+                    onComplete: {
+                        requestSemaphore.signal()
+                        response.fulfill()
+                    }
+                )
                 _ = requester.stream(payload: "Hello World!", initialRequestN: .max, responderStream: input)
             }
             self.wait(for: [request, response], timeout: 1)

@@ -18,21 +18,21 @@ import ReactiveSwift
 import RSocketCore
 
 public protocol RequesterRSocket {
-    func callAsFunction<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws
+    func execute<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws
 
-    func callAsFunction<Request>(_ fireAndForget: FireAndForget<Request>, request: Request) throws
+    func execute<Request>(_ fireAndForget: FireAndForget<Request>, request: Request) throws
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestResponse: RequestResponse<Request, Response>,
         request: Request
     ) -> SignalProducer<Response, Swift.Error>
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestStream: RequestStream<Request, Response>,
         request: Request
     ) -> SignalProducer<Response, Swift.Error>
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestChannel: RequestChannel<Request, Response>,
         initialRequest: Request,
         producer: SignalProducer<Request, Swift.Error>?

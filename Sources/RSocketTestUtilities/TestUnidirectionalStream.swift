@@ -85,7 +85,7 @@ public final class TestUnidirectionalStream {
     }
 }
 
-extension TestUnidirectionalStream: UnidirectionalStream {
+extension TestUnidirectionalStream: UnidirectionalStream, Promise {
     public func onNext(_ payload: Payload) {
         didReceiveEvent(.next(payload), callback: onNextCallback) {
             $0(payload)

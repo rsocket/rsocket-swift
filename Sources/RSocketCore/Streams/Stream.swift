@@ -28,6 +28,7 @@ public protocol Subscription: Cancellable {
     func onRequestN(_ requestN: Int32)
 }
 
-public protocol UnidirectionalStream: Promise, Subscription {
+public protocol UnidirectionalStream: Subscription {
+    func onNext(_ payload: Payload)
     func onComplete()
 }

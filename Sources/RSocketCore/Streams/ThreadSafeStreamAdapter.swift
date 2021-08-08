@@ -42,14 +42,14 @@ internal final class ThreadSafeStreamAdapter {
     }
 }
 
-extension ThreadSafeStreamAdapter: UnidirectionalStream, Promise {
+extension ThreadSafeStreamAdapter: UnidirectionalStream {
     private func send<Body>(_ body: Body) where Body: FrameBodyBoundToStream {
         eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             self.delegate?.send(frame: body.asFrame(withStreamId: self.id))
         }
     }
     
-    internal func onNext(_ payload: Payload) {
+    internal func onNext(_ payload: Payload, ) {
         send(PayloadFrameBody(isCompletion: shouldOnNextCompleteStream, isNext: true, payload: payload))
     }
     internal func onError(_ error: Error) {

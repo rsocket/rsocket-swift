@@ -21,9 +21,50 @@ public protocol RSocket {
     
     func fireAndForget(payload: Payload)
     
-    func requestResponse(payload: Payload, responderPromise: Promise) -> Cancellable
+    func requestResponse(
+        payload: Payload, 
+        responderPromise: Subscriber & Cancellable & Extendable
+    ) -> Cancellable & Extendable
     
-    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
+    func stream(
+        payload: Payload, 
+        initialRequestN: Int32, 
+        responderStream: Subscriber & Cancellable & Subscription
+    ) -> Subscription & Extendable
     
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream
+    func channel(
+        payload: Payload, 
+        initialRequestN: Int32, 
+        isCompleted: Bool, 
+        responderStream: Subscriber & Cancellable & Subscription & Extendable
+    ) -> Subscriber & Cancellable & Subscription & Extendable
+}
+
+public typealias Promise = Subscriber & Cancellable & Extendable
+
+public typealias UnidirectionalStream =  Subscriber & Cancellable & Subscription & Extendable
+
+
+protocol _RSocket {
+    func metadataPush(metadata: Data, completable: Completable) -> Cancellable
+    
+    func fireAndForget(payload: Payload, completable: Completable) -> Cancellable
+    
+    func requestResponse(
+        payload: Payload, 
+        delegate: _Subscriber & Cancellable
+    ) -> Cancellable
+    
+    func stream(
+        payload: Payload, 
+        initialRequestN: Int32, 
+        delegate: Producer & Cancellable & Completable
+    ) -> Subscription & Cancellable
+    
+    func channel(
+        payload: Payload, 
+        initialRequestN: Int32, 
+        isCompleted: Bool, 
+        delegate: Producer & Cancellable & Completable
+    ) -> Producer & Cancellable & Completable
 }

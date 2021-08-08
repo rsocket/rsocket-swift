@@ -71,9 +71,9 @@ extension RequesterStream.StreamKind {
     func receive(_ frame: Frame) -> Error? {
         switch self {
         case let .requestResponse(stream):
-            return stream.receive(frame)
+            return stream.promise_receive(frame)
         case let .stream(stream), let .channel(stream):
-            return stream.receive(frame)
+            return stream.stream_receive(frame)
         }
     }
 }

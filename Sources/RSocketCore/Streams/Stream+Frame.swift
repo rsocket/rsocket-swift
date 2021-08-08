@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-extension Cancellable {
-    internal func receive(_ frame: Frame) -> Error? {
+extension Cancellable where Self: Extendable {
+    internal func cancelable_receive(_ frame: Frame) -> Error? {
         switch frame.body {
         case .cancel:
             onCancel()
-        case let .error(body):
-            onError(body.error)
         case let .ext(body):
             onExtension(
                 extendedType: body.extendedType,
@@ -36,8 +34,8 @@ extension Cancellable {
     }
 }
 
-extension Promise {
-    internal func receive(_ frame: Frame) -> Error? {
+extension Cancellable where Self: Subscriber, Self: Extendable {
+    internal func promise_receive(_ frame: Frame) -> Error? {
         switch frame.body {
         case .cancel:
             onCancel()
@@ -50,7 +48,8 @@ extension Promise {
                 canBeIgnored: body.canBeIgnored
             )
         case let .payload(body):
-            onNext(body.payload)
+            onNext(body.payload, isComplete: true)
+            onComplete()
         default:
             if !frame.body.canBeIgnored {
                 return .connectionError(message: "Invalid frame type \(frame.body.type) for an active response stream")
@@ -60,15 +59,13 @@ extension Promise {
     }
 }
 
-extension Subscription {
-    internal func receive(_ frame: Frame) -> Error? {
+extension Subscription where Self: Cancellable, Self: Extendable{
+    internal func subscription_receive(_ frame: Frame) -> Error? {
         switch frame.body {
         case let .requestN(body):
             onRequestN(body.requestN)
         case .cancel:
             onCancel()
-        case let .error(body):
-            onError(body.error)
         case let .ext(body):
             onExtension(
                 extendedType: body.extendedType,
@@ -84,8 +81,8 @@ extension Subscription {
     }
 }
 
-extension UnidirectionalStream {
-    internal func receive(_ frame: Frame) -> Error? {
+extension Subscriber where Self: Cancellable, Self: Extendable, Self: Subscription {
+    internal func stream_receive(_ frame: Frame) -> Error? {
         switch frame.body {
         case let .requestN(body):
             onRequestN(body.requestN)
@@ -94,7 +91,7 @@ extension UnidirectionalStream {
         case let .payload(body):
             //assert(!body.isNext && body.payload.metadata == nil && body.payload.data.isEmpty, "isNext is false but payload contains data")
             if body.isNext {
-                onNext(body.payload)
+                onNext(body.payload, isComplete: body.isCompletion)
             }
             if body.isCompletion {
                 onComplete()

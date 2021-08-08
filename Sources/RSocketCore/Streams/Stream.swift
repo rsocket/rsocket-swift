@@ -14,21 +14,59 @@
  * limitations under the License.
  */
 
+//public protocol Cancellable {
+//    func onCancel()
+//    func onError(_ error: Error)
+//    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
+//}
+//
+//public protocol Promise: Cancellable {
+//    func onNext(_ payload: Payload)
+//}
+//
+//public protocol Subscription: Cancellable {
+//    func onRequestN(_ requestN: Int32)
+//}
+//
+//public protocol UnidirectionalStream: Subscription {
+//    func onNext(_ payload: Payload)
+//    func onComplete()
+//}
+
+
 public protocol Cancellable {
     func onCancel()
+}
+
+public protocol Subscriber {
+    func onNext(_ payload: Payload, isComplete: Bool)
     func onError(_ error: Error)
-    func onExtension(extendedType: Int32, payload: Payload, canBeIgnored: Bool)
-}
-
-public protocol Promise: Cancellable {
-    func onNext(_ payload: Payload)
-}
-
-public protocol Subscription: Cancellable {
-    func onRequestN(_ requestN: Int32)
-}
-
-public protocol UnidirectionalStream: Subscription {
-    func onNext(_ payload: Payload)
     func onComplete()
+}
+
+// alternative:
+public protocol _Subscriber {
+    func onNext(payload: Payload, isLast: Bool)
+    func onTermination(_ error: Error?)
+}
+
+// alternative 2:
+public protocol Producer {
+    func onNext(payload: Payload, isLast: Bool)
+}
+
+public protocol Completable {
+    func onTermination(_ error: Error?)
+}
+
+public protocol Subscription {
+    func onRequestN(_ n: Int32)
+}
+
+public protocol Extendable {
+    func onExtension(
+        extendedType: Int32, 
+        payload: Payload, 
+        canBeIgnored: Bool)
+    
 }

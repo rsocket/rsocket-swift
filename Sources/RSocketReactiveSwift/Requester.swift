@@ -27,18 +27,18 @@ internal struct RequesterAdapter {
 }
 
 extension RequesterAdapter: RequesterRSocket {
-    func callAsFunction<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws {
+    func execute<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws {
         let metadata = try metadataPush.encoder.encode(metadata)
         self.metadataPush(metadata: metadata)
     }
 
-    func callAsFunction<Request>(_ fireAndForget: FireAndForget<Request>, request: Request) throws {
+    func execute<Request>(_ fireAndForget: FireAndForget<Request>, request: Request) throws {
         var encoder = fireAndForget.encoder
         let payload = try encoder.encode(request, encoding: encoding)
         self.fireAndForget(payload: payload)
     }
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestResponse: RequestResponse<Request, Response>,
         request: Request
     ) -> SignalProducer<Response, Swift.Error> {
@@ -52,7 +52,7 @@ extension RequesterAdapter: RequesterRSocket {
         }.flatten(.latest)
     }
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestStream: RequestStream<Request, Response>,
         request: Request
     ) -> SignalProducer<Response, Swift.Error> {
@@ -66,7 +66,7 @@ extension RequesterAdapter: RequesterRSocket {
         }.flatten(.latest)
     }
 
-    func callAsFunction<Request, Response>(
+    func build<Request, Response>(
         _ requestChannel: RequestChannel<Request, Response>,
         initialRequest: Request,
         producer: SignalProducer<Request, Swift.Error>?

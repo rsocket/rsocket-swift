@@ -22,11 +22,11 @@ struct VanillaClientExample: ParsableCommand {
         
         let client = try bootstrap.connect(to: .init(host: host, port: port)).first()!.get()
 
-        let streamProducer = client.requester(
+        let streamProducer = client.requester.build(
             RequestStream(),
             request: Data()
         )
-        let requestProducer = client.requester(RequestResponse(), request: Data("HelloWorld".utf8))
+        let requestProducer = client.requester.build(RequestResponse(), request: Data("HelloWorld".utf8))
 
         streamProducer.logEvents(identifier: "stream1").take(first: 1).start()
         streamProducer.logEvents(identifier: "stream3").take(first: 10).start()

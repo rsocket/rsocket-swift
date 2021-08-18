@@ -35,7 +35,7 @@ struct TimerClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
-        try client.requester(RequestStream {
+        try client.requester.build(RequestStream {
             Encoder()
                 .encodeStaticMetadata("timer", using: RoutingEncoder())
             Decoder()

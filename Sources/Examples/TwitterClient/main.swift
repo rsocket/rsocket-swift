@@ -38,7 +38,7 @@ struct TwitterClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
-        try client.requester(RequestStream {
+        try client.requester.build(RequestStream {
             Encoder()
                 .encodeStaticMetadata("searchTweets", using: RoutingEncoder())
                 .mapData { (string: String) in 

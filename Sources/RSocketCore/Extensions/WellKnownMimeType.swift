@@ -24,7 +24,16 @@ public struct WellKnownMIMETypeCode: RawRepresentable, Hashable {
     }
 }
 
-extension WellKnownMIMETypeCode {
+protocol WellKnownIdentifier {
+    /// removes the Well-known Identifier flag from `flagged`
+    /// - Parameter flagged: Well-known Identifier with the flag bit set
+    init(withFlagBitSet flagged: Int8)
+
+    /// Well Known Identifier with the flag bit set
+    var withFlagBitSet: UInt8 { get }
+}
+
+extension WellKnownMIMETypeCode: WellKnownIdentifier {
     /// removes the well known MIME Type flag from `flagged`
     /// - Parameter flagged: Well Known MIME Type Code with the flag bit set
     @inlinable

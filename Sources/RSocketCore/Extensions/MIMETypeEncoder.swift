@@ -17,6 +17,46 @@
 import Foundation
 import NIO
 
+internal struct WellKnownIdentifierEncoder<WellKnown, Identifier>
+where
+WellKnown: WellKnownIdentifier,
+Identifier: RawRepresentable,
+Identifier: Hashable,
+Identifier.RawValue == String {
+    @usableFromInline
+    internal let wellKnownIdentifiers: [Identifier: WellKnown]
+
+    @inlinable
+    internal init(wellKnownIdentifiers: [Identifier : WellKnown]) {
+        self.wellKnownIdentifiers = wellKnownIdentifiers
+    }
+
+    @inlinable
+    public func encode(_ identifier: Identifier, into buffer: inout ByteBuffer) throws {
+        if let wellKnownIdentifier = wellKnownIdentifiers[identifier] {
+            encodeWellKnown(wellKnownIdentifier, into: &buffer)
+        } else {
+            try encodeUnknown(identifier, into: &buffer)
+        }
+    }
+
+    @inlinable
+    internal func encodeWellKnown(_ identifier: WellKnown, into buffer: inout ByteBuffer) {
+        buffer.writeInteger(identifier.withFlagBitSet)
+    }
+
+    @inlinable
+    internal func encodeUnknown(_ identifier: Identifier, into buffer: inout ByteBuffer) throws {
+        do {
+            try buffer.writeLengthPrefixed(as: Int8.self) { buffer in
+                buffer.writeString(identifier.rawValue)
+            }
+        } catch {
+            throw Error.invalid(message: "\(identifier) too long to encode")
+        }
+    }
+}
+
 public struct MIMETypeEncoder {
     public static let defaultWellKnownMimeTypes = Dictionary(
         uniqueKeysWithValues: MIMEType.wellKnownMIMETypes.lazy.map{ ($0.1, $0.0) }

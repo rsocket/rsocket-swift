@@ -63,13 +63,13 @@ let package = Package(
         // Transport protocol
         .target(name: "RSocketWSTransport", dependencies: [
             "RSocketCore",
-            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOHTTP1", package: "swift-nio"),
             .product(name: "NIOWebSocket", package: "swift-nio"),
         ]),
         .target(name: "RSocketTCPTransport", dependencies: [
             "RSocketCore",
-            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOExtras", package: "swift-nio-extras")
         ]),
 

@@ -15,11 +15,12 @@
  */
 
 import Foundation
+import NIOCore
 
 extension Encoders {
     public struct DataEncoder<Encoder, DataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
-    Encoder.Data == Data,
+    Encoder.Data == ByteBuffer,
     DataEncoder: RSocketCore.DataEncoderProtocol
     {
         public typealias Metadata = Encoder.Metadata

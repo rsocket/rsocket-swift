@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import Foundation
 import NIOCore
 
 public struct CompositeMetadata {
     public var mimeType: MIMEType
-    public var data: Data
-    public init(mimeType: MIMEType, data: Data) {
+    public var data: ByteBuffer
+    public init(mimeType: MIMEType, data: ByteBuffer) {
         self.mimeType = mimeType
         self.data = data
     }

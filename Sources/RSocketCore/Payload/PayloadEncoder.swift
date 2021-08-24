@@ -22,13 +22,14 @@ internal protocol PayloadEncoding {
 
 internal struct PayloadEncoder: PayloadEncoding {
     internal func encode(payload: Payload, to buffer: inout ByteBuffer) throws {
-        if let metadata = payload.metadata {
-            guard metadata.count <= FrameBodyConstants.metadataMaximumLength else {
+        if var metadata = payload.metadata {
+            guard metadata.readableBytes <= FrameBodyConstants.metadataMaximumLength else {
                 throw Error.connectionError(message: "Metadata is too big")
             }
-            buffer.writeUInt24(UInt(metadata.count))
-            buffer.writeData(metadata)
+            buffer.writeUInt24(UInt(metadata.readableBytes))
+            buffer.writeBuffer(&metadata)
         }
-        buffer.writeData(payload.data)
+        var data = payload.data
+        buffer.writeBuffer(&data)
     }
 }

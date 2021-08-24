@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public struct Coder<Decoder, Encoder> where Decoder: DecoderProtocol, Encoder: EncoderProtocol {
     public let decoder: Decoder
@@ -79,7 +79,7 @@ extension Coder {
 
 // MARK: - Coder decode and encode convenience methods
 
-extension Coder where Decoder.Metadata == Data?, Encoder.Metadata == Data? {
+extension Coder where Decoder.Metadata == ByteBuffer?, Encoder.Metadata == ByteBuffer? {
     @inlinable
     public func useCompositeMetadata(
         metadataDecoder: RootCompositeMetadataDecoder = .init(),

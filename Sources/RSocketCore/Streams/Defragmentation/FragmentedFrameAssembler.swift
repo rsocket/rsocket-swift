@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 internal enum FragmentationResult: Equatable {
     case complete(Frame)
@@ -111,21 +111,17 @@ private struct Fragments {
         }
 
         // concatenate fragments
-        var metadata: Data? = initialPayload.metadata
-        var data: Data = initialPayload.data
+        var metadata: ByteBuffer = initialPayload.metadata ?? ByteBuffer()
+        var data: ByteBuffer = initialPayload.data
         for fragment in additionalFragments {
-            if let metadataFragment = fragment.metadata {
-                guard data.isEmpty else {
+            if var metadataFragment = fragment.metadata {
+                guard data.readableBytes == 0 else {
                     return .error(reason: "Fragment has metadata even though previous fragments had data")
                 }
-                if let previousMetadata = metadata {
-                    metadata = previousMetadata + metadataFragment
-                } else {
-                    // previous fragments didn't have metadata or data
-                    metadata = metadataFragment
-                }
+                metadata.writeBuffer(&metadataFragment)
             }
-            data += fragment.data
+            var fragmentData = fragment.data
+            data.writeBuffer(&fragmentData)
         }
         let newPayload = Payload(metadata: metadata, data: data)
 

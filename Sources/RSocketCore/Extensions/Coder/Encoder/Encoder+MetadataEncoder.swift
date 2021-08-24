@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Encoders {
     public struct MetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where
@@ -65,14 +65,14 @@ extension Encoders {
     public typealias RootCompositeMetadataEncoder<Encoder> = 
         MetadataEncoder<Encoder, RSocketCore.RootCompositeMetadataEncoder> where 
         Encoder: EncoderProtocol, 
-        Encoder.Metadata == Foundation.Data?
+        Encoder.Metadata == ByteBuffer?
 }
 
 extension EncoderProtocol {
     @inlinable
     public func useCompositeMetadata(
         metadataEncoder: RootCompositeMetadataEncoder = .init()
-    ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == Foundation.Data? {
+    ) -> Encoders.RootCompositeMetadataEncoder<Self> where Metadata == ByteBuffer? {
         encodeMetadata(using: metadataEncoder)
     }
 }

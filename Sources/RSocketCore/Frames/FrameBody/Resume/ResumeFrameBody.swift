@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import NIOCore
+
 /**
  The `RESUME` frame is sent by the client to resume the connection
 

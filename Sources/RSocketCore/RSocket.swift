@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol RSocket {
     func metadataPush(metadata: ByteBuffer)

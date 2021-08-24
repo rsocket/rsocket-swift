@@ -35,10 +35,10 @@ extension DataEncoderProtocol {
 
 extension DataEncoderProtocol {
     @usableFromInline
-    func encode(_ data: Data) throws -> Foundation.Data {
+    func encode(_ data: Data) throws -> ByteBuffer {
         var buffer = ByteBuffer()
         try self.encode(data, into: &buffer)
-        return buffer.readData(length: buffer.readableBytes) ?? Foundation.Data()
+        return buffer
     }
 }
 

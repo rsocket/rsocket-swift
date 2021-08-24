@@ -20,11 +20,12 @@ internal struct ResumeFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: ResumeFrameBody, into buffer: inout ByteBuffer) throws {
         buffer.writeInteger(frame.version.major)
         buffer.writeInteger(frame.version.minor)
-        guard frame.resumeIdentificationToken.count <= UInt16.max else {
+        var token = frame.resumeIdentificationToken
+        guard token.readableBytes <= UInt16.max else {
             throw Error.connectionError(message: "resumeIdentificationToken is too big")
         }
-        buffer.writeInteger(UInt16(frame.resumeIdentificationToken.count))
-        buffer.writeData(frame.resumeIdentificationToken)
+        buffer.writeInteger(UInt16(token.readableBytes))
+        buffer.writeBuffer(&token)
         buffer.writeInteger(frame.lastReceivedServerPosition)
         buffer.writeInteger(frame.firstAvailableClientPosition)
     }

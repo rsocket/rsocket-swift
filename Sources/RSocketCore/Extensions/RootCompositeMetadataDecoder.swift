@@ -47,10 +47,10 @@ extension Sequence where Element == CompositeMetadata {
     func decodeFirstIfPresent<Decoder>(
         using decoder: Decoder
     ) throws -> Decoder.Metadata? where Decoder: MetadataDecoder {
-        guard let data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
+        guard var data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
             return nil
         }
-        return try decoder.decode(from: data)
+        return try decoder.decode(from: &data)
     }
     @inlinable
     func decodeFirst<Decoder>(

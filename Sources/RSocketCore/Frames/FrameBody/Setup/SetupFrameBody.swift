@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /**
  The `SETUP` frame is sent by the client to inform the server of the parameters under which it desires to operate

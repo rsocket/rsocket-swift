@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Decoders {
     public struct DataDecoder<Decoder, DataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
-    Decoder.Data == Foundation.Data,
+    Decoder.Data == ByteBuffer,
     DataDecoder: DataDecoderProtocol
     {
         public typealias Metadata = Decoder.Metadata
@@ -43,8 +43,8 @@ extension Decoders {
             _ payload: Payload,
             encoding: ConnectionEncoding
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decode(payload, encoding: encoding)
-            let decodedData = try dataDecoder.decode(from: data)
+            var (metadata, data) = try decoder.decode(payload, encoding: encoding)
+            let decodedData = try dataDecoder.decode(from: &data)
             return (metadata, decodedData)
         }
     }

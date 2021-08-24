@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol MetadataEncodable {
     associatedtype CombinableMetadata = Void
@@ -39,12 +39,14 @@ extension MetadataEncodable where CombinableMetadata == Void {
     }
 }
 
-extension Data: MetadataEncodable {
+extension ByteBuffer: MetadataEncodable {
     public static func encodeMetadata<Encoder>(
         _ metadata: Encoder.Metadata, 
         using metadataEncoder: Encoder
-    ) throws -> Data where Encoder : MetadataEncoder {
-        try metadataEncoder.encode(metadata)
+    ) throws -> ByteBuffer where Encoder : MetadataEncoder {
+        var buffer = ByteBuffer()
+        try metadataEncoder.encode(metadata, into: &buffer)
+        return buffer
     }
 }
 

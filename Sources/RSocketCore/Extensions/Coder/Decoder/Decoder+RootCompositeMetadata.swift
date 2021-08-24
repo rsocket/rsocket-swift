@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Decoders {
     public struct RootCompositeMetadataDecoder<Decoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
-    Decoder.Metadata == Foundation.Data?
+    Decoder.Metadata == ByteBuffer?
     {
         public typealias Metadata = [CompositeMetadata]
         public typealias Data = Decoder.Data
@@ -42,7 +42,10 @@ extension Decoders {
             encoding: ConnectionEncoding
         ) throws -> (Metadata, Data) {
             let (metadata, data) = try decoder.decode(payload, encoding: encoding)
-            let decodedMetadata = try metadata.map { try metadataDecoder.decode(from: $0) }
+            let decodedMetadata = try metadata.map { (metadata) -> Metadata in
+                var metadata = metadata
+                return try metadataDecoder.decode(from: &metadata)
+            }
             return (decodedMetadata ?? [], data)
         }
     }
@@ -52,7 +55,7 @@ extension DecoderProtocol {
     @inlinable
     public func useCompositeMetadata(
         metadataDecoder: RootCompositeMetadataDecoder = .init()
-    ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == Foundation.Data? {
+    ) -> Decoders.RootCompositeMetadataDecoder<Self> where Metadata == ByteBuffer? {
         .init(decoder: self, metadataDecoder: metadataDecoder)
     }
 }

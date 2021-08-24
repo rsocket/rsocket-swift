@@ -15,7 +15,7 @@
  */
 
 import XCTest
-import NIO
+import NIOCore
 import RSocketCore
 
 final class MIMETypeCoderTests: XCTestCase {

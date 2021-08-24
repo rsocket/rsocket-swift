@@ -78,12 +78,17 @@ let package = Package(
         .testTarget(name: "RSocketCoreTests", dependencies: [
             "RSocketCore",
             "RSocketTestUtilities",
+            .product(name: "NIOCore", package: "swift-nio"),
+            .product(name: "NIOPosix", package: "swift-nio"),
+            .product(name: "NIOEmbedded", package: "swift-nio"),
             .product(name: "NIOExtras", package: "swift-nio-extras"),
             .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         .testTarget(name: "RSocketCorePerformanceTests", dependencies: [
             "RSocketCore",
             "RSocketTestUtilities",
+            .product(name: "NIOCore", package: "swift-nio"),
+            .product(name: "NIOPosix", package: "swift-nio"),
             .product(name: "NIOExtras", package: "swift-nio-extras"),
             .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
@@ -93,7 +98,8 @@ let package = Package(
             "RSocketReactiveSwift",
             "RSocketTestUtilities",
             "ReactiveSwift",
-            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOCore", package: "swift-nio"),
+            .product(name: "NIOEmbedded", package: "swift-nio"),
         ]),
         .testTarget(name: "RSocketWSTransportTests", dependencies: [
             "RSocketWSTransport"

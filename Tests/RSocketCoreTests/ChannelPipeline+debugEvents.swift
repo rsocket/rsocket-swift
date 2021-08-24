@@ -15,7 +15,7 @@
  */
 
 
-import NIO
+import NIOCore
 import NIOExtras
 @testable import RSocketCore
 

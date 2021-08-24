@@ -15,7 +15,8 @@
  */
 
 import XCTest
-import NIO
+import NIOCore
+import NIOEmbedded
 @testable import RSocketCore
 
 extension StreamID: ExpressibleByIntegerLiteral {

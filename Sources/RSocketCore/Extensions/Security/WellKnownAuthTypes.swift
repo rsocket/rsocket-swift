@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 public struct WellKnownAuthenticationTypeCode: RawRepresentable, Hashable {
     /// rawValue is guaranteed to be in the range `0...127`.

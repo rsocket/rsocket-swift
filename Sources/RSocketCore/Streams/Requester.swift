@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 internal final class Requester {
     private let sendFrame: (Frame) -> Void

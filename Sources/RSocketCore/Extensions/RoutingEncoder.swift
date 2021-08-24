@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 public struct RoutingEncoder: MetadataEncoder {
     public typealias Metadata = RouteMetadata

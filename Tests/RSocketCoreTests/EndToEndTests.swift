@@ -15,7 +15,9 @@
  */
 
 import XCTest
-import NIO
+import NIOCore
+import NIOPosix
+import NIOEmbedded
 import NIOExtras
 @testable import RSocketCore
 import RSocketTestUtilities

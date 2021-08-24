@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 final internal class ResponderStream {
     fileprivate enum StreamKind {

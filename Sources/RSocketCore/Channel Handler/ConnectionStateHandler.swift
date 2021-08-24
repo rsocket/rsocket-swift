@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal final class ConnectionStateHandler {
     private var isConnectionClosed = false

@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 public struct MIMETypeEncoder {
     public static let defaultWellKnownMimeTypes = Dictionary(

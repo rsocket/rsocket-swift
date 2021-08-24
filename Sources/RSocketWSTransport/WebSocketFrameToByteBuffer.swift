@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 import NIOWebSocket
 
 final class WebSocketFrameToByteBuffer: ChannelInboundHandler {

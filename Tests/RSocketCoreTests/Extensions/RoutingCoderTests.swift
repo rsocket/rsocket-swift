@@ -15,7 +15,7 @@
  */
 
 import XCTest
-import NIO
+import NIOCore
 @testable import RSocketCore
 
 final class RoutingCoderTests: XCTestCase {

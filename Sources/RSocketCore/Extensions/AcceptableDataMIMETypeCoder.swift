@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 public struct AcceptableDataMIMETypeEncoder: MetadataEncoder {
     public typealias Metadata = [MIMEType]

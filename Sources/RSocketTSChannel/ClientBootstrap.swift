@@ -17,7 +17,7 @@
 #if canImport(Network)
 
 import Network
-import NIO
+import NIOCore
 import NIOTransportServices
 import RSocketCore
 

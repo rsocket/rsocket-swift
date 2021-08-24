@@ -45,7 +45,7 @@ internal struct SetupFrameBody: Hashable {
     internal var maxLifetime: Int32
 
     /// Token used for client resume identification
-    internal var resumeIdentificationToken: Data?
+    internal var resumeIdentificationToken: ByteBuffer?
 
     /**
      MIME Type for encoding of Metadata

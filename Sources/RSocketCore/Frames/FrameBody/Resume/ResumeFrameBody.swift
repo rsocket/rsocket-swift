@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
-
 /**
  The `RESUME` frame is sent by the client to resume the connection
 
@@ -26,7 +24,7 @@ internal struct ResumeFrameBody: Hashable {
     internal var version: Version
 
     /// Token used for client resume identification
-    internal var resumeIdentificationToken: Data
+    internal var resumeIdentificationToken: ByteBuffer
 
     /// The last implied position the client received from the server
     internal var lastReceivedServerPosition: Int64

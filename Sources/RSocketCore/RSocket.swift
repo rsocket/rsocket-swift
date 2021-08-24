@@ -17,7 +17,7 @@
 import Foundation
 
 public protocol RSocket {
-    func metadataPush(metadata: Data)
+    func metadataPush(metadata: ByteBuffer)
     
     func fireAndForget(payload: Payload)
     

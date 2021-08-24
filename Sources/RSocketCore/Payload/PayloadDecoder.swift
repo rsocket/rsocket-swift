@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 internal protocol PayloadDecoding {
     func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload
@@ -23,24 +23,19 @@ internal protocol PayloadDecoding {
 
 internal struct PayloadDecoder: PayloadDecoding {
     internal func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload {
-        let metadata: Data?
+        let metadata: ByteBuffer?
         if hasMetadata {
             guard let metadataLength = buffer.readUInt24() else {
                 throw Error.connectionError(message: "Frame is not big enough")
             }
-            guard let metadataData = buffer.readData(length: Int(metadataLength)) else {
+            guard let metadataData = buffer.readSlice(length: Int(metadataLength)) else {
                 throw Error.connectionError(message: "Frame is not big enough")
             }
             metadata = metadataData
         } else {
             metadata = nil
         }
-        let data: Data
-        if buffer.readableBytes > 0 {
-            data = buffer.readData(length: buffer.readableBytes) ?? Data()
-        } else {
-            data = Data()
-        }
+        let data = buffer.readSlice(length: buffer.readableBytes) ?? ByteBuffer()
         return Payload(metadata: metadata, data: data)
     }
 }

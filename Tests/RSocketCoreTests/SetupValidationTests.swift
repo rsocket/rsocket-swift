@@ -65,7 +65,7 @@ final class SetupValidationTests: XCTestCase {
     func testResumeIsRejected() {
         XCTAssertThrowsError(try validator.validate(frame: ResumeFrameBody(
             version: .current,
-            resumeIdentificationToken: Data([0, 1, 2, 3]),
+            resumeIdentificationToken: .init([0, 1, 2, 3]),
             lastReceivedServerPosition: 5,
             firstAvailableClientPosition: 6
         ).asFrame())) { error in

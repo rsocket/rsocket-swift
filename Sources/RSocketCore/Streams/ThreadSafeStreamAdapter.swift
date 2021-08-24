@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal protocol StreamAdapterDelegate: AnyObject {
     func send(frame: Frame)

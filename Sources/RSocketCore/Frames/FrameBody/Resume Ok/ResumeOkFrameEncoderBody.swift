@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct ResumeOkFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: ResumeOkFrameBody, into buffer: inout ByteBuffer) throws {

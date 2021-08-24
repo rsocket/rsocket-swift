@@ -36,7 +36,7 @@ let package = Package(
     targets: [
         // Core
         .target(name: "RSocketCore", dependencies: [
-            .product(name: "NIO", package: "swift-nio"),
+            .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOFoundationCompat", package: "swift-nio"),
         ]),
 

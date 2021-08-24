@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 final class FrameDecoderHandler: ChannelInboundHandler {
     public typealias InboundIn = ByteBuffer

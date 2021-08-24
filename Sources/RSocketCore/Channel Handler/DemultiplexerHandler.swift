@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 /// The role of a connection
 internal enum ConnectionRole {

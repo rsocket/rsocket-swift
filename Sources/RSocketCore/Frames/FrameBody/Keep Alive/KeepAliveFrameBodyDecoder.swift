@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 internal struct KeepAliveFrameBodyDecoder: FrameBodyDecoding {
     internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> KeepAliveFrameBody {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct CancelFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: CancelFrameBody, into buffer: inout ByteBuffer) throws { }

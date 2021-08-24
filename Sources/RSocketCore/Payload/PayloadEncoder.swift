@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal protocol PayloadEncoding {
     func encode(payload: Payload, to buffer: inout ByteBuffer) throws

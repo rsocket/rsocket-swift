@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 @usableFromInline
 internal enum RSocketLengthPrefixError: Swift.Error {

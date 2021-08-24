@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 /// Information about a client which is about to connect or is connected.
 public struct SetupInfo {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 /// Writes a setup frame when the channel becomes active and removes itself immediately afterwards
 internal final class SetupWriter: ChannelInboundHandler, RemovableChannelHandler {

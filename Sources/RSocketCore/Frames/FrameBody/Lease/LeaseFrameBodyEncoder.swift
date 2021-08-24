@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct LeaseFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: LeaseFrameBody, into buffer: inout ByteBuffer) throws {

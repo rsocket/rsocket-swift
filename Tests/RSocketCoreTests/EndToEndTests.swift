@@ -159,8 +159,8 @@ class EndToEndTests: XCTestCase {
         let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
             XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int32(setup.timeout.timeBetweenKeepaliveFrames))
             XCTAssertEqual(clientInfo.maxLifetime, Int32(setup.timeout.maxLifetime))
-            XCTAssertEqual(clientInfo.metadataEncodingMimeType, setup.encoding.metadata.rawValue)
-            XCTAssertEqual(clientInfo.dataEncodingMimeType, setup.encoding.data.rawValue)
+            XCTAssertEqual(clientInfo.encoding.metadata, setup.encoding.metadata)
+            XCTAssertEqual(clientInfo.encoding.data, setup.encoding.data)
             clientDidConnect.fulfill()
             return .accept
         })

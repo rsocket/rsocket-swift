@@ -18,11 +18,77 @@ import ReactiveSwift
 import RSocketCore
 import NIOCore
 
-internal struct RequesterAdapter: RSocket {
+internal struct RequesterAdapter {
     internal let requester: RSocketCore.RSocket
     
     internal init(requester: RSocketCore.RSocket) {
         self.requester = requester
+    }
+}
+
+extension RequesterAdapter: RequesterRSocket {
+    func execute<Metadata>(_ metadataPush: MetadataPush<Metadata>, metadata: Metadata) throws {
+        let metadata = try metadataPush.encoder.encode(metadata)
+        self.metadataPush(metadata: metadata)
+    }
+
+    func execute<Request>(_ fireAndForget: FireAndForget<Request>, request: Request) throws {
+        var encoder = fireAndForget.encoder
+        let payload = try encoder.encode(request, encoding: encoding)
+        self.fireAndForget(payload: payload)
+    }
+
+    func build<Request, Response>(
+        _ requestResponse: RequestResponse<Request, Response>,
+        request: Request
+    ) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestResponse.encoder
+            var decoder = requestResponse.decoder
+            let payload = try encoder.encode(request, encoding: encoding)
+            return self.requestResponse(payload: payload).attemptMap { response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
+    }
+
+    func build<Request, Response>(
+        _ requestStream: RequestStream<Request, Response>,
+        request: Request
+    ) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestStream.encoder
+            var decoder = requestStream.decoder
+            let payload = try encoder.encode(request, encoding: encoding)
+            return self.requestStream(payload: payload).attemptMap { response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
+    }
+
+    func build<Request, Response>(
+        _ requestChannel: RequestChannel<Request, Response>,
+        initialRequest: Request,
+        producer: SignalProducer<Request, Swift.Error>?
+    ) -> SignalProducer<Response, Swift.Error> {
+        SignalProducer { () throws -> SignalProducer<Response, Swift.Error> in
+            var encoder = requestChannel.encoder
+            var decoder = requestChannel.decoder
+            let payload = try encoder.encode(initialRequest, encoding: encoding)
+            let payloadProducer = producer?.attemptMap { data in
+                try encoder.encode(data, encoding: encoding)
+            }
+            return self.requestChannel(payload: payload, payloadProducer: payloadProducer).attemptMap{ response in
+                try decoder.decode(response, encoding: encoding)
+            }
+        }.flatten(.latest)
+    }
+}
+
+
+extension RequesterAdapter {
+    internal var encoding: ConnectionEncoding {
+        requester.encoding
     }
     
     internal func metadataPush(metadata: ByteBuffer) {

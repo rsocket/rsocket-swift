@@ -14,14 +14,26 @@
  * limitations under the License.
  */
 
-import NIOCore
+import Foundation
+import NIO
 
-public struct CompositeMetadata: Equatable {
-    public var mimeType: MIMEType
-    public var data: ByteBuffer
-    public init(mimeType: MIMEType, data: ByteBuffer) {
-        self.mimeType = mimeType
-        self.data = data
+public struct OctetStreamMetadataEncoder: MetadataEncoder {
+    public typealias Metadata = Data?
+
+    @inlinable
+    public init() {}
+
+    @inlinable
+    public var mimeType: MIMEType { .applicationOctetStream }
+
+    @inlinable
+    public func encode(_ metadata: Data?, into buffer: inout ByteBuffer) throws {
+        guard let metadata = metadata else { return }
+        buffer.writeData(metadata)
     }
 }
 
+extension MetadataEncoder where Self == OctetStreamMetadataEncoder {
+    @inlinable
+    public static var octetStream: Self { .init() }
+}

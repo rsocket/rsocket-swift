@@ -32,7 +32,19 @@ public struct RootCompositeMetadataEncoder: MetadataEncoder {
     
     @inlinable
     public func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+        for compositeMetadata in metadata {
+            try encodeSingleCompositeMetadata(compositeMetadata, into: &buffer)
+        }
+    }
+    
+    @inlinable
+    internal func encodeSingleCompositeMetadata(
+        _ metadata: CompositeMetadata, 
+        into buffer: inout ByteBuffer
+    ) throws {
+        try mimeTypeEncoder.encode(metadata.mimeType, into: &buffer)
+        try buffer.writeUInt24WithBoundsCheck(metadata.data.count)
+        buffer.writeData(metadata.data)
     }
 }
 

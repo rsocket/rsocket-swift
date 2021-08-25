@@ -29,6 +29,7 @@ fileprivate final class NoOpStream: UnidirectionalStream {
 
 /// An RSocket which rejects all incoming requests (requestResponse, stream and channel) and ignores metadataPush and fireAndForget events.
 internal struct DefaultRSocket: RSocket {
+    let encoding: ConnectionEncoding
     func metadataPush(metadata: ByteBuffer) {}
     func fireAndForget(payload: Payload) {}
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {

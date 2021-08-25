@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
+
+import ReactiveSwift
+import RSocketCore
 import NIOCore
 
-public struct CompositeMetadata: Equatable {
-    public var mimeType: MIMEType
-    public var data: ByteBuffer
-    public init(mimeType: MIMEType, data: ByteBuffer) {
-        self.mimeType = mimeType
-        self.data = data
-    }
+public protocol ResponderRSocket {
+    func metadataPush(metadata: ByteBuffer)
+    func fireAndForget(payload: Payload)
+    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestChannel(
+        payload: Payload,
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
+    ) -> SignalProducer<Payload, Swift.Error>
 }
 
+public typealias Payload = RSocketCore.Payload
+
+public typealias Error = RSocketCore.Error

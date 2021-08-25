@@ -18,6 +18,9 @@ import NIOCore
 
 public struct RoutingEncoder: MetadataEncoder {
     public typealias Metadata = RouteMetadata
+
+    @inlinable
+    public init() {}
     
     @inlinable
     public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
@@ -26,7 +29,7 @@ public struct RoutingEncoder: MetadataEncoder {
     public func encode(_ metadata: RouteMetadata, into buffer: inout ByteBuffer) throws {
         for tag in metadata.tags {
             do {
-                try buffer.writeLengthPrefix(as: UInt8.self) { buffer in
+                try buffer.writeLengthPrefixed(as: UInt8.self) { buffer in
                     buffer.writeString(tag)
                 }
             } catch {

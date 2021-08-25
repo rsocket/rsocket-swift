@@ -7,14 +7,6 @@ import RSocketNIOChannel
 import RSocketReactiveSwift
 import RSocketWSTransport
 
-func route(_ route: String) throws -> ByteBuffer {
-    var buffer = ByteBuffer()
-    try buffer.writeLengthPrefixed(as: UInt8.self) { buffer in
-        buffer.writeString(route)
-    }
-    return buffer
-}
-
 extension URL: ExpressibleByArgument {
     public init?(argument: String) {
         guard let url = URL(string: argument) else { return nil }
@@ -45,11 +37,12 @@ struct TimerClientExample: ParsableCommand {
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
 
-        try client.requester.requestStream(payload: Payload(
-            metadata: route("timer"),
-            data: ByteBuffer()
-        ))
-        .map() { String(decoding: $0.data.readableBytesView, as: UTF8.self) }
+        try client.requester.build(RequestStream {
+            Encoder()
+                .encodeStaticMetadata("timer", using: RoutingEncoder())
+            Decoder()
+                .mapData { String(buffer: $0) }
+        }, request: ByteBuffer())
         .logEvents(identifier: "route.timer")
         .take(first: limit)
         .wait()

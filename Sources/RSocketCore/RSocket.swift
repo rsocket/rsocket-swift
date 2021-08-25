@@ -17,8 +17,10 @@
 import NIOCore
 
 public protocol RSocket {
-    func metadataPush(metadata: ByteBuffer)
+    var encoding: ConnectionEncoding { get }
     
+    func metadataPush(metadata: ByteBuffer)
+
     func fireAndForget(payload: Payload)
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable

@@ -18,11 +18,14 @@ import ReactiveSwift
 import RSocketCore
 import NIOCore
 
-internal struct ResponderAdapter: RSocketCore.RSocket {
-    private let responder: RSocket
+internal struct ResponderAdapter: RSocketCore.RSocket {    
+    private let responder: ResponderRSocket
+    
+    internal var encoding: ConnectionEncoding
 
-    internal init(responder: RSocket) {
+    internal init(responder: ResponderRSocket, encoding: ConnectionEncoding) {
         self.responder = responder
+        self.encoding = encoding
     }
 
     func metadataPush(metadata: ByteBuffer) {

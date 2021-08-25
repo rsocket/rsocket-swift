@@ -19,7 +19,7 @@ import ReactiveSwift
 import NIOCore
 import RSocketReactiveSwift
 
-final class TestRSocket: RSocketReactiveSwift.RSocket {
+final class TestRSocket: RSocketReactiveSwift.ResponderRSocket {
     var metadataPushCallback: (ByteBuffer) -> ()
     var fireAndForgetCallback: (Payload) -> ()
     var requestResponseCallback: (Payload) -> SignalProducer<Payload, Swift.Error>

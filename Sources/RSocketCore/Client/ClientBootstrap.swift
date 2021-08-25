@@ -21,6 +21,8 @@ public protocol ClientBootstrap {
     associatedtype Responder
     associatedtype Transport: TransportChannelHandler
     
+    var config: ClientConfiguration { get }
+    
     /// Creates a new connection to the given `endpoint`.
     /// - Parameters:
     ///   - endpoint: endpoint to connect to

@@ -43,27 +43,7 @@ public struct SetupInfo {
     /// Token used for client resume identification
     public let resumeIdentificationToken: ByteBuffer?
 
-    /**
-     MIME Type for encoding of Metadata
-
-     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-     Many are registered with IANA such as CBOR.
-     Suffix rules MAY be used for handling layout.
-     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-     The string MUST NOT be null terminated.
-     */
-    public let metadataEncodingMimeType: String
-
-    /**
-     MIME Type for encoding of Data
-
-     This SHOULD be a US-ASCII string that includes the Internet media type specified in RFC 2045.
-     Many are registered with IANA such as CBOR.
-     Suffix rules MAY be used for handling layout.
-     For example, `application/x.netflix+cbor` or `application/x.reactivesocket+cbor` or `application/x.netflix+json`.
-     The string MUST NOT be null terminated.
-     */
-    public let dataEncodingMimeType: String
+    public let encoding: ConnectionEncoding
 
     /// Payload of this frame describing connection capabilities of the endpoint sending the Setup header
     public let payload: Payload
@@ -113,8 +93,10 @@ extension SetupInfo {
         self.timeBetweenKeepaliveFrames = setup.timeBetweenKeepaliveFrames
         self.maxLifetime = setup.maxLifetime
         self.resumeIdentificationToken = setup.resumeIdentificationToken
-        self.metadataEncodingMimeType = setup.metadataEncodingMimeType
-        self.dataEncodingMimeType = setup.dataEncodingMimeType
+        self.encoding = .init(
+            metadata: .init(rawValue: setup.metadataEncodingMimeType), 
+            data: .init(rawValue: setup.dataEncodingMimeType)
+        )
         self.payload = setup.payload
     }
 }

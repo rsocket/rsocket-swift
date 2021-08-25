@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 
 extension Encoders {
     public struct StaticMetadataEncoder<Encoder, MetadataEncoder>: EncoderProtocol where

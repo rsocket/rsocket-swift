@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import Foundation
 import NIOCore
+import Foundation
 import NIOFoundationCompat
 
 public struct JSONDataDecoder<Data: Decodable>: DataDecoderProtocol {

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 
 extension Decoders {
     public struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {

@@ -15,7 +15,6 @@
  */
 
 import NIOCore
-import Foundation
 
 public protocol MetadataEncoder: CompositeMetadataEncoder {
     associatedtype Metadata

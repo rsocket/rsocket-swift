@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
+import Foundation
+
 public struct MetadataPush<Metadata> {
     public let encoder: AnyMetadataEncoder<Metadata>
 }
 
 extension MetadataPush {
+    @inlinable
+    public init() where Metadata == Data? {
+        self.init(using: OctetStreamMetadataEncoder())
+    }
     @inlinable
     public init<Encoder>(
         using metadataEncoder: Encoder
@@ -30,7 +36,7 @@ extension MetadataPush {
     public init<Encoder>(
         @CompositeMetadataEncoderBuilder _ makeEncoder: () -> Encoder
     ) where 
-    Encoder: MetadataEncoder, 
+    Encoder: MetadataEncoder,
     Encoder.Metadata == Metadata
     {
         encoder = makeEncoder().eraseToAnyMetadataEncoder()
@@ -42,6 +48,12 @@ public struct FireAndForget<Request> {
 }
 
 extension FireAndForget {
+    @inlinable
+    public init() where Request == Data {
+        self.init { Encoder() }
+    }
+
+    @inlinable
     public init<Encoder>(
         @EncoderBuilder _ makeEncoder: () -> Encoder
     ) where 
@@ -59,6 +71,11 @@ public struct RequestResponse<Request, Response> {
 }
 
 extension RequestResponse {
+    @inlinable
+    public init() where Request == Data, Response == Data {
+        self.init { Coder() }
+    }
+
     @inlinable
     public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
@@ -79,6 +96,11 @@ public struct RequestStream<Request, Response> {
 
 extension RequestStream {
     @inlinable
+    public init() where Request == Data, Response == Data {
+        self.init { Coder() }
+    }
+
+    @inlinable
     public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>
     ) where
@@ -97,6 +119,11 @@ public struct RequestChannel<Request, Response> {
 }
 
 extension RequestChannel {
+    @inlinable
+    public init() where Request == Data, Response == Data {
+        self.init { Coder() }
+    }
+
     @inlinable
     public init<Encoder, Decoder>(
         @CoderBuilder _ makeCoder: () -> Coder<Decoder, Encoder>

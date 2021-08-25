@@ -15,16 +15,25 @@
  */
 
 import Foundation
+import NIO
 
-public protocol RSocket {
-    var encoding: ConnectionEncoding { get }
-    func metadataPush(metadata: Data)
-    
-    func fireAndForget(payload: Payload)
-    
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable
-    
-    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
-    
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream
+public struct OctetStreamMetadataEncoder: MetadataEncoder {
+    public typealias Metadata = Data?
+
+    @inlinable
+    public init() {}
+
+    @inlinable
+    public var mimeType: MIMEType { .applicationOctetStream }
+
+    @inlinable
+    public func encode(_ metadata: Data?, into buffer: inout ByteBuffer) throws {
+        guard let metadata = metadata else { return }
+        buffer.writeData(metadata)
+    }
+}
+
+extension MetadataEncoder where Self == OctetStreamMetadataEncoder {
+    @inlinable
+    public static var octetStream: Self { .init() }
 }

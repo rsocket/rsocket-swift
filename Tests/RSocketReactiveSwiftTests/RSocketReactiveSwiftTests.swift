@@ -15,6 +15,7 @@
  */
 
 import XCTest
+import NIOCore
 import ReactiveSwift
 import RSocketCore
 import RSocketTestUtilities
@@ -35,7 +36,7 @@ func setup(
 
 final class RSocketReactiveSwiftTests: XCTestCase {
     func testMetadataPush() {
-        let metadata = Data(String("Hello World").utf8)
+        let metadata = ByteBuffer(bytes: String("Hello World").utf8)
         let didReceiveRequest = expectation(description: "did receive request")
         let serverResponder = TestRSocket(metadataPush: { data in
             didReceiveRequest.fulfill()

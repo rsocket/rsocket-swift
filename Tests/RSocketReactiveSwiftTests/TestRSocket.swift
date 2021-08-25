@@ -16,18 +16,18 @@
 
 import RSocketCore
 import ReactiveSwift
-import Foundation
+import NIOCore
 import RSocketReactiveSwift
 
 final class TestRSocket: RSocketReactiveSwift.RSocket {
-    var metadataPushCallback: (Data) -> ()
+    var metadataPushCallback: (ByteBuffer) -> ()
     var fireAndForgetCallback: (Payload) -> ()
     var requestResponseCallback: (Payload) -> SignalProducer<Payload, Swift.Error>
     var requestStreamCallback: (Payload) -> SignalProducer<Payload, Swift.Error>
     var requestChannelCallback: (Payload, SignalProducer<Payload, Swift.Error>?) -> SignalProducer<Payload, Swift.Error>
     
     internal init(
-        metadataPush: @escaping (Data) -> () = { _ in },
+        metadataPush: @escaping (ByteBuffer) -> () = { _ in },
         fireAndForget: @escaping (Payload) -> () = { _ in },
         requestResponse: @escaping (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never },
         requestStream: @escaping (Payload) -> SignalProducer<Payload, Swift.Error> = { _ in .never },
@@ -40,7 +40,7 @@ final class TestRSocket: RSocketReactiveSwift.RSocket {
         self.requestChannelCallback = requestChannel
     }
     
-    func metadataPush(metadata: Data) { metadataPushCallback(metadata) }
+    func metadataPush(metadata: ByteBuffer) { metadataPushCallback(metadata) }
     func fireAndForget(payload: Payload) { fireAndForgetCallback(payload) }
     func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error> { requestResponseCallback(payload) }
     func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error> { requestStreamCallback(payload) }

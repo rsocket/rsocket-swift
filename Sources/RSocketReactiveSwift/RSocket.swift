@@ -17,10 +17,10 @@
 
 import ReactiveSwift
 import RSocketCore
-import Foundation
+import NIOCore
 
 public protocol RSocket {
-    func metadataPush(metadata: Data)
+    func metadataPush(metadata: ByteBuffer)
     func fireAndForget(payload: Payload)
     func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
     func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>

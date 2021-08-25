@@ -16,7 +16,7 @@
 
 import ReactiveSwift
 import RSocketCore
-import Foundation
+import NIOCore
 
 internal struct ResponderAdapter: RSocketCore.RSocket {
     private let responder: RSocket
@@ -25,7 +25,7 @@ internal struct ResponderAdapter: RSocketCore.RSocket {
         self.responder = responder
     }
 
-    func metadataPush(metadata: Data) {
+    func metadataPush(metadata: ByteBuffer) {
         responder.metadataPush(metadata: metadata)
     }
     

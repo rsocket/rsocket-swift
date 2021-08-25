@@ -46,7 +46,7 @@ extension Decoders {
 extension DecoderProtocol where Data == ByteBuffer {
     @inlinable
     public func asData(
-        byteTransferStrategy: ByteBuffer.ByteTransferStrategy
+        byteTransferStrategy: ByteBuffer.ByteTransferStrategy = .automatic
     ) -> Decoders.AsData<Self> {
         .init(decoder: self, byteTransferStrategy: byteTransferStrategy)
     }

@@ -17,7 +17,7 @@
 import Foundation
 import NIO
 
-public struct CompositeMetadata {
+public struct CompositeMetadata: Equatable {
     public var mimeType: MIMEType
     public var data: Data
     public init(mimeType: MIMEType, data: Data) {

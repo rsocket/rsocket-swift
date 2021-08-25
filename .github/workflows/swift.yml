@@ -9,10 +9,11 @@ on:
 jobs:
   test-on-macOS-and-iOS:
     runs-on: macos-11
-
     steps:
     - uses: actions/checkout@v2
-        
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 12.5.1
     - name: Test on iOS Simulator
       run: >
         xcodebuild test
@@ -31,12 +32,29 @@ jobs:
         -skip-testing:RSocketCorePerformanceTests
         -parallel-testing-enabled
         -destination 'platform=macOS'
+
+  test-on-macOS-with-Xcode-13-Beta:
+    runs-on: macos-11
+    steps:
+    - uses: actions/checkout@v2
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 13.0
+        
+    - name: Test on macOS
+      run: swift test
         
   performance-tests-on-macOS:
     runs-on: macos-11
+    strategy:
+      matrix:
+        xcode: ['12.5.1', '13.0']
 
     steps:
     - uses: actions/checkout@v2
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ matrix.xcode }}
     - name: Build & Run Performance Tests on macOS
       run: >
         swift test

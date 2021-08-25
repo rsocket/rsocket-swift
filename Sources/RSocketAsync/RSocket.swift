@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-
-import ReactiveSwift
-import RSocketCore
+#if compiler(>=5.5)
 import Foundation
+import RSocketCore
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 public protocol RSocket {
     func metadataPush(metadata: Data)
     func fireAndForget(payload: Payload)
-    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
-    func requestChannel(
-        payload: Payload,
-        payloadProducer: SignalProducer<Payload, Swift.Error>?
-    ) -> SignalProducer<Payload, Swift.Error>
+    func requestResponse(payload: Payload) async throws -> Payload
+    func requestStream(payload: Payload) -> AsyncThrowingStream<Payload, Swift.Error>
+    func requestChannel<PayloadSequence>(
+        initialPayload: Payload, 
+        payloadStream: PayloadSequence?
+    ) -> AsyncThrowingStream<Payload, Swift.Error> 
+    where PayloadSequence: AsyncSequence, PayloadSequence.Element == Payload
 }
 
-public typealias Payload = RSocketCore.Payload
-
-public typealias Error = RSocketCore.Error
+#endif

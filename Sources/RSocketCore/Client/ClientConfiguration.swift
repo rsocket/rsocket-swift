@@ -57,27 +57,6 @@ public struct ClientConfiguration {
         }
     }
     
-    /// encoding configuration of metadata and data which is send to the server during setup
-    public struct Encoding {
-        
-        /// default encoding uses `.octetStream` for metadata and data
-        public static let `default` = Encoding()
-        
-        /// MIME Type for encoding of Metadata
-        public var metadata: MIMEType
-        
-        /// MIME Type for encoding of Data
-        public var data: MIMEType
-        
-        public init(
-            metadata: MIMEType = .default,
-            data: MIMEType = .default
-        ) {
-            self.metadata = metadata
-            self.data = data
-        }
-    }
-    
     /// local fragmentation configuration which are **not** send to the server
     public struct Fragmentation {
         
@@ -109,14 +88,14 @@ public struct ClientConfiguration {
     public var timeout: Timeout
     
     /// encoding configuration of metadata and data which is send to the server during setup
-    public var encoding: Encoding
+    public var encoding: ConnectionEncoding
     
     /// local fragmentation configuration which are **not** send to the server
     public var fragmentation: Fragmentation
     
     public init(
         timeout: Timeout,
-        encoding: Encoding = .default,
+        encoding: ConnectionEncoding = .default,
         fragmentation: Fragmentation = .default
     ) {
         self.timeout = timeout

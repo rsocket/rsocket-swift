@@ -6,14 +6,6 @@ import RSocketNIOChannel
 import RSocketReactiveSwift
 import RSocketWSTransport
 
-func route(_ route: String) -> Data {
-    let encodedRoute = Data(route.utf8)
-    precondition(encodedRoute.count <= Int(UInt8.max), "route is to long to be encoded")
-    let encodedRouteLength = Data([UInt8(encodedRoute.count)])
-
-    return encodedRouteLength + encodedRoute
-}
-
 extension URL: ExpressibleByArgument {
     public init?(argument: String) {
         guard let url = URL(string: argument) else { return nil }
@@ -43,12 +35,12 @@ struct TimerClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
-
-        try client.requester.requestStream(payload: Payload(
-            metadata: route("timer"),
-            data: Data()
-        ))
-        .map() { String.init(decoding: $0.data, as: UTF8.self) }
+        try client.requester(RequestStream {
+            Encoder()
+                .encodeStaticMetadata("timer", using: RoutingEncoder())
+            Decoder()
+                .mapData { String(decoding: $0, as: UTF8.self) }
+        }, request: Data())
         .logEvents(identifier: "route.timer")
         .take(first: limit)
         .wait()

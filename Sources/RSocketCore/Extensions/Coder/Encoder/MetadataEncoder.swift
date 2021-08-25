@@ -29,7 +29,7 @@ extension MetadataDecoder {
         var buffer = ByteBuffer(data: data)
         let metadata = try self.decode(from: &buffer)
         guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
+            throw Error.invalid(message: "\(Self.self) did not read all bytes")
         }
         return metadata
     }

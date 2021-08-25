@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
+
+import ReactiveSwift
+import RSocketCore
 import Foundation
 
-public protocol RSocket {
-    var encoding: ConnectionEncoding { get }
+public protocol ResponderRSocket {
     func metadataPush(metadata: Data)
-    
     func fireAndForget(payload: Payload)
-    
-    func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable
-    
-    func stream(payload: Payload, initialRequestN: Int32, responderStream: UnidirectionalStream) -> Subscription
-    
-    func channel(payload: Payload, initialRequestN: Int32, isCompleted: Bool, responderStream: UnidirectionalStream) -> UnidirectionalStream
+    func requestResponse(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestStream(payload: Payload) -> SignalProducer<Payload, Swift.Error>
+    func requestChannel(
+        payload: Payload,
+        payloadProducer: SignalProducer<Payload, Swift.Error>?
+    ) -> SignalProducer<Payload, Swift.Error>
 }
+
+public typealias Payload = RSocketCore.Payload
+
+public typealias Error = RSocketCore.Error

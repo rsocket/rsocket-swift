@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 import NIOCore
 
 internal struct KeepAliveFrameBodyDecoder: FrameBodyDecoding {
@@ -22,16 +21,10 @@ internal struct KeepAliveFrameBodyDecoder: FrameBodyDecoding {
         guard let lastReceivedPosition: Int64 = buffer.readInteger() else {
             throw Error.connectionError(message: "Frame is not big enough")
         }
-        let data: Data
-        if buffer.readableBytes > 0 {
-            data = buffer.readData(length: buffer.readableBytes) ?? Data()
-        } else {
-            data = Data()
-        }
         return KeepAliveFrameBody(
             respondWithKeepalive: header.flags.contains(.keepAliveRespond),
             lastReceivedPosition: lastReceivedPosition,
-            data: data
+            data: buffer.readSlice(length: buffer.readableBytes) ?? ByteBuffer()
         )
     }
 }

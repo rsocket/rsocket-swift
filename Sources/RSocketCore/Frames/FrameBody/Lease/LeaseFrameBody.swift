@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /**
  Lease frames MAY be sent by the client-side or server-side Responders and inform the Requester that it may
@@ -39,7 +39,7 @@ internal struct LeaseFrameBody: Hashable {
     internal var numberOfRequests: Int32
 
     /// Optional metadata of this frame
-    internal var metadata: Data?
+    internal var metadata: ByteBuffer?
 }
 
 extension LeaseFrameBody: FrameBodyBoundToConnection {

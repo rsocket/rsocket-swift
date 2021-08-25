@@ -37,7 +37,7 @@ final class KeepaliveHandlerTests: XCTestCase {
     func testKeepAliveRespondBack() throws {
         let channel = EmbeddedChannel(handler: KeepaliveHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.server))
 
-        let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame()
+        let frame = KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: ByteBuffer()).asFrame()
         try channel.writeInbound(frame)
 
         XCTAssertEqual(
@@ -50,7 +50,7 @@ final class KeepaliveHandlerTests: XCTestCase {
     func testKeepAliveNoResponseBack() throws {
         let channel = EmbeddedChannel(handler: KeepaliveHandler(timeBetweenKeepaliveFrames: 1, maxLifetime: 2, connectionSide: ConnectionRole.client))
 
-        let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
+        let frame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: ByteBuffer()).asFrame()
         try channel.writeInbound(frame)
 
         XCTAssertNil(try channel.readOutbound(as: Frame.self), "Shouldn't have received a KeepAliveFrame in response")
@@ -118,7 +118,7 @@ final class KeepaliveHandlerTests: XCTestCase {
         
         XCTAssertEqual(
             try channel.readOutbound(as: Frame.self),
-            KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: Data()).asFrame(),
+            KeepAliveFrameBody(respondWithKeepalive: true, lastReceivedPosition: 0, data: ByteBuffer()).asFrame(),
             "Should send KeepAliveFrame"
         )
         XCTAssertTrue(try channel.finish().isClean)

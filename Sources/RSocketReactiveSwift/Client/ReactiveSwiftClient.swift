@@ -20,7 +20,7 @@ import ReactiveSwift
 public struct ReactiveSwiftClient: Client {
     private let coreClient: CoreClient
 
-    public var requester: RSocketReactiveSwift.RSocket { RequesterAdapter(requester: coreClient.requester) }
+    public var requester: RSocketReactiveSwift.RequesterRSocket { RequesterAdapter(requester: coreClient.requester) }
 
     public init(_ coreClient: CoreClient) {
         self.coreClient = coreClient
@@ -31,10 +31,11 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
     public func connect(
         to endpoint: Transport.Endpoint,
         payload: Payload = .empty,
-        responder: RSocketReactiveSwift.RSocket? = nil
+        responder: RSocketReactiveSwift.ResponderRSocket? = nil
     ) -> SignalProducer<ReactiveSwiftClient, Swift.Error> {
         SignalProducer { observer, lifetime in
-            let future = connect(to: endpoint, payload: payload, responder: responder?.coreAdapter)
+            let responder = responder.map { ResponderAdapter(responder: $0, encoding: config.encoding) }
+            let future = connect(to: endpoint, payload: payload, responder: responder)
                 .map(ReactiveSwiftClient.init)
             future.whenComplete { result in
                 switch result {
@@ -46,11 +47,5 @@ extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.R
                 }
             }
         }
-    }
-}
-
-private extension RSocketReactiveSwift.RSocket {
-    var coreAdapter: RSocketCore.RSocket {
-        ResponderAdapter(responder: self)
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal protocol FrameEncoding {
     func encode(frame: Frame, into buffer: inout ByteBuffer) throws

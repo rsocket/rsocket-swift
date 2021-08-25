@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 extension ChannelPipeline {
     public func addRSocketClientHandlers(

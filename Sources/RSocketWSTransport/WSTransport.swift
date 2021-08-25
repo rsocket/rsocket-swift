@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 import NIOHTTP1
 import NIOWebSocket
 import RSocketCore

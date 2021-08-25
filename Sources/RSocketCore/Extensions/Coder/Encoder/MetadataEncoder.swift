@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 import Foundation
 
 public protocol MetadataDecoder: CompositeMetadataDecoder {

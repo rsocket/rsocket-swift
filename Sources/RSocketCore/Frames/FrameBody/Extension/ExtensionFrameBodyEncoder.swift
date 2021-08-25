@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct ExtensionFrameBodyEncoder: FrameBodyEncoding {
     private let payloadEncoder: PayloadEncoding

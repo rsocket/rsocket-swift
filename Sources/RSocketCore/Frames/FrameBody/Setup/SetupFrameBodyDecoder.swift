@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 import NIOFoundationCompat
 
 internal struct SetupFrameBodyDecoder: FrameBodyDecoding {

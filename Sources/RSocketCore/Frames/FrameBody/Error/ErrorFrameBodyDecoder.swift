@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct ErrorFrameBodyDecoder: FrameBodyDecoding {
     internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> ErrorFrameBody {

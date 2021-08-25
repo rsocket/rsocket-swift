@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 public struct CompositeMetadata: Equatable {
     public var mimeType: MIMEType

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct RequestResponseFrameBodyDecoder: FrameBodyDecoding {
     private let payloadDecoder: PayloadDecoding

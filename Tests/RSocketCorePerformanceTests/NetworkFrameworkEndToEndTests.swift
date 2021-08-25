@@ -16,7 +16,7 @@
 
 #if canImport(Network)
 import XCTest
-import NIO
+import NIOCore
 import NIOExtras
 import RSocketCore
 import RSocketTestUtilities

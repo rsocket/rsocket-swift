@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 public struct RootCompositeMetadataEncoder: MetadataEncoder {
     public typealias Metadata = [CompositeMetadata]

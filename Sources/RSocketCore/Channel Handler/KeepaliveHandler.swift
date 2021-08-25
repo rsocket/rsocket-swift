@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 final class KeepaliveHandler {
     private var keepAliveHandle: RepeatedTask?

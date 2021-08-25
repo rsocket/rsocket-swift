@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
 
 internal struct MetadataPushFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: MetadataPushFrameBody, into buffer: inout ByteBuffer) throws {

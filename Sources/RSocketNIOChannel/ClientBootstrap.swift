@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import NIO
+import NIOCore
+import NIOPosix
 import NIOSSL
 import RSocketCore
 
 final public class ClientBootstrap<Transport: TransportChannelHandler> {
     private let group: EventLoopGroup
-    private let bootstrap: NIO.ClientBootstrap
+    private let bootstrap: NIOPosix.ClientBootstrap
     public let config: ClientConfiguration
     private let transport: Transport
     private let sslContext: NIOSSLContext?
@@ -33,7 +34,7 @@ final public class ClientBootstrap<Transport: TransportChannelHandler> {
     ) {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.config = config
-        bootstrap = NIO.ClientBootstrap(group: group)
+        bootstrap = NIOPosix.ClientBootstrap(group: group)
             .connectTimeout(timeout)
             .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
         self.sslContext = sslContext
@@ -41,7 +42,7 @@ final public class ClientBootstrap<Transport: TransportChannelHandler> {
     }
 
     @discardableResult
-    public func configure(bootstrap configure: (NIO.ClientBootstrap) -> NIO.ClientBootstrap) -> Self {
+    public func configure(bootstrap configure: (NIOPosix.ClientBootstrap) -> NIOPosix.ClientBootstrap) -> Self {
         _ = configure(bootstrap)
         return self
     }

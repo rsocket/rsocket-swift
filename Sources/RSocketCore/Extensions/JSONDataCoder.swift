@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 import NIOFoundationCompat
 
 public struct JSONDataDecoder<Data: Decodable>: DataDecoderProtocol {

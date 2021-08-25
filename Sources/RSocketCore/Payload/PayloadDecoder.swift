@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import NIO
+import NIOCore
 
 internal protocol PayloadDecoding {
     func decode(from buffer: inout ByteBuffer, hasMetadata: Bool) throws -> Payload

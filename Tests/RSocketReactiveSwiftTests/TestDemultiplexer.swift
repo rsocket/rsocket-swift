@@ -15,7 +15,7 @@
  */
 
 import XCTest
-import NIO
+import NIOEmbedded
 @testable import RSocketCore
 
 struct TestDemultiplexer {

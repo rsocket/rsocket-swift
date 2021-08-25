@@ -17,6 +17,7 @@
 import Foundation
 
 public protocol RSocket {
+    var encoding: ConnectionEncoding { get }
     func metadataPush(metadata: Data)
     
     func fireAndForget(payload: Payload)

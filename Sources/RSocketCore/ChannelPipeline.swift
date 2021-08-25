@@ -46,7 +46,13 @@ extension ChannelPipeline {
             self?.writeAndFlush(NIOAny(frame), promise: nil)
         }
         let promise = eventLoop.makePromise(of: Void.self)
-        let requester = Requester(streamIdGenerator: .client, eventLoop: eventLoop, sendFrame: sendFrame)
+        let requester = Requester(
+            streamIdGenerator: .client, 
+            encoding: config.encoding, 
+            eventLoop: eventLoop, 
+            sendFrame: sendFrame
+        )
+        let responder = responder ?? DefaultRSocket(encoding: config.encoding)
         promise.futureResult.map { requester as RSocket }.cascade(to: connectedPromise)
         let (timeBetweenKeepaliveFrames, maxLifetime): (Int32, Int32)
         do {
@@ -108,14 +114,14 @@ extension ChannelPipeline {
             FrameEncoderHandler(maximumFrameSize: maximumFrameSize),
             ConnectionStateHandler(),
             ConnectionEstablishmentHandler(initializeConnection: { [unowned self] (info, channel) in
-                let responder = makeResponder?(info)
+                let responder = makeResponder?(info) ?? DefaultRSocket(encoding: info.encoding)
                 let sendFrame: (Frame) -> () = { [weak self] frame in
                     self?.writeAndFlush(NIOAny(frame), promise: nil)
                 }
                 return channel.pipeline.addHandlers([
                     DemultiplexerHandler(
                         connectionSide: .server,
-                        requester: Requester(streamIdGenerator: .server, eventLoop: eventLoop, sendFrame: sendFrame),
+                        requester: Requester(streamIdGenerator: .server, encoding: info.encoding, eventLoop: eventLoop, sendFrame: sendFrame),
                         responder: Responder(responderSocket: responder, eventLoop: eventLoop, sendFrame: sendFrame)
                     ),
                     KeepaliveHandler(timeBetweenKeepaliveFrames: info.timeBetweenKeepaliveFrames, maxLifetime: info.maxLifetime, connectionSide: ConnectionRole.server),

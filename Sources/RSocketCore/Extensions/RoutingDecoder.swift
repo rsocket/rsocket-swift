@@ -18,7 +18,10 @@ import NIOCore
 
 public struct RoutingDecoder: MetadataDecoder {
     public typealias Metadata = RouteMetadata
-    
+
+    @inlinable
+    public init() {}
+
     @inlinable
     public var mimeType: MIMEType { .messageXRSocketRoutingV0 }
     
@@ -26,10 +29,9 @@ public struct RoutingDecoder: MetadataDecoder {
     public func decode(from buffer: inout ByteBuffer) throws -> RouteMetadata {
         var tags = [String]()
         while buffer.readableBytes != 0 {
-            guard let length = buffer.readInteger(as: UInt8.self) else {
-                throw Error.invalid(message: "route tag length could not be read")
-            }
-            guard let tag = buffer.readString(length: Int(length)) else {
+            guard var slice = buffer.readLengthPrefixedSlice(as: UInt8.self),
+                  let tag = slice.readString(length: slice.readableBytes)
+            else {
                 throw Error.invalid(message: "route tag could not be read")
             }
             tags.append(tag)

@@ -18,6 +18,7 @@ import XCTest
 import RSocketCore
 
 public final class TestRSocket: RSocket {
+    public var encoding: ConnectionEncoding
     public var metadataPush: ((Data) -> ())? = nil
     public var fireAndForget: ((_ payload: Payload) -> ())? = nil
     public var requestResponse: ((_ payload: Payload, _ responderOutput: UnidirectionalStream) -> Cancellable)? = nil
@@ -33,9 +34,11 @@ public final class TestRSocket: RSocket {
         requestResponse: ((Payload, UnidirectionalStream) -> Cancellable)? = nil,
         stream: ((Payload, Int32, UnidirectionalStream) -> Subscription)? = nil,
         channel: ((Payload, Int32, Bool, UnidirectionalStream) -> UnidirectionalStream)? = nil,
+        encoding: ConnectionEncoding = .default,
         file: StaticString = #file,
         line: UInt = #line
     ) {
+        self.encoding = encoding
         self.metadataPush = metadataPush
         self.fireAndForget = fireAndForget
         self.requestResponse = requestResponse

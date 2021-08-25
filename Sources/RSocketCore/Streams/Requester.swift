@@ -18,6 +18,7 @@ import Foundation
 import NIOCore
 
 internal final class Requester {
+    internal let encoding: ConnectionEncoding
     private let sendFrame: (Frame) -> Void
     private let eventLoop: EventLoop
     private var streamIdGenerator: StreamIDGenerator
@@ -26,11 +27,13 @@ internal final class Requester {
 
     internal init(
         streamIdGenerator: StreamIDGenerator,
+        encoding: ConnectionEncoding,
         eventLoop: EventLoop,
         sendFrame: @escaping (Frame) -> Void,
         lateFrameHandler: ((Frame) -> ())? = nil
     ) {
         self.streamIdGenerator = streamIdGenerator
+        self.encoding = encoding
         self.eventLoop = eventLoop
         self.sendFrame = sendFrame
         self.lateFrameHandler = lateFrameHandler

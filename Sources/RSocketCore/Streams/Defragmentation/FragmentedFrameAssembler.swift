@@ -119,9 +119,9 @@ private struct Fragments {
                     return .error(reason: "Fragment has metadata even though previous fragments had data")
                 }
                 if metadata == nil {
+                    // previous fragments didn't have metadata or data
                     metadata = metadataFragment
                 } else {
-                    // previous fragments didn't have metadata or data
                     metadata?.writeBuffer(&metadataFragment)
                 }
             }

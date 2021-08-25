@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIOCore
 
 internal final class Requester {

@@ -15,6 +15,7 @@
  */
 
 import NIOCore
+import Foundation
 
 public protocol Endpoint {
     var host: String { get }

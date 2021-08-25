@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import Foundation
 import NIOCore
 
 /// Information about a client which is about to connect or is connected.

@@ -111,14 +111,18 @@ private struct Fragments {
         }
 
         // concatenate fragments
-        var metadata: ByteBuffer = initialPayload.metadata ?? ByteBuffer()
+        var metadata: ByteBuffer? = initialPayload.metadata
         var data: ByteBuffer = initialPayload.data
         for fragment in additionalFragments {
             if var metadataFragment = fragment.metadata {
                 guard data.readableBytes == 0 else {
                     return .error(reason: "Fragment has metadata even though previous fragments had data")
                 }
-                metadata.writeBuffer(&metadataFragment)
+                if metadata == nil {
+                    metadata = metadataFragment
+                } else {
+                    metadata?.writeBuffer(&metadataFragment)
+                }
             }
             var fragmentData = fragment.data
             data.writeBuffer(&fragmentData)

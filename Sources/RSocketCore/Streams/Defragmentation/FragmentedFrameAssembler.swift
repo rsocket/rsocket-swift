@@ -121,6 +121,7 @@ private struct Fragments {
                 if metadata == nil {
                     metadata = metadataFragment
                 } else {
+                    // previous fragments didn't have metadata or data
                     metadata?.writeBuffer(&metadataFragment)
                 }
             }

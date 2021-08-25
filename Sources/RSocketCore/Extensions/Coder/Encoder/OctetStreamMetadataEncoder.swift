@@ -18,7 +18,7 @@ import Foundation
 import NIO
 
 public struct OctetStreamMetadataEncoder: MetadataEncoder {
-    public typealias Metadata = Data?
+    public typealias Metadata = ByteBuffer?
 
     @inlinable
     public init() {}
@@ -27,9 +27,9 @@ public struct OctetStreamMetadataEncoder: MetadataEncoder {
     public var mimeType: MIMEType { .applicationOctetStream }
 
     @inlinable
-    public func encode(_ metadata: Data?, into buffer: inout ByteBuffer) throws {
-        guard let metadata = metadata else { return }
-        buffer.writeData(metadata)
+    public func encode(_ metadata: ByteBuffer?, into buffer: inout ByteBuffer) throws {
+        guard var metadata = metadata else { return }
+        buffer.writeBuffer(&metadata)
     }
 }
 

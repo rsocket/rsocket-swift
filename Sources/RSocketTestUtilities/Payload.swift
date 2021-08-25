@@ -23,8 +23,8 @@ extension Payload {
     /// - Parameter data: string that is encoded as UTF-8 and put into the data segment of the payload
     public init(metadata: String? = nil, data: String) {
         self.init(
-            metadata: metadata.map{ ByteBuffer(bytes: $0.utf8) },
-            data: ByteBuffer(bytes: data.utf8)
+            metadata: metadata.map{ ByteBuffer(string: $0) },
+            data: ByteBuffer(string: data)
         )
     }
     
@@ -43,8 +43,8 @@ extension Payload: ExpressibleByStringLiteral {
 
 extension Payload: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let dataDescription = String(bytes: data.readableBytesView, encoding: .utf8)?.debugDescription ?? data.debugDescription
-        let metadataDescription = metadata.map { String(bytes: $0.readableBytesView, encoding: .utf8)?.debugDescription ?? $0.debugDescription }
+        let dataDescription = String(buffer: data).debugDescription
+        let metadataDescription = metadata.map { String(buffer: $0).debugDescription }
         if let metadata = metadataDescription {
             return "Payload(metadata: \(metadata), data: \(dataDescription))"
         } else {

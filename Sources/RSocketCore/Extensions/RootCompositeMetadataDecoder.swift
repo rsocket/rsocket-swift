@@ -45,7 +45,7 @@ public struct RootCompositeMetadataDecoder: MetadataDecoder {
     ) throws -> CompositeMetadata {
         let mimeType = try mimeTypeDecoder.decode(from: &buffer)
         guard let metadataLength = buffer.readUInt24(),
-              let payload = buffer.readData(length: Int(metadataLength))
+              let payload = buffer.readSlice(length: Int(metadataLength))
         else {
             throw Error.invalid(message: "could not read Composite Metadata")
         }

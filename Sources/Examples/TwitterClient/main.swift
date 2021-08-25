@@ -5,13 +5,14 @@ import RSocketCore
 import RSocketNIOChannel
 import RSocketReactiveSwift
 import RSocketWSTransport
+import NIOCore
 
-func route(_ route: String) -> Data {
-    let encodedRoute = Data(route.utf8)
-    precondition(encodedRoute.count <= Int(UInt8.max), "route is to long to be encoded")
-    let encodedRouteLength = Data([UInt8(encodedRoute.count)])
-
-    return encodedRouteLength + encodedRoute
+func route(_ route: String) throws -> ByteBuffer {
+    var buffer = ByteBuffer()
+    try buffer.writeLengthPrefixed(as: UInt8.self) { buffer in
+        buffer.writeString(route)
+    }
+    return buffer
 }
 
 extension URL: ExpressibleByArgument {
@@ -48,8 +49,8 @@ struct TwitterClientExample: ParsableCommand {
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
 
         try client.requester.requestStream(payload: Payload(
-            metadata: route("searchTweets"),
-            data: Data(searchString.utf8)
+            metadata: try route("searchTweets"),
+            data: ByteBuffer(bytes: searchString.utf8)
         ))
         .attemptMap { payload -> String in
             // pretty print json

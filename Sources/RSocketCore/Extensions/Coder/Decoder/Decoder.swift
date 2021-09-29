@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol DecoderProtocol {
     associatedtype Metadata
@@ -33,7 +33,7 @@ public struct Decoder: DecoderProtocol {
     public func decode(
         _ payload: Payload, 
         encoding: ConnectionEncoding
-    ) throws -> (Data?, Data) {
+    ) throws -> (ByteBuffer?, ByteBuffer) {
         (payload.metadata, payload.data)
     }
 }

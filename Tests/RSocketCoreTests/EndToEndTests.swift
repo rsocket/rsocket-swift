@@ -177,10 +177,10 @@ class EndToEndTests: XCTestCase {
         let requester = try setupAndConnectServerAndClient(
             serverResponderSocket: TestRSocket(metadataPush: { metadata in
                 request.fulfill()
-                XCTAssertEqual(metadata, Data("Hello World".utf8))
+                XCTAssertEqual(metadata, ByteBuffer(string: "Hello World"))
             })
         )
-        requester.metadataPush(metadata: Data("Hello World".utf8))
+        requester.metadataPush(metadata: ByteBuffer(string: "Hello World"))
         self.wait(for: [request], timeout: 1)
     }
     func testFireAndForget() throws {

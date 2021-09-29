@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol MetadataDecodable {
     func decodeMetadata<Decoder>(
@@ -23,12 +23,13 @@ public protocol MetadataDecodable {
 }
 
 
-extension Data: MetadataDecodable {
+extension ByteBuffer: MetadataDecodable {
     @inlinable
     public func decodeMetadata<Decoder>(
         using metadataDecoder: Decoder
     ) throws -> Decoder.Metadata where Decoder : MetadataDecoder {
-        try metadataDecoder.decode(from: self)
+        var buffer = self
+        return try metadataDecoder.decode(from: &buffer)
     }
 }
 

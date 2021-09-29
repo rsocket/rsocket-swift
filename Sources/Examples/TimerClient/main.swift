@@ -1,5 +1,6 @@
-import ArgumentParser
 import Foundation
+import ArgumentParser
+import NIOCore
 import ReactiveSwift
 import RSocketCore
 import RSocketNIOChannel
@@ -35,12 +36,13 @@ struct TimerClientExample: ParsableCommand {
         )
         
         let client = try bootstrap.connect(to: .init(url: url)).first()!.get()
+
         try client.requester.build(RequestStream {
             Encoder()
                 .encodeStaticMetadata("timer", using: RoutingEncoder())
             Decoder()
-                .mapData { String(decoding: $0, as: UTF8.self) }
-        }, request: Data())
+                .mapData { String(buffer: $0) }
+        }, request: ByteBuffer())
         .logEvents(identifier: "route.timer")
         .take(first: limit)
         .wait()

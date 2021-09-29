@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
-
 public struct AnyEncoder<Metadata, Data>: EncoderProtocol {
     @usableFromInline
     internal var _encoderBox: _AnyEncoderBase<Metadata, Data>

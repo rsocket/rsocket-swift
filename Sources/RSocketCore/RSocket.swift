@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol RSocket {
     var encoding: ConnectionEncoding { get }
-    func metadataPush(metadata: Data)
     
+    func metadataPush(metadata: ByteBuffer)
+
     func fireAndForget(payload: Payload)
     
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable

@@ -54,7 +54,7 @@ extension KeepaliveHandler: ChannelInboundHandler {
         case let .keepalive(body):
             lastReceivedTime = now()
             if body.respondWithKeepalive {
-                let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: Data()).asFrame()
+                let keepAliveFrame = KeepAliveFrameBody(respondWithKeepalive: false, lastReceivedPosition: 0, data: ByteBuffer()).asFrame()
                 context.writeAndFlush(self.wrapOutboundOut(keepAliveFrame), promise: nil)
             }
         default:
@@ -94,7 +94,7 @@ extension KeepaliveHandler: ChannelInboundHandler {
                     respondWithKeepalive: true,
                     /// we do not support resumability yet, thus do not keep track of `lastReceivedPosition` and just always send 0
                     lastReceivedPosition: 0,
-                    data: Data()
+                    data: ByteBuffer()
                 ).asFrame()
                 return context.writeAndFlush(self.wrapOutboundOut(keepAliveFrame))
             }

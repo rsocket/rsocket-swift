@@ -43,8 +43,9 @@ public struct RootCompositeMetadataEncoder: MetadataEncoder {
         into buffer: inout ByteBuffer
     ) throws {
         try mimeTypeEncoder.encode(metadata.mimeType, into: &buffer)
-        try buffer.writeUInt24WithBoundsCheck(metadata.data.count)
-        buffer.writeData(metadata.data)
+        var data = metadata.data
+        try buffer.writeUInt24WithBoundsCheck(data.readableBytes)
+        buffer.writeBuffer(&data)
     }
 }
 

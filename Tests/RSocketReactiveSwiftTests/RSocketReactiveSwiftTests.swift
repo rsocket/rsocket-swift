@@ -15,14 +15,15 @@
  */
 
 import XCTest
+import NIOCore
 import ReactiveSwift
 import RSocketCore
 import RSocketTestUtilities
 @testable import RSocketReactiveSwift
 
-extension Data: ExpressibleByStringLiteral {
+extension ByteBuffer: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
-        self.init(value.utf8)
+        self.init(string: value)
     }
 }
 
@@ -42,7 +43,7 @@ func setup(
 
 final class RSocketReactiveSwiftTests: XCTestCase {
     func testMetadataPush() throws {
-        let metadata: Data = "Hello World"
+        let metadata = ByteBuffer(string: "Hello World")
         let didReceiveRequest = expectation(description: "did receive request")
         let serverResponder = TestRSocket(metadataPush: { data in
             didReceiveRequest.fulfill()
@@ -231,7 +232,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         let (_, client) = setup(server: serverResponder)
         let disposable = client.requester.build(RequestResponse(), request: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
-            return signal.flatMapError({ error -> Signal<Data, Never> in
+            return signal.flatMapError({ error -> Signal<ByteBuffer, Never> in
                 XCTFail("\(error)")
                 return .empty
             }).materialize().collect().observeValues { values in
@@ -260,7 +261,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         let (_, client) = setup(server: serverResponder)
         let disposable = client.requester.build(RequestStream(), request: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
-            return signal.flatMapError({ error -> Signal<Data, Never> in
+            return signal.flatMapError({ error -> Signal<ByteBuffer, Never> in
                 XCTFail("\(error)")
                 return .empty
             }).materialize().collect().observeValues { values in
@@ -311,7 +312,7 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             }
         })).startWithSignal { signal, _ -> Disposable? in
             requesterDidStartListeningChannelMessages.fulfill()
-            return signal.flatMapError({ error -> Signal<Data, Never> in
+            return signal.flatMapError({ error -> Signal<ByteBuffer, Never> in
                 XCTFail("\(error)")
                 return .empty
             }).materialize().collect().observeValues { values in

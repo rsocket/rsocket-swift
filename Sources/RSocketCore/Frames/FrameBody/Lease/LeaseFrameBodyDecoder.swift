@@ -25,13 +25,9 @@ internal struct LeaseFrameBodyDecoder: FrameBodyDecoding {
         guard let numberOfRequests: Int32 = buffer.readInteger() else {
             throw Error.connectionError(message: "Frame is not big enough")
         }
-        let metadata: Data?
+        let metadata: ByteBuffer?
         if header.flags.contains(.metadata) {
-            if buffer.readableBytes > 0 {
-                metadata = buffer.readData(length: buffer.readableBytes) ?? Data()
-            } else {
-                metadata = Data()
-            }
+            metadata = buffer.readSlice(length: buffer.readableBytes) ?? ByteBuffer()
         } else {
             metadata = nil
         }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Payload {
     internal func splitIntoFragmentsIfNeeded(
@@ -27,9 +27,9 @@ extension Payload {
         let initialFragment: Payload
         var followingFragments: [Payload] = []
         /// The data which is remaining after creating initial fragment
-        var remainingData = data
+        var remainingData = data.readableBytesView
 
-        if let metadata = metadata {
+        if let metadata = metadata?.readableBytesView {
             // set initial fragment with metadata
             let initialFrameMtu = frameWithMetadataMtu - firstFragmentAdditionalOffset.numberOfBytes
             if initialFrameMtu >= metadata.count {
@@ -40,15 +40,15 @@ extension Payload {
                     // initial fragment has metadata and data
                     let initialFrameData = remainingData.prefix(remainingMtu)
                     remainingData = remainingData.dropFirst(remainingMtu)
-                    initialFragment = Payload(metadata: initialFrameMetadata, data: initialFrameData)
+                    initialFragment = Payload(metadata: ByteBuffer(initialFrameMetadata), data: ByteBuffer(initialFrameData))
                 } else {
                     // initial fragment is metadata only
-                    initialFragment = Payload(metadata: initialFrameMetadata, data: Data())
+                    initialFragment = Payload(metadata: ByteBuffer(initialFrameMetadata), data: ByteBuffer())
                 }
             } else {
                 // metadata is bigger than initial fragment has to be carried over to fragments
                 let initialFrameMetadata = metadata.prefix(initialFrameMtu)
-                initialFragment = Payload(metadata: initialFrameMetadata, data: Data())
+                initialFragment = Payload(metadata: ByteBuffer(initialFrameMetadata), data: ByteBuffer())
 
                 // add rest of metadata as following fragments
                 let remainingMetadata = metadata.dropFirst(initialFrameMtu)
@@ -61,14 +61,14 @@ extension Payload {
                             // last metadata fragment has metadata and data
                             let fragmentData = remainingData.prefix(remainingMtu)
                             remainingData = remainingData.dropFirst(remainingMtu)
-                            followingFragments.append(Payload(metadata: metadataFragment, data: fragmentData))
+                            followingFragments.append(Payload(metadata: ByteBuffer(metadataFragment), data: ByteBuffer(fragmentData)))
                         } else {
                             // last metadata fragment is metadata only
-                            followingFragments.append(Payload(metadata: metadataFragment, data: Data()))
+                            followingFragments.append(Payload(metadata: ByteBuffer(metadataFragment), data: ByteBuffer()))
                         }
                     } else {
                         // fragment is metadata only because more metadata fragments follow
-                        followingFragments.append(Payload(metadata: metadataFragment, data: Data()))
+                        followingFragments.append(Payload(metadata: ByteBuffer(metadataFragment), data: ByteBuffer()))
                     }
                 }
             }
@@ -77,11 +77,12 @@ extension Payload {
             let initialFrameMtu = frameMtu - firstFragmentAdditionalOffset.numberOfBytes
             let initialFrameData = remainingData.prefix(initialFrameMtu)
             remainingData = remainingData.dropFirst(initialFrameMtu)
-            initialFragment = Payload(data: initialFrameData)
+
+            initialFragment = Payload(data: ByteBuffer(initialFrameData))
         }
 
         if !remainingData.isEmpty {
-            followingFragments += remainingData.split(maxLength: frameMtu).map { Payload(data: $0) }
+            followingFragments += remainingData.split(maxLength: frameMtu).map { Payload(data: ByteBuffer($0)) }
         }
 
         return (initialFragment, followingFragments)

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Payload {
-    public static let empty = Payload(data: Data())
+    public static let empty = Payload(data: ByteBuffer())
 }

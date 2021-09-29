@@ -34,18 +34,6 @@ extension MultiDataDecoderProtocol {
     }
 }
 
-extension MultiDataDecoderProtocol {
-    @inlinable
-    internal func decodeMIMEType(_ mimeType: MIMEType, from data: Foundation.Data) throws -> Data {
-        var buffer = ByteBuffer(data: data)
-        let data = try self.decodeMIMEType(mimeType, from: &buffer)
-        guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
-        }
-        return data
-    }
-}
-
 public struct MultiDataDecoderTuple2<A, B>: MultiDataDecoderProtocol where
 A: DataDecoderProtocol,
 B: DataDecoderProtocol,

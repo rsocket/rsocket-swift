@@ -14,40 +14,40 @@
  * limitations under the License.
  */
 
+import Foundation
+import NIOFoundationCompat
+import NIOCore
 
 extension Decoders {
-    public struct Map<Decoder: DecoderProtocol, Metadata, Data>: DecoderProtocol {
+    public struct AsData<Decoder: DecoderProtocol>: DecoderProtocol where Decoder.Data == ByteBuffer {
         @usableFromInline
         internal var decoder: Decoder
-        
+
         @usableFromInline
-        internal let transform: (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        
-        @usableFromInline
-        internal init(
-            decoder: Decoder, 
-            transform: @escaping (Decoder.Metadata, Decoder.Data) throws -> (Metadata, Data)
-        ) {
+        internal var byteTransferStrategy: ByteBuffer.ByteTransferStrategy
+
+        @inlinable
+        internal init(decoder: Decoder, byteTransferStrategy: ByteBuffer.ByteTransferStrategy) {
             self.decoder = decoder
-            self.transform = transform
+            self.byteTransferStrategy = byteTransferStrategy
         }
-        
+
         @inlinable
         public mutating func decode(
             _ payload: Payload,
             encoding: ConnectionEncoding
-        ) throws -> (Metadata, Data) {
+        ) throws -> (Decoder.Metadata, Foundation.Data) {
             let (metadata, data) = try decoder.decode(payload, encoding: encoding)
-            return try transform(metadata, data)
+            return (metadata, Data(buffer: data, byteTransferStrategy: byteTransferStrategy))
         }
     }
 }
 
-extension DecoderProtocol {
+extension DecoderProtocol where Data == ByteBuffer {
     @inlinable
-    public func map<NewMetadata, NewData>(
-        _ transform: @escaping (Metadata, Data) throws -> (NewMetadata, NewData)
-    ) -> Decoders.Map<Self, NewMetadata, NewData> {
-        .init(decoder: self, transform: transform)
+    public func asData(
+        byteTransferStrategy: ByteBuffer.ByteTransferStrategy = .automatic
+    ) -> Decoders.AsData<Self> {
+        .init(decoder: self, byteTransferStrategy: byteTransferStrategy)
     }
 }

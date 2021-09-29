@@ -18,6 +18,7 @@ import NIOCore
 
 internal struct MetadataPushFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: MetadataPushFrameBody, into buffer: inout ByteBuffer) throws {
-        buffer.writeData(frame.metadata)
+        var metadata = frame.metadata
+        buffer.writeBuffer(&metadata)
     }
 }

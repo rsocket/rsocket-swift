@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Decoders {
     public struct MultiDataDecoder<Decoder, DataDecoder>: DecoderProtocol where
     Decoder: DecoderProtocol,
     Decoder.Metadata == [CompositeMetadata],
-    Decoder.Data == Foundation.Data,
+    Decoder.Data == ByteBuffer,
     DataDecoder: MultiDataDecoderProtocol
     {
         public typealias Metadata = Decoder.Metadata
@@ -56,12 +56,12 @@ extension Decoders {
             _ payload: Payload,
             encoding: ConnectionEncoding
         ) throws -> (Metadata, Data) {
-            let (metadata, data) = try decoder.decode(payload, encoding: encoding)
+            var (metadata, data) = try decoder.decode(payload, encoding: encoding)
             if let dataMIMEType = try metadata.decodeFirstIfPresent(using: dataMIMETypeDecoder) {
                 lastSeenDataMIMEType = dataMIMEType
             }
             let dataMIMEType = lastSeenDataMIMEType ?? encoding.data
-            let decodedData = try dataDecoder.decodeMIMEType(dataMIMEType, from: data)
+            let decodedData = try dataDecoder.decodeMIMEType(dataMIMEType, from: &data)
             return (metadata, decodedData)
         }
     }

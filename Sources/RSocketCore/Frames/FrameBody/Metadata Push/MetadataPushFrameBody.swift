@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /// A Metadata Push frame can be used to send asynchronous metadata notifications from a Requester or Responder to its peer
 internal struct MetadataPushFrameBody: Hashable {
     /// Metadata of this frame
-    internal var metadata: Data
+    internal var metadata: ByteBuffer
 }
 
 extension MetadataPushFrameBody: FrameBodyBoundToConnection {

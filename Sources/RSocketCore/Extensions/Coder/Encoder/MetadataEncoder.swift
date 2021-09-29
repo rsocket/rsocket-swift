@@ -25,18 +25,6 @@ public protocol MetadataDecoder: CompositeMetadataDecoder {
 
 extension MetadataDecoder {
     @inlinable
-    public func decode(from data: Data) throws -> Metadata {
-        var buffer = ByteBuffer(data: data)
-        let metadata = try self.decode(from: &buffer)
-        guard buffer.readableBytes == 0 else {
-            throw Error.invalid(message: "\(Decoder.self) did not read all bytes")
-        }
-        return metadata
-    }
-}
-
-extension MetadataDecoder {
-    @inlinable
     public func decode(from compositeMetadata: [CompositeMetadata]) throws -> Metadata {
         try compositeMetadata.decodeFirst(using: self)
     }

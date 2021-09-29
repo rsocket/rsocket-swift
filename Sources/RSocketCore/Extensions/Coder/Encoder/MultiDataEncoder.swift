@@ -36,10 +36,10 @@ extension MultiDataEncoderProtocol {
 
 extension MultiDataEncoderProtocol {
     @inlinable
-    internal func encode(_ data: Data, as mimeType: MIMEType) throws -> Foundation.Data {
+    internal func encode(_ data: Data, as mimeType: MIMEType) throws -> ByteBuffer {
         var buffer = ByteBuffer()
-        try self.encode(data, as: mimeType, into: &buffer)
-        return buffer.readData(length: buffer.readableBytes) ?? .init()
+        try encode(data, as: mimeType, into: &buffer)
+        return buffer
     }
 }
 

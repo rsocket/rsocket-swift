@@ -71,7 +71,7 @@ extension Requester: StreamDelegate {
 }
 
 extension Requester: RSocket {
-    func metadataPush(metadata: Data) {
+    func metadataPush(metadata: ByteBuffer) {
         eventLoop.enqueueOrCallImmediatelyIfInEventLoop { [self] in
             send(frame: MetadataPushFrameBody(metadata: metadata).asFrame())
         }

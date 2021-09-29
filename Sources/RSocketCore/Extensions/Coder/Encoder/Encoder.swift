@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public protocol EncoderProtocol {
     associatedtype Metadata
@@ -31,7 +31,7 @@ public struct Encoder: EncoderProtocol {
     public init() {}
     
     @inlinable
-    public func encode(metadata: Data?, data: Data, encoding: ConnectionEncoding) throws -> Payload {
+    public func encode(metadata: ByteBuffer?, data: ByteBuffer, encoding: ConnectionEncoding) throws -> Payload {
         .init(metadata: metadata, data: data)
     }
 }

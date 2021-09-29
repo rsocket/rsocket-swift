@@ -38,12 +38,12 @@ internal struct SetupFrameBodyDecoder: FrameBodyDecoding {
         guard let maxLifetime: Int32 = buffer.readInteger() else {
             throw Error.connectionError(message: "Frame is not big enough")
         }
-        let resumeIdentificationToken: Data?
+        let resumeIdentificationToken: ByteBuffer?
         if header.flags.contains(.setupResume) {
             guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
                 throw Error.connectionError(message: "Frame is not big enough")
             }
-            guard let resumeTokenData = buffer.readData(length: Int(resumeTokenLength)) else {
+            guard let resumeTokenData = buffer.readSlice(length: Int(resumeTokenLength)) else {
                 throw Error.connectionError(message: "Frame is not big enough")
             }
             resumeIdentificationToken = resumeTokenData

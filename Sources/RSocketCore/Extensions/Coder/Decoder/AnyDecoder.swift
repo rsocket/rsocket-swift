@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 
 public struct AnyDecoder<Metadata, Data>: DecoderProtocol {
     @usableFromInline

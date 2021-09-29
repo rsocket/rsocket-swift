@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /**
  Payload on a stream
@@ -23,14 +23,14 @@ import Foundation
  */
 public struct Payload: Hashable {
     /// Optional metadata of this payload
-    public var metadata: Data?
+    public var metadata: ByteBuffer?
 
     /// Payload for Reactive Streams `onNext`
-    public var data: Data
+    public var data: ByteBuffer
 
     public init(
-        metadata: Data? = nil,
-        data: Data
+        metadata: ByteBuffer? = nil,
+        data: ByteBuffer
     ) {
         self.metadata = metadata
         self.data = data
@@ -40,7 +40,7 @@ public struct Payload: Hashable {
 // Payload implements `CustomStringConvertible` instead of `CustomDebugStringConvertible` to allow `RSocketTestUtilities` to customize the debug output.
 extension Payload: CustomStringConvertible {
     public var description: String {
-        if metadata == nil && data.isEmpty {
+        if metadata == nil && data.readableBytes == 0 {
             return ".empty"
         }
         return "Payload(metadata: \(metadata?.debugDescription ?? "nil"), data: \(data.debugDescription))"

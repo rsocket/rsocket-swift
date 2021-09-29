@@ -19,12 +19,6 @@ import NIOCore
 
 internal struct MetadataPushFrameBodyDecoder: FrameBodyDecoding {
     internal func decode(from buffer: inout ByteBuffer, header: FrameHeader) throws -> MetadataPushFrameBody {
-        let metadata: Data
-        if buffer.readableBytes > 0 {
-            metadata = buffer.readData(length: buffer.readableBytes) ?? Data()
-        } else {
-            metadata = Data()
-        }
-        return MetadataPushFrameBody(metadata: metadata)
+        return MetadataPushFrameBody(metadata: buffer)
     }
 }

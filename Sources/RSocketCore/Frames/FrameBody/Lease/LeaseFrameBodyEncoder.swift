@@ -20,8 +20,8 @@ internal struct LeaseFrameBodyEncoder: FrameBodyEncoding {
     internal func encode(frame: LeaseFrameBody, into buffer: inout ByteBuffer) throws {
         buffer.writeInteger(frame.timeToLive)
         buffer.writeInteger(frame.numberOfRequests)
-        if let metadata = frame.metadata {
-            buffer.writeData(metadata)
+        if var metadata = frame.metadata {
+            buffer.writeBuffer(&metadata)
         }
     }
 }

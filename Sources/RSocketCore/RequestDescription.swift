@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 public struct MetadataPush<Metadata> {
     public let encoder: AnyMetadataEncoder<Metadata>
@@ -22,7 +22,7 @@ public struct MetadataPush<Metadata> {
 
 extension MetadataPush {
     @inlinable
-    public init() where Metadata == Data? {
+    public init() where Metadata == ByteBuffer? {
         self.init(using: OctetStreamMetadataEncoder())
     }
     @inlinable
@@ -49,7 +49,7 @@ public struct FireAndForget<Request> {
 
 extension FireAndForget {
     @inlinable
-    public init() where Request == Data {
+    public init() where Request == ByteBuffer {
         self.init { Encoder() }
     }
 
@@ -72,7 +72,7 @@ public struct RequestResponse<Request, Response> {
 
 extension RequestResponse {
     @inlinable
-    public init() where Request == Data, Response == Data {
+    public init() where Request == ByteBuffer, Response == ByteBuffer {
         self.init { Coder() }
     }
 
@@ -96,7 +96,7 @@ public struct RequestStream<Request, Response> {
 
 extension RequestStream {
     @inlinable
-    public init() where Request == Data, Response == Data {
+    public init() where Request == ByteBuffer, Response == ByteBuffer {
         self.init { Coder() }
     }
 
@@ -120,7 +120,7 @@ public struct RequestChannel<Request, Response> {
 
 extension RequestChannel {
     @inlinable
-    public init() where Request == Data, Response == Data {
+    public init() where Request == ByteBuffer, Response == ByteBuffer {
         self.init { Coder() }
     }
 

@@ -42,7 +42,7 @@ public struct SetupInfo {
     public let maxLifetime: Int32
 
     /// Token used for client resume identification
-    public let resumeIdentificationToken: Data?
+    public let resumeIdentificationToken: ByteBuffer?
 
     public let encoding: ConnectionEncoding
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /**
  The `SETUP` frame is sent by the client to inform the server of the parameters under which it desires to operate
@@ -45,7 +45,7 @@ internal struct SetupFrameBody: Hashable {
     internal var maxLifetime: Int32
 
     /// Token used for client resume identification
-    internal var resumeIdentificationToken: Data?
+    internal var resumeIdentificationToken: ByteBuffer?
 
     /**
      MIME Type for encoding of Metadata

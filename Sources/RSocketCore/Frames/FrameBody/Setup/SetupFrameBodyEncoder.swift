@@ -29,12 +29,12 @@ internal struct SetupFrameBodyEncoder: FrameBodyEncoding {
         buffer.writeInteger(frame.version.minor)
         buffer.writeInteger(frame.timeBetweenKeepaliveFrames)
         buffer.writeInteger(frame.maxLifetime)
-        if let token = frame.resumeIdentificationToken {
-            guard token.count <= UInt16.max else {
+        if var token = frame.resumeIdentificationToken {
+            guard token.readableBytes <= UInt16.max else {
                 throw Error.connectionError(message: "resumeIdentificationToken is too big")
             }
-            buffer.writeInteger(UInt16(token.count))
-            buffer.writeData(token)
+            buffer.writeInteger(UInt16(token.readableBytes))
+            buffer.writeBuffer(&token)
         }
         guard let metadataEncodingMimeTypeAsciiData = frame.metadataEncodingMimeType.data(using: .ascii) else {
             throw Error.connectionError(message: "metadataEncodingMimeType contains invalid characters")

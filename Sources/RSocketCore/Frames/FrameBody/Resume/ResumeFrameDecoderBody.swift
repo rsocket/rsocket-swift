@@ -27,7 +27,7 @@ internal struct ResumeFrameBodyDecoder: FrameBodyDecoding {
         guard let resumeTokenLength: UInt16 = buffer.readInteger() else {
             throw Error.connectionError(message: "Frame is not big enough")
         }
-        guard let resumeIdentificationToken = buffer.readData(length: Int(resumeTokenLength)) else {
+        guard let resumeIdentificationToken = buffer.readSlice(length: Int(resumeTokenLength)) else {
             throw Error.connectionError(message: "Frame is not big enough")
         }
         guard let lastReceivedServerPosition: Int64 = buffer.readInteger() else {

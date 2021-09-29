@@ -15,6 +15,7 @@
  */
 
 import XCTest
+import NIOCore
 import RSocketTestUtilities
 @testable import RSocketCore
 
@@ -140,7 +141,7 @@ class PayloadFragmentationTests: XCTestCase {
         """
         XCTAssertEqual(payload.size, 70)
         XCTAssertTrue(
-            payload.data.count.isMultiple(of: 2),
+            payload.data.readableBytes.isMultiple(of: 2),
             "size of payload needs to be a multiple of two, otherwise it can't fit perfectly into two frames"
         )
         let frame = makeFrame(payload: payload)
@@ -364,7 +365,7 @@ class PayloadFragmentationTests: XCTestCase {
     // MARK: - isNext handling
 
     func testWhenOriginalFrameHasIsNextAllFragmentsHaveIsNext() {
-        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let payload = Payload(data: ByteBuffer(bytes: [UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
         let fragments = frame.splitIntoFragmentsIfNeeded(
             maximumFrameSize: 10 + frameHeaderSize
@@ -383,7 +384,7 @@ class PayloadFragmentationTests: XCTestCase {
     }
 
     func testWhenOriginalFrameNotHasIsNextNoFragmentHasIsNext() throws {
-        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let payload = Payload(data: ByteBuffer(bytes: [UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: false)
         try XCTSkipUnless(
             frame.body.type == .payload,
@@ -406,7 +407,7 @@ class PayloadFragmentationTests: XCTestCase {
     // MARK: - isCompletion handling
 
     func testWhenOriginalFrameHasIsCompletionOnlyLastFragmentHasIsCompletion() throws {
-        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let payload = Payload(data: ByteBuffer(bytes: [UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: true, isNext: true)
         try XCTSkipUnless(
             frame.body.type == .payload || frame.body.type == .requestChannel,
@@ -433,7 +434,7 @@ class PayloadFragmentationTests: XCTestCase {
     }
 
     func testWhenOriginalFrameNotHasIsCompletionNoFragmentHasIsCompletion() throws {
-        let payload = Payload(data: Data([UInt8](repeating: 0, count: 30)))
+        let payload = Payload(data: ByteBuffer(bytes: [UInt8](repeating: 0, count: 30)))
         let frame = makeFrame(payload: payload, isCompletion: false, isNext: true)
         try XCTSkipUnless(
             frame.body.type == .payload || frame.body.type == .requestChannel,

@@ -45,7 +45,7 @@ public struct RootCompositeMetadataDecoder: MetadataDecoder {
     ) throws -> CompositeMetadata {
         let mimeType = try mimeTypeDecoder.decode(from: &buffer)
         guard let metadataLength = buffer.readUInt24(),
-              let payload = buffer.readData(length: Int(metadataLength))
+              let payload = buffer.readSlice(length: Int(metadataLength))
         else {
             throw Error.invalid(message: "could not read Composite Metadata")
         }
@@ -62,10 +62,10 @@ extension Sequence where Element == CompositeMetadata {
     internal func decodeFirstIfPresent<Decoder>(
         using decoder: Decoder
     ) throws -> Decoder.Metadata? where Decoder: MetadataDecoder {
-        guard let data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
+        guard var data = first(where: { $0.mimeType == decoder.mimeType })?.data else {
             return nil
         }
-        return try decoder.decode(from: data)
+        return try decoder.decode(from: &data)
     }
     @inlinable
     internal func decodeFirst<Decoder>(

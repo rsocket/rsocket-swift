@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 extension Encoders {
     public struct MultiDataEncoder<Encoder, DataEncoder>: EncoderProtocol where
     Encoder: EncoderProtocol,
-    Encoder.Data == Foundation.Data,
+    Encoder.Data == ByteBuffer,
     Encoder.Metadata == [CompositeMetadata],
     DataEncoder: RSocketCore.MultiDataEncoderProtocol
     {
@@ -69,7 +69,7 @@ extension Encoders {
             }
             return try encoder.encode(
                 metadata: newMetadata, 
-                data: try dataEncoder.encode(data, as: dataMIMEType), 
+                data: try dataEncoder.encode(data, as: dataMIMEType),
                 encoding: encoding
             )
         }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /// Indicates to the receiver that the sender is alive
 internal struct KeepAliveFrameBody: Hashable {
@@ -29,7 +29,7 @@ internal struct KeepAliveFrameBody: Hashable {
     internal var lastReceivedPosition: Int64
 
     /// Data attached to a `KEEPALIVE`
-    internal var data: Data
+    internal var data: ByteBuffer
 }
 
 extension KeepAliveFrameBody: FrameBodyBoundToConnection {

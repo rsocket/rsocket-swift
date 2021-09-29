@@ -5,6 +5,8 @@ import RSocketCore
 import RSocketNIOChannel
 import RSocketReactiveSwift
 import RSocketWSTransport
+import NIOCore
+import NIOFoundationCompat
 
 extension URL: ExpressibleByArgument {
     public init?(argument: String) {
@@ -41,9 +43,7 @@ struct TwitterClientExample: ParsableCommand {
         try client.requester.build(RequestStream {
             Encoder()
                 .encodeStaticMetadata("searchTweets", using: RoutingEncoder())
-                .mapData { (string: String) in 
-                    Data(string.utf8) 
-                }
+                .mapData(ByteBuffer.init(string:))
             Decoder()
                 .mapData { data -> String in
                     // pretty print json

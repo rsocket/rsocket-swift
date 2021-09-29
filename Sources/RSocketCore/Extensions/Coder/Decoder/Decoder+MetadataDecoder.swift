@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Foundation
 
 extension Decoders {
     public struct MetadataDecoder<Decoder, MetadataDecoder>: DecoderProtocol where

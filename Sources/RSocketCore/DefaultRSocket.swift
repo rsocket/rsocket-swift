@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Foundation
+import NIOCore
 
 /// A stream which does not do anything.
 fileprivate final class NoOpStream: UnidirectionalStream {
@@ -30,7 +30,7 @@ fileprivate final class NoOpStream: UnidirectionalStream {
 /// An RSocket which rejects all incoming requests (requestResponse, stream and channel) and ignores metadataPush and fireAndForget events.
 internal struct DefaultRSocket: RSocket {
     let encoding: ConnectionEncoding
-    func metadataPush(metadata: Data) {}
+    func metadataPush(metadata: ByteBuffer) {}
     func fireAndForget(payload: Payload) {}
     func requestResponse(payload: Payload, responderStream: UnidirectionalStream) -> Cancellable {
         responderStream.onError(.rejected(message: "not implemented"))

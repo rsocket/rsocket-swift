@@ -14,37 +14,35 @@
  * limitations under the License.
  */
 
+import Foundation
+import NIOFoundationCompat
+import NIOCore
 
 extension Encoders {
-    public struct MapData<Encoder: EncoderProtocol, Data>: EncoderProtocol {
+    public struct AsData<Encoder: EncoderProtocol>: EncoderProtocol
+    where Encoder.Data == ByteBuffer {
         @usableFromInline
         internal var encoder: Encoder
-        
-        @usableFromInline
-        internal let transform: (Data) throws -> Encoder.Data
-        
-        @usableFromInline
-        internal init(encoder: Encoder, transform: @escaping (Data) throws -> Encoder.Data) {
+
+        @inlinable
+        internal init(encoder: Encoder) {
             self.encoder = encoder
-            self.transform = transform
         }
-        
+
         @inlinable
         mutating public func encode(
             metadata: Encoder.Metadata,
-            data: Data,
+            data: Foundation.Data,
             encoding: ConnectionEncoding
         ) throws -> Payload {
-            try encoder.encode(metadata: metadata, data: try transform(data), encoding: encoding)
+            try encoder.encode(metadata: metadata, data: ByteBuffer(data: data), encoding: encoding)
         }
     }
 }
 
-extension EncoderProtocol {
+extension EncoderProtocol where Data == ByteBuffer {
     @inlinable
-    public func mapData<NewData>(
-        _ transform: @escaping (NewData) throws -> Data
-    ) -> Encoders.MapData<Self, NewData> {
-        .init(encoder: self, transform: transform)
+    public func asData() -> Encoders.AsData<Self> {
+        .init(encoder: self)
     }
 }

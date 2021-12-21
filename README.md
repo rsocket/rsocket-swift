@@ -29,7 +29,7 @@ The other modules are grouped in one of three categories:
 A User will usually only chose one from each category. 
 
 ## Current State
-All [Mandatory Core Protocol Features](https://rsocket.io/docs/implementations) have been implemented and tested against the Java and Kotlin implementation.
+All [Mandatory Core Protocol Features](https://rsocket.io/about/protocol) have been implemented and tested against the Java and Kotlin implementation.
 Working examples can be found under [Sources/Examples](https://github.com/rsocket/rsocket-swift/tree/main/Sources/Examples). [TimerClient](https://github.com/rsocket/rsocket-swift/blob/main/Sources/Examples/TimerClient/main.swift) and [TwitterClient](https://github.com/rsocket/rsocket-swift/blob/main/Sources/Examples/TwitterClient/main.swift) connect to [demo.rsocket.io/rsocket](http://demo.rsocket.io/) where a [Kotlin Server is running](https://github.com/rsocket/rsocket-demo/tree/master/src/main/kotlin/io/rsocket/demo/) and work without running a server locally.
 The Client API has currently a lot more convenience API's and is a lot simpler than the Server API. If you want to create an RSocket Server you need to create you own SwiftNIO pipeline and setup SSL/TLS yourself. This will be improved in the future as we implement [some RSocket extensions](https://github.com/rsocket/rsocket/tree/master/Extensions) like [Routing](https://github.com/rsocket/rsocket/blob/master/Extensions/Routing.md).
 

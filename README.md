@@ -15,7 +15,33 @@ More Information about RSocket can be found at [rsocket.io](https://rsocket.io/)
 ### Modules
 The implementation is split into multiple modules. This allows a user of this package to only include what is really needed.
 
-![Module Overview](Resources/ModuleOverview.png) 
+
+```mermaid
+graph TD
+    U[User]
+    U --> A;
+    U --> D;
+    U --> F;
+    CORE[RSocketCore];
+    subgraph Channel
+        A[RSocketTSChannel];
+        B[RSocketNIOChannel];
+    end
+    subgraph Transport Protocol
+        C[RSocketWSTransport];
+        D[RSocketTCPTransport];
+    end
+    subgraph Reactive Streams
+        E[RSocketCombine];
+        F[RSocketReactiveSwift];
+    end
+    A --> CORE;
+    B --> CORE;
+    C --> CORE;
+    D --> CORE;
+    E --> CORE;
+    F --> CORE;
+```
 
 `RSocketCore`, as the name implies, contains the core logic which every other module depends on.
 The other modules are grouped in one of three categories:

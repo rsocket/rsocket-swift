@@ -97,7 +97,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
             .map(CoreClient.init)
     }
     /**
-     This method help to close channel connection
+     This method help to close socket channel connection
      if want to hold thread and want to wait for close connection.
      - Returns: Future object so you can call  wait() for get connection closed.
      **/

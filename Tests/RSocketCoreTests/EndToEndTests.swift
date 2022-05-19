@@ -172,6 +172,42 @@ class EndToEndTests: XCTestCase {
         XCTAssertTrue(channel.isActive)
         self.wait(for: [clientDidConnect], timeout: 1)
     }
+    /* test case for closing Rsocket connection using channel instance api
+     * channel.close(promise: nil) closes the Rsocket connection
+     * channel.closeFuture.wait() - required to hold the thread untill connection will not close successfully.helpful to make
+       code sync.
+     */
+    func testRsocketConnectionCloseSuccess() throws{
+        let setup = ClientConfiguration(
+            timeout: .init(
+                timeBetweenKeepaliveFrames: 500,
+                maxLifetime: 5000
+            ), encoding: .init(
+                metadata: .applicationJson,
+                data: .messageXRSocketRoutingV0
+            )
+        )
+        let clientDidConnect = self.expectation(description: "client did connect to server")
+        
+        let server = makeServerBootstrap(shouldAcceptClient: { clientInfo in
+            XCTAssertEqual(clientInfo.timeBetweenKeepaliveFrames, Int32(setup.timeout.timeBetweenKeepaliveFrames))
+            XCTAssertEqual(clientInfo.maxLifetime, Int32(setup.timeout.maxLifetime))
+            XCTAssertEqual(clientInfo.encoding.metadata, setup.encoding.metadata)
+            XCTAssertEqual(clientInfo.encoding.data, setup.encoding.data)
+           clientDidConnect.fulfill()
+            return .accept
+        })
+        let port = try XCTUnwrap(try server.bind(host: host, port: 0).wait().localAddress?.port)
+        
+        let channel = try makeClientBootstrap(config: setup)
+            .connect(host: host, port: port)
+            .wait()
+        XCTAssertTrue(channel.isActive)
+        self.wait(for: [clientDidConnect], timeout: 5)
+        channel.close(promise: nil)
+        try channel.closeFuture.wait()
+        XCTAssertFalse(channel.isActive)
+    }
     func testMetadataPush() throws {
         let request = self.expectation(description: "receive request")
         let requester = try setupAndConnectServerAndClient(

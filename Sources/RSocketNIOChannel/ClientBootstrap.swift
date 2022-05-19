@@ -96,10 +96,11 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 return requesterPromise.futureResult }
             .map(CoreClient.init)
     }
-    
-    /*This method help to close channel connection
-     if want to hold thread and want to wait for close connection
-     use closeFuture.wait()*/
+    /**
+     This method help to close channel connection
+     if want to hold thread and want to wait for close connection.
+     - Returns: Future object so you can call  wait() for get connection closed.
+     **/
     public func dispose()-> EventLoopFuture<Void>?{
         guard let channel = self.channel else{return nil}
         channel.close(promise: nil)

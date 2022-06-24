@@ -13,15 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import NIOCore
 
 public class CoreClient: Client {
     public let requester: RSocketCore.RSocket
-
-    public init(requester: RSocketCore.RSocket) {
+    // Channel reference to handle channel state
+    public let channel: Channel
+    public init(requester: RSocketCore.RSocket, channel: Channel) {
         self.requester = requester
+        self.channel = channel
     }
-
     deinit {
-        // TODO: close channel
+        // checking if channel is active
+        if channel.isActive {
+            channel.close().whenComplete { [weak self] result in
+                guard let self = self else {return}
+                // after closing connection checking for error in result
+                if case .failure(let error)  = result {
+                    // passing to fireErrorCaught() method to notify
+                    self.channel.pipeline.fireErrorCaught(error)
+                }
+            }
+        }
     }
 }

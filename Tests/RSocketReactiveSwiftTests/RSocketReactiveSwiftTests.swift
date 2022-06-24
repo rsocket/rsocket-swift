@@ -20,7 +20,7 @@ import ReactiveSwift
 import RSocketCore
 import RSocketTestUtilities
 @testable import RSocketReactiveSwift
-
+import NIO
 extension ByteBuffer: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
         self.init(string: value)
@@ -35,9 +35,19 @@ func setup(
         serverResponder: server.map { ResponderAdapter(responder:$0, encoding: .default) },
         clientResponder: client.map { ResponderAdapter(responder:$0, encoding: .default) }
     )
+    /**
+     EmbeddedChannel() is a mock channel class using for unit testing .
+     calling connect will active the channel
+        */
+    let channel = EmbeddedChannel()
+    do {
+        try channel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait()
+    } catch {
+        channel.pipeline.fireErrorCaught(error)
+    }
     return (
-        ReactiveSwiftClient(CoreClient(requester: server.requester)),
-        ReactiveSwiftClient(CoreClient(requester: client.requester))
+        ReactiveSwiftClient(CoreClient(requester: server.requester, channel: channel)),
+        ReactiveSwiftClient(CoreClient(requester: client.requester, channel: channel))
     )
 }
 
@@ -332,5 +342,19 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             payloadProducerLifetimeEnded,
         ], timeout: 0.1)
     }
-
+    /// test case for closing Rsocket connection using reactiveSwiftClient instance
+    /// reactiveSwiftClient.dispose() closes the Rsocket connection
+    func testConnectionDisposeSuccess() throws {
+        let serverResponder = TestRSocket()
+        let clientResponder = TestRSocket()
+        let (server, reactiveSwiftClient) = setup(server: serverResponder,client: clientResponder)
+        XCTAssertNotNil(server)
+        XCTAssertNotNil(reactiveSwiftClient)
+        // checking if connection is active
+        XCTAssertFalse(reactiveSwiftClient.isDisposed)
+        // closing connection using dispose method
+        reactiveSwiftClient.dispose()
+        // checking if connection is inactive
+        XCTAssertTrue(reactiveSwiftClient.isDisposed)
+    }
 }

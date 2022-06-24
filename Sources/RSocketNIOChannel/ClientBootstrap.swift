@@ -25,8 +25,7 @@ final public class ClientBootstrap<Transport: TransportChannelHandler> {
     public let config: ClientConfiguration
     private let transport: Transport
     private let sslContext: NIOSSLContext?
-    private var channel : Channel?
-    
+
     public init(
         transport: Transport,
         config: ClientConfiguration,
@@ -89,22 +88,11 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 }
             }
             .connect(host: endpoint.host, port: endpoint.port)
-
-        return connectFuture
-            .flatMap { channel in
-                self.channel = channel
-                return requesterPromise.futureResult }
-            .map(CoreClient.init)
+        return connectFuture.flatMap { channel in
+            requesterPromise.futureResult.map { socket in
+                // initializing core client using channel object
+                return CoreClient.init(requester: socket, channel: channel)
+            }
+        }
     }
-    /**
-     This method help to close socket channel connection
-     if want to hold thread and want to wait for close connection.
-     - Returns: Future object so you can call  wait() for get connection closed.
-     **/
-    public func dispose()-> EventLoopFuture<Void>?{
-        guard let channel = self.channel else{return nil}
-        channel.close(promise: nil)
-        return channel.closeFuture
-    }
-    
 }

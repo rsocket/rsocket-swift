@@ -23,17 +23,13 @@ public class CoreClient: Client {
         self.requester = requester
         self.channel = channel
     }
+    /// This method help to close channel connection.
+    /// - Returns: EventLoopFuture<Void> as a closeFuture
+    public func shutDown() -> EventLoopFuture<Void> {
+        return channel.close()
+    }
     deinit {
-        // checking if channel is active
-        if channel.isActive {
-            channel.close().whenComplete { [weak self] result in
-                guard let self = self else {return}
-                // after closing connection checking for error in result
-                if case .failure(let error)  = result {
-                    // passing to fireErrorCaught() method to notify
-                    self.channel.pipeline.fireErrorCaught(error)
-                }
-            }
-        }
+        // if chanel is active Need to close channel manually
+        assert(!channel.isActive, "Channel is active close channel manually")
     }
 }

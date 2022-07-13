@@ -27,11 +27,19 @@ public struct ReactiveSwiftClient: Client {
         self.coreClient = coreClient
     }
     /// This method help to close channel connection.
-    /// if want to hold thread and want to wait for close connection use closeFuture.wait()
-    /// - Returns: EventLoopFuture<Void> as a closeFuture
-    public func dispose()-> EventLoopFuture<Void>? {
-        coreClient.channel.close(promise: nil)
-        return coreClient.channel.closeFuture
+    /// - Returns: SignalProducer<Void, Swift.Error> to represent task result
+    public func shutdown() -> SignalProducer<Void, Swift.Error> {
+        SignalProducer { observer, _ in
+            coreClient.shutDown().whenComplete { result in
+                switch result {
+                case let .success(client):
+                    observer.send(value: client)
+                    observer.sendCompleted()
+                case let .failure(error):
+                    observer.send(error: error)
+                }
+            }
+        }
     }
     /// This method help to get channel current state
     /// - Returns:true if channel is disposed or in-active

@@ -19,8 +19,8 @@ import NIOCore
 import ReactiveSwift
 import RSocketCore
 import RSocketTestUtilities
+import NIOEmbedded
 @testable import RSocketReactiveSwift
-import NIO
 extension ByteBuffer: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
         self.init(string: value)

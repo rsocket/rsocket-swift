@@ -43,7 +43,7 @@ public struct ReactiveSwiftClient: Client {
     }
     /// This method help to get channel current state
     /// - Returns:true if channel is disposed or in-active
-    public var isDisposed: Bool {
+    internal var isDisposed: Bool {
         return !coreClient.channel.isActive
     }
 }

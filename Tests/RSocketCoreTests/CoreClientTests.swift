@@ -7,7 +7,8 @@
 
 import Foundation
 import XCTest
-import NIO
+import NIOEmbedded
+import NIOCore
 @testable import RSocketCore
 import RSocketTestUtilities
 class CoreClientTests: XCTestCase {

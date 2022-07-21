@@ -30,7 +30,7 @@ public struct ReactiveSwiftClient: Client {
     /// - Returns: SignalProducer<Void, Swift.Error> to represent task result
     public func shutdown() -> SignalProducer<Void, Swift.Error> {
         SignalProducer { observer, _ in
-            coreClient.shutDown().whenComplete { result in
+            coreClient.shutdown().whenComplete { result in
                 switch result {
                 case let .success(client):
                     observer.send(value: client)

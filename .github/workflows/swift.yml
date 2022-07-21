@@ -13,24 +13,22 @@ jobs:
     steps:
     - uses: actions/checkout@v2
         
-    - name: Test on iOS Simulator
-      run: >
-        xcodebuild test
-        -scheme RSocket-Package
-        -parallelizeTargets
-        -skip-testing:RSocketCorePerformanceTests
-        -parallel-testing-enabled
-        -sdk:iphonesimulator
-        -destination:'platform=iOS Simulator,name=iPhone 12'
+#    - name: Test on iOS Simulator
+#      run: >
+#        xcodebuild test
+#        -scheme RSocket-Package
+#        -parallelizeTargets
+#        -skip-testing:RSocketCorePerformanceTests
+#        -parallel-testing-enabled
+#        -sdk:iphonesimulator
+#        -destination:'platform=iOS Simulator,name=iPhone 12'
         
     - name: Test on macOS
       run: >
-        xcodebuild test
-        -scheme RSocket-Package
-        -parallelizeTargets
-        -skip-testing:RSocketCorePerformanceTests
-        -parallel-testing-enabled
-        -destination 'platform=macOS'
+        swift test
+        --parallel
+        --enable-test-discovery
+        --filter="^((?!(Performance)).)*\..*$"
         
   performance-tests-on-macOS:
     runs-on: macos-11

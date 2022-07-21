@@ -25,7 +25,7 @@ public class CoreClient: Client {
     }
     /// This method help to close channel connection.
     /// - Returns: EventLoopFuture<Void> as a closeFuture
-    public func shutDown() -> EventLoopFuture<Void> {
+    public func shutdown() -> EventLoopFuture<Void> {
         return channel.close()
     }
     deinit {

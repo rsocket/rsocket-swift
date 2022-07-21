@@ -25,12 +25,10 @@ jobs:
         
     - name: Test on macOS
       run: >
-        xcodebuild test
-        -scheme RSocket-Package
-        -parallelizeTargets
-        -skip-testing:RSocketCorePerformanceTests
-        -parallel-testing-enabled
-        -destination 'platform=macOS'
+        swift test
+        --parallel
+        --enable-test-discovery
+        --filter="^((?!(Performance)).)*\..*$"
         
   performance-tests-on-macOS:
     runs-on: macos-11

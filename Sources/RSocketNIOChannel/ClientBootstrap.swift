@@ -88,9 +88,11 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 }
             }
             .connect(host: endpoint.host, port: endpoint.port)
-
-        return connectFuture
-            .flatMap { _ in requesterPromise.futureResult }
-            .map(CoreClient.init)
+        return connectFuture.flatMap { channel in
+            requesterPromise.futureResult.map { socket in
+                // initializing core client using channel object
+                return CoreClient.init(requester: socket, channel: channel)
+            }
+        }
     }
 }

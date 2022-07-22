@@ -16,6 +16,7 @@
 
 import RSocketCore
 import ReactiveSwift
+import NIOCore
 
 public struct ReactiveSwiftClient: Client {
     private let coreClient: CoreClient
@@ -24,6 +25,26 @@ public struct ReactiveSwiftClient: Client {
 
     public init(_ coreClient: CoreClient) {
         self.coreClient = coreClient
+    }
+    /// This method help to close channel connection.
+    /// - Returns: SignalProducer<Void, Swift.Error> to represent task result
+    public func shutdown() -> SignalProducer<Void, Swift.Error> {
+        SignalProducer { observer, _ in
+            coreClient.shutdown().whenComplete { result in
+                switch result {
+                case let .success(client):
+                    observer.send(value: client)
+                    observer.sendCompleted()
+                case let .failure(error):
+                    observer.send(error: error)
+                }
+            }
+        }
+    }
+    /// This method help to get channel current state
+    /// - Returns:true if channel is disposed or in-active
+    internal var isDisposed: Bool {
+        return !coreClient.channel.isActive
     }
 }
 

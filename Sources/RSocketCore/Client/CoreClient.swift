@@ -13,15 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import NIOCore
 
 public class CoreClient: Client {
     public let requester: RSocketCore.RSocket
-
-    public init(requester: RSocketCore.RSocket) {
+    // Channel reference to handle channel state
+    public let channel: Channel
+    public init(requester: RSocketCore.RSocket, channel: Channel) {
         self.requester = requester
+        self.channel = channel
     }
-
+    /// This method help to close channel connection.
+    /// - Returns: EventLoopFuture<Void> as a closeFuture
+    public func shutdown() -> EventLoopFuture<Void> {
+        return channel.close()
+    }
     deinit {
-        // TODO: close channel
+        // if chanel is active Need to close channel manually
+        assert(!channel.isActive, "Channel is active close channel manually")
     }
 }

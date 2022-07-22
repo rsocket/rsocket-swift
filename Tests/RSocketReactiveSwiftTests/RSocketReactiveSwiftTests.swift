@@ -19,8 +19,8 @@ import NIOCore
 import ReactiveSwift
 import RSocketCore
 import RSocketTestUtilities
+import NIOEmbedded
 @testable import RSocketReactiveSwift
-
 extension ByteBuffer: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
         self.init(string: value)
@@ -35,9 +35,17 @@ func setup(
         serverResponder: server.map { ResponderAdapter(responder:$0, encoding: .default) },
         clientResponder: client.map { ResponderAdapter(responder:$0, encoding: .default) }
     )
+    /**
+     EmbeddedChannel() is a mock channel class using for unit testing .
+     calling connect will active the channel
+        */
+    let serverChannel = EmbeddedChannel()
+    XCTAssertNoThrow(try serverChannel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait())
+    let clientChannel = EmbeddedChannel()
+    XCTAssertNoThrow(try clientChannel.connect(to: SocketAddress.init(ipAddress: "127.0.0.1", port: 0)).wait())
     return (
-        ReactiveSwiftClient(CoreClient(requester: server.requester)),
-        ReactiveSwiftClient(CoreClient(requester: client.requester))
+        ReactiveSwiftClient(CoreClient(requester: server.requester, channel: serverChannel)),
+        ReactiveSwiftClient(CoreClient(requester: client.requester, channel: clientChannel))
     )
 }
 
@@ -49,7 +57,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             didReceiveRequest.fulfill()
             XCTAssertEqual(data, metadata)
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel before core client get deinitialize
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         try client.requester.execute(MetadataPush(), metadata: metadata)
         self.wait(for: [didReceiveRequest], timeout: 0.1)
     }
@@ -59,7 +72,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             didReceiveRequest.fulfill()
             XCTAssertEqual(payload, "Hello World")
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         try client.requester.execute(FireAndForget(), request: "Hello World")
         self.wait(for: [didReceiveRequest], timeout: 0.1)
     }
@@ -76,7 +94,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 observer.send(value: "Hello World!")
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(
             RequestResponse(),
             request: "Hello World"
@@ -105,7 +128,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 observer.sendCompleted()
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(
             RequestResponse(),
             request: "Hello World"
@@ -139,7 +167,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 observer.sendCompleted()
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(RequestStream(), request: "Hello World").startWithSignal { signal, _ in
             signal.flatMapError({ error in
                 XCTFail("\(error)")
@@ -185,7 +218,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 observer.sendCompleted()
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(RequestChannel(), initialRequest: "Hello Responder", producer: .init({ observer, _ in
             requesterDidSendChannelMessages.fulfill()
             observer.send(value: "Hello")
@@ -229,7 +267,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 }
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(RequestResponse(), request: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
             return signal.flatMapError({ error -> Signal<ByteBuffer, Never> in
@@ -258,7 +301,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 }
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let disposable = client.requester.build(RequestStream(), request: "Hello World").startWithSignal { signal, _ -> Disposable? in
             didStartRequestSignal.fulfill()
             return signal.flatMapError({ error -> Signal<ByteBuffer, Never> in
@@ -300,7 +348,12 @@ final class RSocketReactiveSwiftTests: XCTestCase {
                 }
             }
         })
-        let (_, client) = setup(server: serverResponder)
+        let (server, client) = setup(server: serverResponder)
+        defer {
+            // closing channel connection
+            XCTAssertNoThrow(try client.shutdown().first()?.get())
+            XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
         let requesterDidStartListeningChannelMessages = expectation(description: "responder did start listening to channel messages")
         let payloadProducerLifetimeEnded = expectation(description: "payload producer lifetime ended")
         let requesterDidStartPayloadProducer = expectation(description: "requester did start payload producer")
@@ -332,5 +385,23 @@ final class RSocketReactiveSwiftTests: XCTestCase {
             payloadProducerLifetimeEnded,
         ], timeout: 0.1)
     }
-
+    /// test case for closing Rsocket connection using reactiveSwiftClient instance
+    /// reactiveSwiftClient.dispose() closes the Rsocket connection
+    func testConnectionDisposeSuccess() {
+        let serverResponder = TestRSocket()
+        let clientResponder = TestRSocket()
+        let (server, client) = setup(server: serverResponder,client: clientResponder)
+        defer {
+            // closing channel connection
+           XCTAssertNoThrow(try server.shutdown().first()?.get())
+        }
+        XCTAssertNotNil(server)
+        XCTAssertNotNil(client)
+        // checking if connection is active
+        XCTAssertFalse(client.isDisposed)
+        // closing connection using dispose method
+        XCTAssertNoThrow(try client.shutdown().first()?.get())
+        // checking if connection is inactive
+        XCTAssertTrue(client.isDisposed)
+    }
 }

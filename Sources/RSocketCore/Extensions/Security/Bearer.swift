@@ -36,14 +36,22 @@ extension MetadataDecoder where Self == BearerAuthenticationDecoder {
 
 public struct BearerAuthenticationEncoder: MetadataEncoder {
     @usableFromInline
+    internal let streamMetadataKnownMask: UInt8 = 0b10000000
+
+    @usableFromInline
     internal var authenticationEncoder: AuthenticationEncoder = .init()
     
     @inlinable
     public var mimeType: MIMEType { authenticationEncoder.mimeType }
-    
+
+    @inlinable
+    public init() {}
+
     @inlinable
     public func encode(_ metadata: String, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+      buffer = ByteBuffer(integer: WellKnownAuthenticationTypeCode.bearer.rawValue | streamMetadataKnownMask)
+      var tokenBuffer = ByteBuffer(string: metadata)
+      buffer.writeBuffer(&tokenBuffer)
     }
 }
 

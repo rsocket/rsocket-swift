@@ -19,7 +19,13 @@ import NIOCore
 
 public struct AcceptableDataMIMETypeEncoder: MetadataEncoder {
     public typealias Metadata = [MIMEType]
-    
+    public static let defaultWellKnownMimeTypes = Dictionary(
+        uniqueKeysWithValues: MIMEType.wellKnownMIMETypes.lazy.map{ ($0.1, $0.0) }
+    )
+
+    @usableFromInline
+    internal let wellKnownMimeTypes: [MIMEType: WellKnownMIMETypeCode]
+
     @inlinable
     public var mimeType: MIMEType { .messageXRSocketMimeTypeV0 }
     
@@ -28,14 +34,19 @@ public struct AcceptableDataMIMETypeEncoder: MetadataEncoder {
     
     @inlinable
     public init(
+        wellKnownMimeTypes: [MIMEType : WellKnownMIMETypeCode] = defaultWellKnownMimeTypes,
         mimeTypeEncoder: MIMETypeEncoder = MIMETypeEncoder()
     ) {
         self.mimeTypeEncoder = mimeTypeEncoder
+        self.wellKnownMimeTypes = wellKnownMimeTypes
     }
     
     @inlinable
     public func encode(_ metadata: Metadata, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+      for mimeType in metadata {
+        guard let wellKnownMimeTypeCode = wellKnownMimeTypes[mimeType] else { continue }
+        buffer.writeInteger(wellKnownMimeTypeCode.rawValue)
+      }
     }
 }
 

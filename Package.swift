@@ -38,6 +38,7 @@ let package = Package(
         .target(name: "RSocketCore", dependencies: [
             .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOFoundationCompat", package: "swift-nio"),
+            //.product(name: "NIOExtras", package: "swift-nio-extras"),
         ]),
 
         // Reactive streams

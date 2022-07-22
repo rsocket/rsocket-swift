@@ -16,6 +16,7 @@
 
 import Foundation
 import NIOCore
+import NIOExtras
 
 extension ChannelPipeline {
     public func addRSocketClientHandlers(
@@ -64,6 +65,8 @@ extension ChannelPipeline {
         return addHandlers([
             FrameDecoderHandler(),
             FrameEncoderHandler(maximumFrameSize: config.fragmentation.maximumOutgoingFragmentSize),
+            //DebugInboundEventsHandler(),
+            //DebugOutboundEventsHandler(),
             ConnectionStateHandler(),
             SetupWriter(
                 timeBetweenKeepaliveFrames: timeBetweenKeepaliveFrames,

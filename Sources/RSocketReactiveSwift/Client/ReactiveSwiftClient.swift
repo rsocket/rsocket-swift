@@ -46,6 +46,19 @@ public struct ReactiveSwiftClient: Client {
     internal var isDisposed: Bool {
         return !coreClient.channel.isActive
     }
+    // This methods helps to get call back whenever connection is closed
+    /// - parameters:
+    ///     - completionHandler : pass closure to get callback once connection closed with result
+    public func onShutdown(completionHandler: @escaping ( (_ error: Swift.Error?)->Void)) {
+        coreClient.channel.closeFuture.whenComplete { result in
+            switch result {
+            case .success(_):
+                completionHandler(nil)
+            case.failure(let error):
+                completionHandler(error)
+            }
+        }
+    }
 }
 
 extension ClientBootstrap where Client == CoreClient, Responder == RSocketCore.RSocket  {

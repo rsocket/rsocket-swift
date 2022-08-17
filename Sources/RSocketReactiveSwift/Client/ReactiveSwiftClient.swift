@@ -54,7 +54,7 @@ public struct ReactiveSwiftClient: Client {
                 switch result {
                 case .success:
                     observer.sendCompleted()
-                case.failure(let error):
+                case .failure(let error):
                     observer.send(error: error)
                 }
             }

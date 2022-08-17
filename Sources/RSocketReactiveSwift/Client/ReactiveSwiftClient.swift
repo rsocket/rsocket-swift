@@ -46,16 +46,17 @@ public struct ReactiveSwiftClient: Client {
     internal var isDisposed: Bool {
         return !coreClient.channel.isActive
     }
-    // This methods helps to get call back whenever connection is closed
-    /// - parameters:
-    ///     - completionHandler : pass closure to get callback once connection closed with result
-    public func onShutdown(completionHandler: @escaping ( (_ error: Swift.Error?)->Void)) {
-        coreClient.channel.closeFuture.whenComplete { result in
-            switch result {
-            case .success(_):
-                completionHandler(nil)
-            case.failure(let error):
-                completionHandler(error)
+    /// This methods helps to get call back whenever connection is closed
+    /// - Returns: SignalProducer<Void, Swift.Error> to represent task result
+    public var shutdownProducer: SignalProducer<Void, Swift.Error> {
+        SignalProducer { observer, _ in
+            coreClient.channel.closeFuture.whenComplete { result in
+                switch result {
+                case .success:
+                    observer.sendCompleted()
+                case.failure(let error):
+                    observer.send(error: error)
+                }
             }
         }
     }

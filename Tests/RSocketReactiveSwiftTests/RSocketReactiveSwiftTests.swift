@@ -404,7 +404,6 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         // checking if connection is inactive
         XCTAssertTrue(client.isDisposed)
     }
-    /// Test case for connection close event listener
     func testConnectionDisposeListener() {
         // Creating expectation
         let didReceiveConnectionclosedEvent = expectation(description: "did receive Connection closed  event ")
@@ -429,13 +428,15 @@ final class RSocketReactiveSwiftTests: XCTestCase {
         }
         XCTAssertNotNil(server)
         XCTAssertNotNil(client)
-        // Client connection closed event listener
-        client.onShutdown { error in
-            // Make sure no error while closing connection
-            XCTAssertNil(error)
-            // Received disposed connection event listener
-            didReceiveConnectionclosedEvent.fulfill()
-        }
+        // client connection closed event signal producer
+        client.shutdownProducer.startWithSignal({ signal, interruptHandle in
+            signal.flatMapError({ error -> Signal<Void, Error> in
+                XCTFail("\(error)")
+                return .empty
+            }).materialize().collect().observeValues { values in
+                didReceiveConnectionclosedEvent.fulfill()
+            }
+        })
         // checking if connection is active
         XCTAssertFalse(client.isDisposed)
         // closing connection using dispose method

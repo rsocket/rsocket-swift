@@ -94,5 +94,11 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 return CoreClient.init(requester: socket, channel: channel)
             }
         }
+        .flatMapError { error in
+            // Invalid url will not complete connection it will create leak promise so we need to capture error
+            // and pass to promise to avoid crash
+            requesterPromise.fail(error)
+            return connectFuture.eventLoop.makeFailedFuture(error)
+        }
     }
 }

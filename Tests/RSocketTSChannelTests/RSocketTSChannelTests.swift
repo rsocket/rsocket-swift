@@ -19,6 +19,7 @@ import XCTest
 import RSocketTestUtilities
 import RSocketCore
 import RSocketWSTransport
+import NIOTransportServices
 class RSocketTSChannelTests: XCTestCase {
     var clientBootStrap: RSocketTSChannel.ClientBootstrap<WSTransport>?
     override func setUp() {
@@ -34,6 +35,9 @@ class RSocketTSChannelTests: XCTestCase {
         let invalidUrlErrorCatch = expectation(description: "invalid url error catch")
         let headerDict: [String: String] = ["": ""]
         let uri = URL(string: "http://127.0.0.1/V1/Mock")!
+        clientBootStrap?.configure {
+            $0.channelOption(NIOTSChannelOptions.waitForActivity, value: false)
+        }
         // creating connection with invalid url
         let bootstrap = clientBootStrap?.connect(to: WSTransport.Endpoint(url: uri, additionalHTTPHeader: headerDict),
                                                  payload: Payload(metadata: "", data: ""), responder: TestRSocket())

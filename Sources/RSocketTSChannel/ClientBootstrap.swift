@@ -82,17 +82,12 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 }
             }
             .connect(host: endpoint.host, port: endpoint.port)
+        connectFuture.cascadeFailure(to: requesterPromise)
         return connectFuture.flatMap { channel in
             requesterPromise.futureResult.map { socket in
                 // initializing core client using channel object
                 return CoreClient.init(requester: socket, channel: channel)
             }
-        }
-        .flatMapError { error in
-            // Invalid url will not complete connection it will create leak promise so we need to capture error
-            // and pass to promise to avoid crash
-            requesterPromise.fail(error)
-            return connectFuture.eventLoop.makeFailedFuture(error)
         }
     }
 }

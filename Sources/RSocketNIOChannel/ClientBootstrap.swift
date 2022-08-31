@@ -88,6 +88,7 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                 }
             }
             .connect(host: endpoint.host, port: endpoint.port)
+        connectFuture.cascadeFailure(to: requesterPromise)
         return connectFuture.flatMap { channel in
             requesterPromise.futureResult.map { socket in
                 // initializing core client using channel object

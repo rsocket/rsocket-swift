@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#if canImport(Network)
 
 import XCTest
 @testable import RSocketTSChannel
@@ -20,6 +21,8 @@ import RSocketTestUtilities
 import RSocketCore
 import RSocketWSTransport
 import NIOTransportServices
+
+@available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 6.0, *)
 class RSocketTSChannelTests: XCTestCase {
     var clientBootStrap: RSocketTSChannel.ClientBootstrap<WSTransport>?
     override func setUp() {
@@ -49,3 +52,5 @@ class RSocketTSChannelTests: XCTestCase {
     }
 
 }
+
+#endif

@@ -113,7 +113,7 @@ let package = Package(
             "RSocketTSChannel",
             "RSocketWSTransport",
             "RSocketTestUtilities",
-            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
+            "RSocketCore"
         ]),
         // Examples
         .executableTarget(

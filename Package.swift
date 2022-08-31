@@ -104,7 +104,17 @@ let package = Package(
         .testTarget(name: "RSocketWSTransportTests", dependencies: [
             "RSocketWSTransport"
         ]),
-        
+        .testTarget(name: "RSocketNIOChannelTests", dependencies: [
+            "RSocketNIOChannel",
+            "RSocketWSTransport",
+            "RSocketTestUtilities"
+        ]),
+        .testTarget(name: "RSocketTSChannelTests", dependencies: [
+            "RSocketTSChannel",
+            "RSocketWSTransport",
+            "RSocketTestUtilities",
+            "RSocketCore"
+        ]),
         // Examples
         .executableTarget(
             name: "TimerClientExample",

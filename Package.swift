@@ -112,7 +112,8 @@ let package = Package(
         .testTarget(name: "RSocketTSChannelTests", dependencies: [
             "RSocketTSChannel",
             "RSocketWSTransport",
-            "RSocketTestUtilities"
+            "RSocketTestUtilities",
+            .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
         ]),
         // Examples
         .executableTarget(

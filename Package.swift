@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "RSocket",
+    platforms: [.iOS("13.0")],
     products: [
         // Core
         .library(name: "RSocketCore", targets: ["RSocketCore"]),
@@ -38,7 +39,7 @@ let package = Package(
         .target(name: "RSocketCore", dependencies: [
             .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOFoundationCompat", package: "swift-nio"),
-            //.product(name: "NIOExtras", package: "swift-nio-extras"),
+            .product(name: "NIOExtras", package: "swift-nio-extras"),
         ]),
 
         // Reactive streams

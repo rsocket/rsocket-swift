@@ -31,6 +31,6 @@ public protocol TransportChannelHandler {
         channel: Channel,
         maximumIncomingFragmentSize: Int,
         endpoint: Endpoint,
-        upgradeComplete: @escaping () -> EventLoopFuture<Void>
-    ) -> EventLoopFuture<Void>
+        upgradeComplete: @escaping () -> EventLoopFuture<Void>,
+        resultHandler: @escaping (Result<Void, Swift.Error>) -> EventLoopFuture<Void>)-> EventLoopFuture<Void>
 }

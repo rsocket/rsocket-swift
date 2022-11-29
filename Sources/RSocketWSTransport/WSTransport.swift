@@ -72,17 +72,13 @@ extension WSTransport.Endpoint: Endpoint {
 }
 
 extension WSTransport: TransportChannelHandler {
-    public func addChannelHandler(
-        channel: Channel,
-        maximumIncomingFragmentSize: Int,
-        endpoint: Endpoint,
-        upgradeComplete: @escaping () -> EventLoopFuture<Void>
-    ) -> EventLoopFuture<Void> {
+    public func addChannelHandler(channel: Channel, maximumIncomingFragmentSize: Int, endpoint: Endpoint, upgradeComplete: @escaping () -> EventLoopFuture<Void>, resultHandler : @escaping (Result<Void, Swift.Error>) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
         let httpHandler = HTTPInitialRequestHandler(
             host: endpoint.host,
             port: endpoint.port,
             uri: endpoint.uri,
-            additionalHTTPHeader: endpoint.additionalHTTPHeader
+            additionalHTTPHeader: endpoint.additionalHTTPHeader,
+            completionhandler: resultHandler
         )
         let websocketUpgrader = NIOWebSocketClientUpgrader(
             maxFrameSize: maximumIncomingFragmentSize,

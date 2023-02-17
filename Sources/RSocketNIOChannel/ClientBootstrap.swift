@@ -65,15 +65,26 @@ extension ClientBootstrap: RSocketCore.ClientBootstrap {
                     transport.addChannelHandler(
                         channel: channel,
                         maximumIncomingFragmentSize: config.fragmentation.maximumIncomingFragmentSize,
-                        endpoint: endpoint
-                    ) {
+                        endpoint: endpoint,
+                        upgradeComplete:{
                         channel.pipeline.addRSocketClientHandlers(
                             config: config,
                             setupPayload: payload,
                             responder: responder,
                             connectedPromise: requesterPromise
                         )
-                    }
+                    },resultHandler: { result in
+                        if case .failure(let error) = result {
+                            requesterPromise.fail(error)
+                            return requesterPromise.futureResult.eventLoop.makeFailedFuture(error)
+                        }
+                       return channel.pipeline.addRSocketClientHandlers(
+                            config: config,
+                            setupPayload: payload,
+                            responder: responder,
+                            connectedPromise: requesterPromise
+                        )
+                    })
                 }
                 if sslContext != nil || endpoint.requiresTLS {
                     do {

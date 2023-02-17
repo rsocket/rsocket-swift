@@ -32,12 +32,7 @@ public struct TCPTransport {
 }
 
 extension TCPTransport: TransportChannelHandler {
-    public func addChannelHandler(
-        channel: Channel,
-        maximumIncomingFragmentSize: Int,
-        endpoint: Endpoint,
-        upgradeComplete: @escaping () -> EventLoopFuture<Void>
-    ) -> EventLoopFuture<Void> {
+    public func addChannelHandler(channel: Channel, maximumIncomingFragmentSize: Int, endpoint: Endpoint, upgradeComplete: @escaping () -> EventLoopFuture<Void>, resultHandler: @escaping (Result<Void, Swift.Error>) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
         channel.pipeline.addHandlers([
             ByteToMessageHandler(
                 LengthFieldBasedFrameDecoder(lengthFieldBitLength: .threeBytes),

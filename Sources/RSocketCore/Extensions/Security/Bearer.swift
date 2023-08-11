@@ -25,7 +25,14 @@ public struct BearerAuthenticationDecoder: MetadataDecoder {
     
     @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> String {
-        fatalError("not implemented")
+        guard AuthenticationDecoder.isWellKnownAuthType(buffer) else {
+            throw Error.invalid(message: "invalid bearar metadata")
+        }
+        _ = buffer.readBytes(length: 1)
+        guard let token =  buffer.readString(length: buffer.readableBytes) else{
+            throw Error.invalid(message: "no token")
+        }
+        return token
     }
 }
 
@@ -43,7 +50,10 @@ public struct BearerAuthenticationEncoder: MetadataEncoder {
     
     @inlinable
     public func encode(_ metadata: String, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+        buffer = buffer.mergeByteBuffers(buffers:[
+            ByteBuffer(integer: UInt8(WellKnownAuthenticationType.BEARER.identifier) | UInt8(0x80)), 
+            ByteBuffer(string: metadata) // Token
+        ])
     }
 }
 

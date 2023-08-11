@@ -34,7 +34,27 @@ public struct SimpleAuthenticationDecoder: MetadataDecoder {
     
     @inlinable
     public func decode(from buffer: inout ByteBuffer) throws -> SimpleAuthentication {
-        fatalError("not implemented")
+        let _ = buffer.readBytes(length: 1)?.withUnsafeBytes{ value -> UInt8 in
+            return value.load(as: UInt8.self).bigEndian
+        }
+        guard var slice = buffer.readLengthPrefixedSlice(as: UInt16.self),
+              let username = slice.readString(length: slice.readableBytes)
+        else {
+            throw Error.invalid(message: "username could not be read")
+        }
+        let password = buffer.readString(length: buffer.readableBytes)
+        return SimpleAuthentication(username: username ,password  : password ?? "")
+    }
+    
+    @inlinable
+    func extractSimpleAuth(username : String, password : String , into buffer : inout ByteBuffer ) {
+        let usernameLength = UInt16(username.utf8.count) // 2 bits
+        var bufferLength = ByteBufferAllocator().buffer(capacity: 2)
+        bufferLength.writeInteger(usernameLength)
+        buffer = buffer.mergeByteBuffers(buffers: [ByteBuffer(integer: UInt8(WellKnownAuthenticationType.SIMPLE.identifier)),
+                                                   bufferLength,
+                                                   ByteBuffer(string: username),
+                                                   ByteBuffer(string: password)])
     }
 }
 
@@ -52,7 +72,11 @@ public struct SimpleAuthenticationEncoder: MetadataEncoder {
     
     @inlinable
     public func encode(_ metadata: SimpleAuthentication, into buffer: inout ByteBuffer) throws {
-        fatalError("not implemented")
+        buffer.writeInteger(UInt8(WellKnownAuthenticationType.SIMPLE.identifier) | UInt8(0x80))
+        try buffer.writeLengthPrefixed(as: UInt16.self) { buffer in
+            try buffer.writeString(metadata.username, encoding: .utf8)
+        }
+        try buffer.writeString(metadata.password, encoding: .utf8)
     }
 }
 

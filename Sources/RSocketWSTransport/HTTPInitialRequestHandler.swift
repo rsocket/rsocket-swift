@@ -26,12 +26,14 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     private let port: Int
     private let uri: String
     private let additionalHTTPHeader: [String: String]
-
-    internal init(host: String, port: Int, uri: String, additionalHTTPHeader: [String: String]) {
+    private let completionhandler :(Result<Void, Error>) -> EventLoopFuture<Void>
+    
+    internal init(host: String, port: Int, uri: String, additionalHTTPHeader: [String: String],completionhandler : @escaping (Result<Void,Error>)-> EventLoopFuture<Void>){
         self.host = host
         self.port = port
         self.uri = uri
         self.additionalHTTPHeader = additionalHTTPHeader
+        self.completionhandler = completionhandler
     }
 
     internal func channelActive(context: ChannelHandlerContext) {
@@ -63,6 +65,7 @@ internal final class HTTPInitialRequestHandler: ChannelInboundHandler, Removable
     internal func errorCaught(context: ChannelHandlerContext, error: Error) {
         // As we are not really interested getting notified on success or failure
         // we just pass nil as promise to reduce allocations.
+        let _ = completionhandler(.failure(error))
         context.close(promise: nil)
     }
 }

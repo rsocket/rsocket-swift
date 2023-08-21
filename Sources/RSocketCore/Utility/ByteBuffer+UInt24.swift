@@ -110,4 +110,15 @@ extension ByteBuffer {
         moveReaderIndex(forwardBy: 3)
         return integer
     }
+    
+    @discardableResult
+    @inlinable
+    internal mutating func mergeByteBuffers(buffers: [ByteBuffer]) -> ByteBuffer {
+        let totalLength = buffers.reduce(0){ $0 + $1.readableBytes}
+        var mergedBuffer =  ByteBufferAllocator().buffer(capacity: totalLength)
+        for buff in buffers {
+            mergedBuffer.writeBytes(buff.getBytes(at: 0, length: buff.readableBytes) ?? [] )
+        }
+        return mergedBuffer
+    }
 }
